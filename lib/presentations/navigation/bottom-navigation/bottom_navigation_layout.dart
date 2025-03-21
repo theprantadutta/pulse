@@ -8,6 +8,7 @@ import '../../../core/constants/hero_tags.dart';
 import '../../../core/constants/selectors.dart';
 import '../../screens/create_new_ping_screen.dart';
 import 'awesome_bottom_bar/top_level_page_view.dart';
+import 'side_navigation_bar.dart';
 import 'top_level_pages.dart';
 
 class BottomNavigationLayout extends StatefulWidget {
@@ -26,6 +27,7 @@ class BottomNavigationLayout extends StatefulWidget {
 class _BottomNavigationLayoutState extends State<BottomNavigationLayout> {
   int selectedIndex = 0;
   late PageController pageController;
+  bool isSidebarExpanded = true;
 
   @override
   void initState() {
@@ -56,21 +58,18 @@ class _BottomNavigationLayoutState extends State<BottomNavigationLayout> {
   gotoPage(int index) {
     if (index < kTopLevelPages.length && index >= 0) {
       _updateCurrentPageIndex(index);
-      // _handleIconPress(index);
     }
   }
 
   gotoNextPage() {
     if (selectedIndex != kTopLevelPages.length - 1) {
       _updateCurrentPageIndex(selectedIndex + 1);
-      // _handleIconPress(selectedIndex + 1);
     }
   }
 
   gotoPreviousPage() {
     if (selectedIndex != 0) {
       _updateCurrentPageIndex(selectedIndex - 1);
-      // _handleIconPress(selectedIndex - 1);
     }
   }
 
@@ -88,12 +87,9 @@ class _BottomNavigationLayoutState extends State<BottomNavigationLayout> {
                   ),
                   TextButton(
                     onPressed:
-                        () =>
-                        // Exit the app
-                        SystemChannels.platform.invokeMethod(
+                        () => SystemChannels.platform.invokeMethod(
                           'SystemNavigator.pop',
                         ),
-                    // FlutterExitApp.exitApp(),
                     child: const Text('Yes'),
                   ),
                 ],
@@ -105,81 +101,112 @@ class _BottomNavigationLayoutState extends State<BottomNavigationLayout> {
   Future<bool> _onBackButtonPressed() async {
     debugPrint('Back button Pressed');
     if (selectedIndex == 0) {
-      // Exit the app
-      debugPrint('Existing the app as we are on top level page');
       return await _onWillPop(context);
     } else {
-      // Go back
-      debugPrint('Going back to previous page');
       gotoPreviousPage();
       return true;
     }
+  }
+
+  void _toggleSidebar() {
+    setState(() {
+      isSidebarExpanded = !isSidebarExpanded;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
     final kPrimaryColor = Theme.of(context).primaryColor;
-    return BackButtonListener(
-      onBackButtonPressed: _onBackButtonPressed,
-      child: Scaffold(
-        extendBodyBehindAppBar: false,
-        resizeToAvoidBottomInset: false,
-        body: AnnotatedRegion(
-          value: getDefaultSystemUiStyle(isDarkTheme),
-          child: Container(
-            decoration: getBackgroundDecoration(kPrimaryColor),
-            child: TopLevelPageView(
-              pageController: pageController,
-              onPageChanged: _handlePageViewChanged,
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth > 800;
+
+        return BackButtonListener(
+          onBackButtonPressed: _onBackButtonPressed,
+          child: Scaffold(
+            extendBodyBehindAppBar: false,
+            resizeToAvoidBottomInset: false,
+            body: AnnotatedRegion(
+              value: getDefaultSystemUiStyle(isDarkTheme),
+              child: Container(
+                decoration: getBackgroundDecoration(kPrimaryColor),
+                child: Row(
+                  children: [
+                    if (isDesktop)
+                      SideNavigationBar(
+                        isSidebarExpanded: isSidebarExpanded,
+                        selectedIndex: selectedIndex,
+                        toggleSidebar: _toggleSidebar,
+                        updateCurrentPageIndex: _updateCurrentPageIndex,
+                      ),
+                    Expanded(
+                      child: TopLevelPageView(
+                        pageController: pageController,
+                        onPageChanged: _handlePageViewChanged,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.centerDocked,
+            floatingActionButton:
+                isDesktop
+                    ? null // Hide FAB for desktop
+                    : FloatingActionButton(
+                      heroTag: kAddNewPing,
+                      shape: const CircleBorder(),
+                      onPressed:
+                          () => context.push(CreateNewPingScreen.kRouteName),
+                      backgroundColor: kPrimaryColor.withValues(alpha: 0.9),
+                      child: const Icon(Icons.add, color: Colors.white),
+                    ),
+            bottomNavigationBar:
+                isDesktop
+                    ? null // Hide bottom nav for desktop
+                    : SizedBox(
+                      height: MediaQuery.sizeOf(context).height * 0.085,
+                      child: StylishBottomBar(
+                        backgroundColor:
+                            isDarkTheme
+                                ? Colors.grey.shade900
+                                : Colors.grey.shade200,
+                        notchStyle: NotchStyle.circle,
+                        option: DotBarOptions(dotStyle: DotStyle.circle),
+                        items: [
+                          BottomBarItem(
+                            icon: Icon(Symbols.network_ping),
+                            title: const Text('Ping'),
+                            selectedColor: kPrimaryColor,
+                          ),
+                          BottomBarItem(
+                            icon: Icon(Symbols.wifi),
+                            title: const Text('Network Info'),
+                            selectedColor: kPrimaryColor,
+                          ),
+                          BottomBarItem(
+                            icon: Icon(Symbols.monitor_heart),
+                            title: const Text('Diagnostics'),
+                            selectedColor: kPrimaryColor,
+                          ),
+                          BottomBarItem(
+                            icon: Icon(Symbols.settings_ethernet),
+                            title: const Text('Tools'),
+                            selectedColor: kPrimaryColor,
+                          ),
+                        ],
+                        fabLocation: StylishBarFabLocation.center,
+                        hasNotch: true,
+                        currentIndex: selectedIndex,
+                        onTap: _updateCurrentPageIndex,
+                      ),
+                    ),
           ),
-        ),
-        extendBody: true,
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        floatingActionButton: FloatingActionButton(
-          heroTag: kAddNewPing,
-          shape: CircleBorder(),
-          onPressed: () => context.push(CreateNewPingScreen.kRouteName),
-          backgroundColor: kPrimaryColor.withValues(alpha: 0.9),
-          child: Icon(Icons.add, color: Colors.white),
-        ),
-        bottomNavigationBar: SizedBox(
-          height: MediaQuery.sizeOf(context).height * 0.085,
-          child: StylishBottomBar(
-            backgroundColor:
-                isDarkTheme ? Colors.grey.shade900 : Colors.grey.shade200,
-            notchStyle: NotchStyle.circle,
-            option: DotBarOptions(dotStyle: DotStyle.circle),
-            items: [
-              BottomBarItem(
-                icon: const Icon(Symbols.network_ping),
-                title: const Text('Ping'),
-                selectedColor: kPrimaryColor,
-              ),
-              BottomBarItem(
-                icon: const Icon(Symbols.wifi),
-                title: const Text('Network Info'),
-                selectedColor: kPrimaryColor,
-              ),
-              BottomBarItem(
-                icon: const Icon(Symbols.monitor_heart),
-                title: const Text('Diagnostics'),
-                selectedColor: kPrimaryColor,
-              ),
-              BottomBarItem(
-                icon: const Icon(Symbols.settings_ethernet),
-                title: const Text('Tools'),
-                selectedColor: kPrimaryColor,
-              ),
-            ],
-            fabLocation: StylishBarFabLocation.center,
-            hasNotch: true,
-            currentIndex: selectedIndex,
-            onTap: _updateCurrentPageIndex,
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

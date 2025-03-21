@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/floating_theme_change_button.dart';
 import '../top_level_pages.dart';
 
 class TopLevelPageView extends StatelessWidget {
@@ -25,12 +27,12 @@ class TopLevelPageView extends StatelessWidget {
           ),
           // Todo: Undo this if felt necessary
           // const BackgroundDecoration(),
-          // if (!kReleaseMode)
-          //   const Positioned(
-          //     right: 10,
-          //     bottom: 10,
-          //     child: FloatingThemeChangeButton(),
-          //   ),
+          if (!kReleaseMode)
+            const Positioned(
+              right: 10,
+              bottom: 10,
+              child: FloatingThemeChangeButton(),
+            ),
         ],
       ),
     );
