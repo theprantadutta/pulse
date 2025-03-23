@@ -130,7 +130,7 @@ class _SideNavigationBarState extends State<SideNavigationBar> {
             ),
             _buildNavItem(
               icon: Symbols.wifi,
-              title: 'Network Info',
+              title: 'Network',
               index: 1,
               isExpanded: isSidebarExpanded,
               selectedColor: kPrimaryColor,

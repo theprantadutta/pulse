@@ -1,7 +1,9 @@
 import 'dart:async';
-import 'dart:math'; // For demo data generation
 
+import 'package:dart_ping/dart_ping.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 class PingScreen extends StatefulWidget {
   static const kRouteName = '/ping';
@@ -17,17 +19,23 @@ class _PingScreenState extends State<PingScreen> {
   int _pingCount = 4;
   bool _continuousPing = false;
   List<PingResult> _currentResults = [];
-  List<PingHistoryItem> _history = [];
+  final List<PingHistoryItem> _history = [];
   Timer? _pingTimer;
+  late final ScrollController _scrollController = ScrollController();
 
   // For the chart
   final List<PingDataPoint> _chartData = [];
   final int _maxChartPoints = 20;
 
+  // New parameters
+  int _interval = 1;
+  int _timeout = 5;
+
   @override
   void dispose() {
     _addressController.dispose();
     _pingTimer?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -43,12 +51,12 @@ class _PingScreenState extends State<PingScreen> {
     // Add to history if not already there
     _addToHistory(_addressController.text);
 
-    // Setup ping timer
-    _pingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    // Setup ping timer with selected interval
+    _pingTimer = Timer.periodic(Duration(seconds: _interval), (timer) async {
       _performSinglePing();
 
       // Stop after reaching count unless continuous
-      if (!_continuousPing && _currentResults.length >= _pingCount) {
+      if (!_continuousPing && _currentResults.length >= _pingCount - 1) {
         _stopPing();
       }
     });
@@ -61,37 +69,110 @@ class _PingScreenState extends State<PingScreen> {
     });
   }
 
-  void _performSinglePing() {
-    // In a real app, this would use a platform channel to perform actual pings
-    // For demo purposes, we'll generate random results
-    final bool success = Random().nextDouble() > 0.2; // 80% success rate
-    final int responseTime = success ? Random().nextInt(100) + 10 : 0;
-    final int ttl = success ? 64 : 0;
-
-    final result = PingResult(
-      timestamp: DateTime.now(),
-      success: success,
-      responseTime: responseTime,
-      ttl: ttl,
+  void _performSinglePing() async {
+    final address = _addressController.text;
+    // Create a Ping object with the desired host and parameters
+    final ping = Ping(
+      address,
+      count: 1,
+      interval: _interval,
+      timeout: _timeout,
     );
 
-    setState(() {
-      _currentResults.add(result);
+    // Listen to the ping stream
+    ping.stream.listen(
+      (event) {
+        if (event.response != null) {
+          final response = event.response!;
+          // Handle PingResponse
+          final bool success = response.time != null;
+          // final int responseTime = response.time?.round() ?? 0;
+          final int responseTime = response.time?.inMilliseconds ?? 0;
+          final int ttl = response.ttl ?? 0;
+          final bool timedOut = !success;
 
-      // Add to chart data
-      _chartData.add(
-        PingDataPoint(
-          time: _chartData.length.toString(),
-          responseTime: responseTime.toDouble(),
-          success: success,
-        ),
-      );
+          final result = PingResult(
+            timestamp: DateTime.now(),
+            success: success,
+            responseTime: responseTime,
+            ttl: ttl,
+            timedOut: timedOut,
+          );
 
-      // Keep chart data limited to max points
-      if (_chartData.length > _maxChartPoints) {
-        _chartData.removeAt(0);
-      }
-    });
+          setState(() {
+            _currentResults.add(result);
+
+            // Add to chart data
+            _chartData.add(
+              PingDataPoint(
+                time: _chartData.length.toString(),
+                responseTime: responseTime.toDouble(),
+                success: success,
+                timedOut: timedOut,
+              ),
+            );
+
+            // Keep chart data limited to max points
+            if (_chartData.length > _maxChartPoints) {
+              _chartData.removeAt(0);
+            }
+
+            if (_scrollController.hasClients) {
+              _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent + 50,
+                duration: Duration(milliseconds: 500),
+                curve: Curves.easeOut,
+              );
+            }
+          });
+        } else if (event.summary != null) {
+          // final summary = event.summary!;
+          // Handle PingSummary if needed
+          // print(
+          //   'Ping Summary: ${summary.transmitted} transmitted, ${summary.received} received',
+          // );
+        }
+      },
+      onError: (error) {
+        // Handle any errors that occur during the ping process
+        print('Ping error: $error');
+
+        final result = PingResult(
+          timestamp: DateTime.now(),
+          success: false,
+          responseTime: 0,
+          ttl: 0,
+          timedOut: true,
+        );
+
+        setState(() {
+          _currentResults.add(result);
+
+          // Add to chart data
+          _chartData.add(
+            PingDataPoint(
+              time: _chartData.length.toString(),
+              responseTime: 0.0,
+              success: false,
+              timedOut: true,
+            ),
+          );
+
+          // Keep chart data limited to max points
+          if (_chartData.length > _maxChartPoints) {
+            _chartData.removeAt(0);
+          }
+
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent + 50,
+              duration: Duration(milliseconds: 500),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      },
+    );
   }
 
   void _addToHistory(String address) {
@@ -100,7 +181,12 @@ class _PingScreenState extends State<PingScreen> {
       setState(() {
         _history.insert(
           0,
-          PingHistoryItem(address: address, timestamp: DateTime.now()),
+          PingHistoryItem(
+            address: address,
+            timestamp: DateTime.now(),
+            interval: _interval,
+            timeout: _timeout,
+          ),
         );
 
         // Keep history limited to 10 items
@@ -114,14 +200,28 @@ class _PingScreenState extends State<PingScreen> {
         _history.removeWhere((item) => item.address == address);
         _history.insert(
           0,
-          PingHistoryItem(address: address, timestamp: DateTime.now()),
+          PingHistoryItem(
+            address: address,
+            timestamp: DateTime.now(),
+            interval: _interval,
+            timeout: _timeout,
+          ),
         );
       });
     }
   }
 
-  void _rePing(String address) {
+  void _rePing(String address, {int? interval, int? timeout}) {
     _addressController.text = address;
+
+    // Apply saved settings if provided
+    if (interval != null) {
+      setState(() => _interval = interval);
+    }
+    if (timeout != null) {
+      setState(() => _timeout = timeout);
+    }
+
     _startPing();
   }
 
@@ -240,7 +340,7 @@ class _PingScreenState extends State<PingScreen> {
 
             SizedBox(height: 16),
 
-            // Ping options
+            // Ping options - First row
             Row(
               children: [
                 // Number of pings
@@ -288,6 +388,69 @@ class _PingScreenState extends State<PingScreen> {
                       ),
                       const Text('Continuous Ping'),
                     ],
+                  ),
+                ),
+              ],
+            ),
+
+            SizedBox(height: 16),
+
+            // New options - Second row
+            Row(
+              children: [
+                // Timeout
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(
+                      labelText: 'Timeout (seconds)',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: _timeout,
+                    items:
+                        [1, 2, 3, 5, 10, 15, 30].map((timeout) {
+                          return DropdownMenuItem<int>(
+                            value: timeout,
+                            child: Text('$timeout sec'),
+                          );
+                        }).toList(),
+                    onChanged:
+                        _isPinging
+                            ? null
+                            : (value) {
+                              if (value != null) {
+                                setState(() {
+                                  _timeout = value;
+                                });
+                              }
+                            },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Interval
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(
+                      labelText: 'Interval (seconds)',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: _interval,
+                    items:
+                        [1, 2, 3, 5, 10].map((interval) {
+                          return DropdownMenuItem<int>(
+                            value: interval,
+                            child: Text('$interval sec'),
+                          );
+                        }).toList(),
+                    onChanged:
+                        _isPinging
+                            ? null
+                            : (value) {
+                              if (value != null) {
+                                setState(() {
+                                  _interval = value;
+                                });
+                              }
+                            },
                   ),
                 ),
               ],
@@ -349,7 +512,7 @@ class _PingScreenState extends State<PingScreen> {
                 ),
               ),
               Expanded(
-                flex: 4,
+                flex: 3,
                 child: Text(
                   'Time',
                   style: TextStyle(fontWeight: FontWeight.bold),
@@ -387,6 +550,7 @@ class _PingScreenState extends State<PingScreen> {
                   ? const Center(child: Text('No results yet'))
                   : ListView.builder(
                     itemCount: _currentResults.length,
+                    controller: _scrollController,
                     itemBuilder: (context, index) {
                       final result = _currentResults[index];
                       return Container(
@@ -399,20 +563,26 @@ class _PingScreenState extends State<PingScreen> {
                           children: [
                             Expanded(flex: 1, child: Text('${index + 1}')),
                             Expanded(
-                              flex: 4,
+                              flex: 3,
                               child: Text(
-                                '${result.timestamp.hour}:${result.timestamp.minute}:${result.timestamp.second}',
+                                DateFormat(
+                                  "hh:mm:ss a",
+                                ).format(result.timestamp),
                               ),
                             ),
                             Expanded(
                               flex: 2,
                               child: Text(
-                                result.success ? 'Success' : 'Failed',
+                                result.timedOut
+                                    ? 'Timeout'
+                                    : (result.success ? 'Success' : 'Failed'),
                                 style: TextStyle(
                                   color:
-                                      result.success
-                                          ? Colors.green
-                                          : Colors.red,
+                                      result.timedOut
+                                          ? Colors.orange
+                                          : (result.success
+                                              ? Colors.green
+                                              : Colors.red),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -455,8 +625,13 @@ class _PingScreenState extends State<PingScreen> {
                     ),
                     _buildSummaryItem(
                       'Failed',
-                      '${_currentResults.where((r) => !r.success).length}',
+                      '${_currentResults.where((r) => !r.success && !r.timedOut).length}',
                       Colors.red,
+                    ),
+                    _buildSummaryItem(
+                      'Timeout',
+                      '${_currentResults.where((r) => r.timedOut).length}',
+                      Colors.orange,
                     ),
                     _buildSummaryItem(
                       'Avg Time',
@@ -495,8 +670,6 @@ class _PingScreenState extends State<PingScreen> {
   }
 
   Widget _buildResponseTimeChart() {
-    // This is a simplified chart implementation
-    // In a real app, you'd use a chart library like fl_chart
     return Column(
       children: [
         const SizedBox(height: 16),
@@ -506,61 +679,67 @@ class _PingScreenState extends State<PingScreen> {
         ),
         const SizedBox(height: 8),
         Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final double maxHeight = constraints.maxHeight - 50;
-              final double maxWidth = constraints.maxWidth;
-              final double barWidth = maxWidth / _chartData.length - 4;
-              final kPrimaryColor = Theme.of(context).primaryColor;
-
-              // Find maximum response time for scaling
-              final double maxResponseTime = _chartData
-                  .map((d) => d.responseTime)
-                  .reduce((a, b) => a > b ? a : b);
-
-              return Column(
-                children: [
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children:
-                          _chartData.map((data) {
-                            final double height =
-                                data.success
-                                    ? (data.responseTime / maxResponseTime) *
-                                        maxHeight
-                                    : 10; // Small bar for failed pings
-
-                            return Container(
-                              width: barWidth,
-                              height: height,
-                              margin: const EdgeInsets.symmetric(horizontal: 2),
-                              decoration: BoxDecoration(
-                                color:
-                                    data.success ? kPrimaryColor : Colors.red,
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(4),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 30,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('0'),
-                        Text('Ping Sequence'),
-                        Text('${_chartData.length}'),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            },
+          child: SfCartesianChart(
+            primaryXAxis: NumericAxis(
+              title: AxisTitle(text: 'Ping Sequence'),
+              majorGridLines: const MajorGridLines(width: 0),
+            ),
+            primaryYAxis: NumericAxis(
+              title: AxisTitle(text: 'Response Time (ms)'),
+            ),
+            tooltipBehavior: TooltipBehavior(enable: true),
+            legend: Legend(isVisible: true, position: LegendPosition.bottom),
+            series: <CartesianSeries>[
+              ColumnSeries<PingDataPoint, int>(
+                animationDuration: 1000,
+                name: 'Success',
+                dataSource:
+                    _chartData
+                        .where((data) => data.success && !data.timedOut)
+                        .toList(),
+                xValueMapper:
+                    (PingDataPoint data, _) => _chartData.indexOf(data),
+                yValueMapper: (PingDataPoint data, _) => data.responseTime,
+                color: Colors.green,
+                width: 0.8,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(4),
+                ),
+              ),
+              ColumnSeries<PingDataPoint, int>(
+                animationDuration: 1000,
+                name: 'Failed',
+                dataSource:
+                    _chartData
+                        .where((data) => !data.success && !data.timedOut)
+                        .toList(),
+                xValueMapper:
+                    (PingDataPoint data, _) => _chartData.indexOf(data),
+                yValueMapper:
+                    (PingDataPoint data, _) =>
+                        data.responseTime > 0 ? data.responseTime : 10,
+                color: Colors.red,
+                width: 0.8,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(4),
+                ),
+              ),
+              ColumnSeries<PingDataPoint, int>(
+                animationDuration: 1000,
+                name: 'Timeout',
+                dataSource: _chartData.where((data) => data.timedOut).toList(),
+                xValueMapper:
+                    (PingDataPoint data, _) => _chartData.indexOf(data),
+                yValueMapper:
+                    (PingDataPoint data, _) =>
+                        data.responseTime > 0 ? data.responseTime : 10,
+                color: Colors.orange,
+                width: 0.8,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(4),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -576,14 +755,34 @@ class _PingScreenState extends State<PingScreen> {
             final item = _history[index];
             return ListTile(
               title: Text(item.address),
-              subtitle: Text(
-                '${item.timestamp.day}/${item.timestamp.month}/${item.timestamp.year} ${item.timestamp.hour}:${item.timestamp.minute}',
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${item.timestamp.day}/${item.timestamp.month}/${item.timestamp.year} ${item.timestamp.hour}:${item.timestamp.minute}',
+                  ),
+                  Text(
+                    'Interval: ${item.interval}s | Timeout: ${item.timeout}s',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                  ),
+                ],
               ),
               trailing: IconButton(
                 icon: const Icon(Icons.refresh),
-                onPressed: () => _rePing(item.address),
+                onPressed:
+                    () => _rePing(
+                      item.address,
+                      interval: item.interval,
+                      timeout: item.timeout,
+                    ),
               ),
-              onTap: () => _rePing(item.address),
+              onTap:
+                  () => _rePing(
+                    item.address,
+                    interval: item.interval,
+                    timeout: item.timeout,
+                  ),
+              isThreeLine: true,
             );
           },
         );
@@ -607,30 +806,41 @@ class PingResult {
   final bool success;
   final int responseTime; // in milliseconds
   final int ttl;
+  final bool timedOut;
 
   PingResult({
     required this.timestamp,
     required this.success,
     required this.responseTime,
     required this.ttl,
+    required this.timedOut,
   });
 }
 
 class PingHistoryItem {
   final String address;
   final DateTime timestamp;
+  final int interval;
+  final int timeout;
 
-  PingHistoryItem({required this.address, required this.timestamp});
+  PingHistoryItem({
+    required this.address,
+    required this.timestamp,
+    required this.interval,
+    required this.timeout,
+  });
 }
 
 class PingDataPoint {
   final String time;
   final double responseTime;
   final bool success;
+  final bool timedOut;
 
   PingDataPoint({
     required this.time,
     required this.responseTime,
     required this.success,
+    required this.timedOut,
   });
 }

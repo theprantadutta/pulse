@@ -1,6 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart' as latlong2;
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 class ToolsScreen extends StatefulWidget {
   static const kRouteName = '/tools';
@@ -14,16 +21,6 @@ class _ToolsScreenState extends State<ToolsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool isDarkMode = false;
-  Color primaryColor = Colors.blue;
-
-  // Ping settings
-  int packetSize = 32;
-  int pingInterval = 1000; // milliseconds
-  int pingTimeout = 5000; // milliseconds
-  String pingTarget = '8.8.8.8';
-  List<int> pingResults = [];
-  bool isPinging = false;
-  Timer? pingTimer;
 
   // Geolocation
   String geoIpAddress = '';
@@ -35,6 +32,8 @@ class _ToolsScreenState extends State<ToolsScreen>
   List<Map<String, dynamic>> networkStats = [];
   Timer? monitorTimer;
 
+  var _markers = <Marker>[];
+
   @override
   void initState() {
     super.initState();
@@ -44,42 +43,11 @@ class _ToolsScreenState extends State<ToolsScreen>
   @override
   void dispose() {
     _tabController.dispose();
-    pingTimer?.cancel();
     monitorTimer?.cancel();
     super.dispose();
   }
 
-  // Simulate ping functionality
-  void startPing() {
-    if (isPinging) return;
-
-    setState(() {
-      isPinging = true;
-      pingResults.clear();
-    });
-
-    pingTimer = Timer.periodic(Duration(milliseconds: pingInterval), (timer) {
-      // In a real app, you would use a platform channel to perform actual pings
-      // This is just a simulation
-      final pingTime = 20 + (DateTime.now().millisecondsSinceEpoch % 80);
-
-      setState(() {
-        pingResults.add(pingTime);
-        if (pingResults.length > 100) {
-          pingResults.removeAt(0);
-        }
-      });
-    });
-  }
-
-  void stopPing() {
-    pingTimer?.cancel();
-    setState(() {
-      isPinging = false;
-    });
-  }
-
-  // Simulate geolocation lookup
+  // geolocation lookup
   Future<void> lookupGeolocation() async {
     if (geoIpAddress.isEmpty) return;
 
@@ -87,25 +55,62 @@ class _ToolsScreenState extends State<ToolsScreen>
       isLoadingGeo = true;
     });
 
-    // Simulate network delay
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final token = dotenv.get('IP_INFO_TOKEN', fallback: null);
 
-    // In a real app, you would make an API call to a geolocation service
-    setState(() {
-      isLoadingGeo = false;
-      geoResults = {
-        'ip': geoIpAddress,
-        'country': 'United States',
-        'region': 'California',
-        'city': 'Mountain View',
-        'lat': 37.4223,
-        'lng': -122.0846,
-        'isp': 'Google LLC',
-      };
-    });
+      // Make an API call to ipinfo.io
+      final response = await http.get(
+        Uri.parse('https://ipinfo.io/$geoIpAddress?token=$token'),
+      );
+
+      if (response.statusCode == 200) {
+        // Parse the JSON response
+        final data = json.decode(response.body);
+
+        // Update the state with real data
+        setState(() {
+          isLoadingGeo = false;
+          geoResults = {
+            'ip': data['ip'],
+            'country': data['country'],
+            'region': data['region'],
+            'city': data['city'],
+            'lat': data['loc']?.split(',')[0], // Extract latitude
+            'lng': data['loc']?.split(',')[1], // Extract longitude
+            'isp': data['org'],
+          };
+          _markers = [
+            Marker(
+              point: latlong2.LatLng(
+                double.tryParse(geoResults['lat'] ?? '') ?? 51.509364,
+                double.tryParse(geoResults['lng'] ?? '') ?? -0.128928,
+              ),
+              child: IconButton(
+                onPressed: () {},
+                icon: Icon(Icons.location_on, color: Colors.black87),
+              ),
+            ),
+          ];
+        });
+      } else {
+        // Handle API errors
+        setState(() {
+          isLoadingGeo = false;
+          geoResults = {
+            'error':
+                'Failed to fetch geolocation data. Status code: ${response.statusCode}',
+          };
+        });
+      }
+    } catch (e) {
+      // Handle network or parsing errors
+      setState(() {
+        isLoadingGeo = false;
+        geoResults = {'error': 'An error occurred: $e'};
+      });
+    }
   }
 
-  // Simulate network monitoring
   void startNetworkMonitoring() {
     if (isMonitoring) return;
 
@@ -114,25 +119,82 @@ class _ToolsScreenState extends State<ToolsScreen>
       networkStats.clear();
     });
 
-    monitorTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      // In a real app, you would gather actual network statistics
+    // List of reliable servers to ping
+    final servers = ['google.com', 'cloudflare.com', '1.1.1.1', '8.8.8.8'];
+
+    // Use a slightly longer interval to reduce load
+    monitorTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
       final timestamp = DateTime.now();
-      final latency = 30 + (timestamp.millisecondsSinceEpoch % 50);
-      final packetLoss = (timestamp.millisecondsSinceEpoch % 5) / 100;
+      final results = await _gatherNetworkMetrics(servers);
 
       setState(() {
         networkStats.add({
           'timestamp': timestamp,
-          'latency': latency,
-          'packetLoss': packetLoss,
-          'jitter': (timestamp.millisecondsSinceEpoch % 10).toDouble(),
+          'latency': results['latency'],
+          'packetLoss': results['packetLoss'],
+          'jitter': results['jitter'],
         });
 
-        if (networkStats.length > 100) {
+        if (networkStats.length > 30) {
+          // Keep fewer data points
           networkStats.removeAt(0);
         }
       });
     });
+  }
+
+  Future<Map<String, double>> _gatherNetworkMetrics(
+    List<String> servers,
+  ) async {
+    List<double> latencies = [];
+    int failedPings = 0;
+
+    // Only test a subset of servers each time to reduce load
+    final serversToTest = servers.take(2).toList();
+
+    // Run pings in parallel instead of sequentially
+    List<Future<double?>> pingFutures =
+        serversToTest.map((server) async {
+          try {
+            final stopwatch = Stopwatch()..start();
+
+            stopwatch.stop();
+            return stopwatch.elapsedMilliseconds.toDouble();
+          } catch (e) {
+            return null; // Return null for failed pings
+          }
+        }).toList();
+
+    // Wait for all pings to complete
+    final results = await Future.wait(pingFutures);
+
+    // Process results
+    for (final result in results) {
+      if (result != null) {
+        latencies.add(result);
+      } else {
+        failedPings++;
+      }
+    }
+
+    // Calculate metrics
+    double avgLatency =
+        latencies.isEmpty
+            ? 0
+            : latencies.reduce((a, b) => a + b) / latencies.length;
+    double jitter = 0;
+    if (latencies.length > 1) {
+      double sum = 0;
+      for (int i = 0; i < latencies.length - 1; i++) {
+        sum += (latencies[i] - latencies[i + 1]).abs();
+      }
+      jitter = sum / (latencies.length - 1);
+    }
+
+    double packetLoss =
+        serversToTest.isEmpty ? 0 : failedPings / serversToTest.length;
+
+    return {'latency': avgLatency, 'packetLoss': packetLoss, 'jitter': jitter};
   }
 
   void stopNetworkMonitoring() {
@@ -142,267 +204,59 @@ class _ToolsScreenState extends State<ToolsScreen>
     });
   }
 
-  // Toggle between light and dark themes
-  void toggleTheme() {
-    setState(() {
-      isDarkMode = !isDarkMode;
-    });
-  }
-
-  // Change the primary color
-  void changeColor(Color color) {
-    setState(() {
-      primaryColor = color;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context).copyWith(
-      brightness: isDarkMode ? Brightness.dark : Brightness.light,
-      primaryColor: primaryColor,
-      colorScheme: (isDarkMode
-              ? const ColorScheme.dark()
-              : const ColorScheme.light())
-          .copyWith(primary: primaryColor),
-    );
-
-    return Theme(
-      data: theme,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Network Tools'),
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(text: 'Ping', icon: Icon(Icons.sensors)),
-              Tab(text: 'Geolocation', icon: Icon(Icons.location_on)),
-              Tab(text: 'Network Monitor', icon: Icon(Icons.speed)),
-            ],
-          ),
-          actions: [
-            IconButton(
-              icon: Icon(isDarkMode ? Icons.light_mode : Icons.dark_mode),
-              onPressed: toggleTheme,
-              tooltip: 'Toggle theme',
-            ),
-            PopupMenuButton<Color>(
-              icon: const Icon(Icons.palette),
-              tooltip: 'Change theme color',
-              onSelected: changeColor,
-              itemBuilder:
-                  (context) => [
-                    PopupMenuItem(
-                      value: Colors.blue,
-                      child: ColorOption(color: Colors.blue, name: 'Blue'),
-                    ),
-                    PopupMenuItem(
-                      value: Colors.red,
-                      child: ColorOption(color: Colors.red, name: 'Red'),
-                    ),
-                    PopupMenuItem(
-                      value: Colors.green,
-                      child: ColorOption(color: Colors.green, name: 'Green'),
-                    ),
-                    PopupMenuItem(
-                      value: Colors.purple,
-                      child: ColorOption(color: Colors.purple, name: 'Purple'),
-                    ),
-                    PopupMenuItem(
-                      value: Colors.orange,
-                      child: ColorOption(color: Colors.orange, name: 'Orange'),
-                    ),
-                  ],
-            ),
-          ],
-        ),
-        body: TabBarView(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Network Tools'),
+        bottom: TabBar(
           controller: _tabController,
-          children: [
-            _buildPingTab(),
-            _buildGeolocationTab(),
-            _buildNetworkMonitorTab(),
+          tabs: const [
+            Tab(text: 'Geolocation', icon: Icon(Icons.location_on)),
+            Tab(text: 'Network Monitor', icon: Icon(Icons.speed)),
+            Tab(text: 'Alerts', icon: Icon(Icons.notifications)),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildPingTab() {
-    final avgPing =
-        pingResults.isEmpty
-            ? 0.0
-            : pingResults.reduce((a, b) => a + b) / pingResults.length;
-
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildGeolocationTab(),
+          _buildNetworkMonitorTab(),
+          Center(
+            child: Center(
+              child: SizedBox(
+                width: 400,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 10,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Custom Ping Settings',
+                    Icon(Icons.warning, size: 80),
+                    Text(
+                      'Not Implemented Yet',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      decoration: const InputDecoration(
-                        labelText: 'Target IP or Domain',
-                        border: OutlineInputBorder(),
+                    Text(
+                      'This feature is not implemented yet. We are working on it and it will be available soon.',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey.shade600,
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          pingTarget = value;
-                        });
-                      },
-                      initialValue: pingTarget,
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Packet Size: ${packetSize}B'),
-                              Slider(
-                                value: packetSize.toDouble(),
-                                min: 16,
-                                max: 1024,
-                                divisions: 50,
-                                onChanged: (value) {
-                                  setState(() {
-                                    packetSize = value.round();
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Interval: ${pingInterval}ms'),
-                              Slider(
-                                value: pingInterval.toDouble(),
-                                min: 100,
-                                max: 5000,
-                                divisions: 49,
-                                onChanged: (value) {
-                                  setState(() {
-                                    pingInterval = value.round();
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Timeout: ${pingTimeout}ms'),
-                              Slider(
-                                value: pingTimeout.toDouble(),
-                                min: 1000,
-                                max: 10000,
-                                divisions: 9,
-                                onChanged: (value) {
-                                  setState(() {
-                                    pingTimeout = value.round();
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton.icon(
-                          icon: Icon(isPinging ? Icons.stop : Icons.play_arrow),
-                          label: Text(isPinging ? 'Stop' : 'Start Ping'),
-                          onPressed: isPinging ? stopPing : startPing,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
-                          ),
-                        ),
-                      ],
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Ping Results',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Target: $pingTarget${isPinging ? " (pinging)" : ""}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Average: ${avgPing.toStringAsFixed(2)}ms',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Samples: ${pingResults.length}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 200,
-                      child:
-                          pingResults.isEmpty
-                              ? const Center(child: Text('No ping data yet'))
-                              : _buildPingChart(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
-  }
-
-  Widget _buildPingChart() {
-    // In a real app, you would use a proper charting library
-    // This is a simple visualization
-    return CustomPaint(painter: PingChartPainter(pingResults));
   }
 
   Widget _buildGeolocationTab() {
@@ -494,26 +348,47 @@ class _ToolsScreenState extends State<ToolsScreen>
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 clipBehavior: Clip.antiAlias,
-                                child: Stack(
-                                  children: [
-                                    // In a real app, you would use a proper map widget
-                                    // like Google Maps or MapBox
-                                    Container(
-                                      color: Colors.grey[200],
-                                      child: const Center(
-                                        child: Text('Map would appear here'),
-                                      ),
-                                    ),
-                                    Positioned.fill(
-                                      child: Center(
-                                        child: Icon(
-                                          Icons.location_on,
-                                          color: primaryColor,
-                                          size: 32,
+                                child: StatefulBuilder(
+                                  key: Key(geoResults.toString()),
+                                  builder: (context, setMapState) {
+                                    return FlutterMap(
+                                      options: MapOptions(
+                                        initialCenter: latlong2.LatLng(
+                                          double.tryParse(
+                                                geoResults['lat'] ?? '',
+                                              ) ??
+                                              51.509364,
+                                          double.tryParse(
+                                                geoResults['lng'] ?? '',
+                                              ) ??
+                                              -0.128928,
                                         ),
+                                        initialZoom: 9.2,
                                       ),
-                                    ),
-                                  ],
+                                      children: [
+                                        TileLayer(
+                                          // Bring your own tiles
+                                          urlTemplate:
+                                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // For demonstration only
+                                          userAgentPackageName:
+                                              'com.example.app', // Add your app identifier
+                                          // And many more recommended properties!
+                                        ),
+                                        RichAttributionWidget(
+                                          // Include a stylish prebuilt attribution widget that meets all requirments
+                                          attributions: [
+                                            TextSourceAttribution(
+                                              'OpenStreetMap contributors',
+                                              // onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')), // (external)
+                                              onTap: () {}, // (external)
+                                            ),
+                                            // Also add images...
+                                          ],
+                                        ),
+                                        MarkerLayer(markers: _markers),
+                                      ],
+                                    );
+                                  },
                                 ),
                               ),
                             ),
@@ -656,9 +531,75 @@ class _ToolsScreenState extends State<ToolsScreen>
   }
 
   Widget _buildNetworkStatsChart() {
-    // In a real app, you would use a proper charting library
-    // This is a simple visualization
-    return CustomPaint(painter: NetworkStatsPainter(networkStats));
+    // Convert your map data to typed objects for better performance
+    final chartData =
+        networkStats
+            .map(
+              (stat) => NetworkData(
+                timestamp: stat['timestamp'] as DateTime,
+                latency: (stat['latency'] as num).toDouble(),
+                packetLoss:
+                    (stat['packetLoss'] as num).toDouble() *
+                    100, // Convert to percentage
+                jitter: (stat['jitter'] as num).toDouble(),
+              ),
+            )
+            .toList();
+
+    return SfCartesianChart(
+      legend: Legend(isVisible: true, position: LegendPosition.top),
+      tooltipBehavior: TooltipBehavior(enable: true),
+      primaryXAxis: DateTimeAxis(
+        majorGridLines: const MajorGridLines(width: 0),
+        intervalType: DateTimeIntervalType.auto,
+      ),
+      primaryYAxis: NumericAxis(
+        title: AxisTitle(text: 'Latency (ms)'),
+        majorGridLines: const MajorGridLines(width: 0.5),
+      ),
+      axes: <ChartAxis>[
+        NumericAxis(
+          name: 'packetLossAxis',
+          opposedPosition: true,
+          title: AxisTitle(text: 'Packet Loss (%)'),
+          majorGridLines: const MajorGridLines(width: 0),
+        ),
+        NumericAxis(
+          name: 'jitterAxis',
+          opposedPosition: true,
+          title: AxisTitle(text: 'Jitter (ms)'),
+          majorGridLines: const MajorGridLines(width: 0),
+        ),
+      ],
+      series: <CartesianSeries>[
+        LineSeries<NetworkData, DateTime>(
+          name: 'Latency',
+          dataSource: chartData,
+          xValueMapper: (NetworkData data, _) => data.timestamp,
+          yValueMapper: (NetworkData data, _) => data.latency,
+          color: Colors.blue,
+          markerSettings: const MarkerSettings(isVisible: true),
+        ),
+        LineSeries<NetworkData, DateTime>(
+          name: 'Packet Loss',
+          dataSource: chartData,
+          xValueMapper: (NetworkData data, _) => data.timestamp,
+          yValueMapper: (NetworkData data, _) => data.packetLoss,
+          yAxisName: 'packetLossAxis',
+          color: Colors.red,
+          markerSettings: const MarkerSettings(isVisible: true),
+        ),
+        LineSeries<NetworkData, DateTime>(
+          name: 'Jitter',
+          dataSource: chartData,
+          xValueMapper: (NetworkData data, _) => data.timestamp,
+          yValueMapper: (NetworkData data, _) => data.jitter,
+          yAxisName: 'jitterAxis',
+          color: Colors.green,
+          markerSettings: const MarkerSettings(isVisible: true),
+        ),
+      ],
+    );
   }
 
   Widget _buildNetworkStatsTable() {
@@ -763,189 +704,57 @@ class ColorOption extends StatelessWidget {
   }
 }
 
-// Custom painter for ping chart
-class PingChartPainter extends CustomPainter {
-  final List<int> pingResults;
-
-  PingChartPainter(this.pingResults);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (pingResults.isEmpty) return;
-
-    final paint =
-        Paint()
-          ..color = Colors.blue
-          ..strokeWidth = 2
-          ..style = PaintingStyle.stroke;
-
-    final path = Path();
-    final maxPing = pingResults.reduce((a, b) => a > b ? a : b).toDouble();
-    final minPing = pingResults.reduce((a, b) => a < b ? a : b).toDouble();
-    final range = maxPing - minPing + 10; // Add padding
-
-    final dx = size.width / (pingResults.length - 1);
-    final dy = size.height / range;
-
-    path.moveTo(0, size.height - (pingResults[0] - minPing) * dy);
-
-    for (int i = 1; i < pingResults.length; i++) {
-      path.lineTo(i * dx, size.height - (pingResults[i] - minPing) * dy);
-    }
-
-    canvas.drawPath(path, paint);
-
-    // Draw grid lines
-    final gridPaint =
-        Paint()
-          ..color = Colors.grey.withOpacity(0.5)
-          ..strokeWidth = 0.5;
-
-    for (int i = 0; i <= 4; i++) {
-      final y = size.height * i / 4;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-
-      final pingValue = minPing + (range - range * i / 4);
-      final textPainter = TextPainter(
-        text: TextSpan(
-          text: '${pingValue.round()}ms',
-          style: const TextStyle(color: Colors.grey, fontSize: 10),
-        ),
-        textDirection: TextDirection.ltr,
-      );
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(0, y - 12));
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return true;
-  }
-}
-
 // Custom painter for network stats
 class NetworkStatsPainter extends CustomPainter {
   final List<Map<String, dynamic>> networkStats;
 
-  NetworkStatsPainter(this.networkStats);
+  // Cache values to avoid recomputing every frame
+  double _maxLatency = 1.0;
+  double _maxPacketLoss = 0.01;
+  double _maxJitter = 1.0;
+
+  NetworkStatsPainter(this.networkStats) {
+    // Compute max values only once during construction
+    _computeMaxValues();
+  }
+
+  void _computeMaxValues() {
+    if (networkStats.isEmpty) return;
+
+    for (var stat in networkStats) {
+      _maxLatency = math.max(_maxLatency, stat['latency'].toDouble());
+      _maxPacketLoss = math.max(_maxPacketLoss, stat['packetLoss'].toDouble());
+      _maxJitter = math.max(_maxJitter, stat['jitter'].toDouble());
+    }
+
+    // Add padding to max values
+    _maxLatency *= 1.2;
+    _maxPacketLoss *= 1.2;
+    _maxJitter *= 1.2;
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
     if (networkStats.isEmpty) return;
-
-    final latencyPaint =
-        Paint()
-          ..color = Colors.blue
-          ..strokeWidth = 2
-          ..style = PaintingStyle.stroke;
-
-    final jitterPaint =
-        Paint()
-          ..color = Colors.orange
-          ..strokeWidth = 2
-          ..style = PaintingStyle.stroke;
-
-    final packetLossPaint =
-        Paint()
-          ..color = Colors.red
-          ..strokeWidth = 2
-          ..style = PaintingStyle.stroke;
-
-    final latencyPath = Path();
-    final jitterPath = Path();
-    final packetLossPath = Path();
-
-    final maxLatency =
-        networkStats
-            .map((s) => s['latency'] as int)
-            .reduce((a, b) => a > b ? a : b)
-            .toDouble();
-    final maxJitter = networkStats
-        .map((s) => s['jitter'] as double)
-        .reduce((a, b) => a > b ? a : b);
-    final maxPacketLoss = networkStats
-        .map((s) => s['packetLoss'] as double)
-        .reduce((a, b) => a > b ? a : b);
-
-    final dx = size.width / (networkStats.length - 1);
-    final latencyDy = size.height / (maxLatency + 10); // Add padding
-    final jitterDy = size.height / (maxJitter + 1); // Add padding
-    final packetLossDy = size.height / (maxPacketLoss + 0.01); // Add padding
-
-    latencyPath.moveTo(0, size.height - networkStats[0]['latency'] * latencyDy);
-    jitterPath.moveTo(0, size.height - networkStats[0]['jitter'] * jitterDy);
-    packetLossPath.moveTo(
-      0,
-      size.height - networkStats[0]['packetLoss'] * packetLossDy,
-    );
-
-    for (int i = 1; i < networkStats.length; i++) {
-      latencyPath.lineTo(
-        i * dx,
-        size.height - networkStats[i]['latency'] * latencyDy,
-      );
-
-      jitterPath.lineTo(
-        i * dx,
-        size.height - networkStats[i]['jitter'] * jitterDy,
-      );
-
-      packetLossPath.lineTo(
-        i * dx,
-        size.height - networkStats[i]['packetLoss'] * packetLossDy,
-      );
-    }
-
-    canvas.drawPath(latencyPath, latencyPaint);
-    canvas.drawPath(jitterPath, jitterPaint);
-    canvas.drawPath(packetLossPath, packetLossPaint);
-
-    // Draw legend
-    final legendPaint = Paint()..style = PaintingStyle.fill;
-
-    // Latency
-    legendPaint.color = Colors.blue;
-    canvas.drawRect(const Rect.fromLTWH(10, 10, 14, 14), legendPaint);
-    final latencyText = TextPainter(
-      text: const TextSpan(
-        text: 'Latency',
-        style: TextStyle(color: Colors.black, fontSize: 12),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    latencyText.layout();
-    latencyText.paint(canvas, const Offset(30, 11));
-
-    // Jitter
-    legendPaint.color = Colors.orange;
-    canvas.drawRect(const Rect.fromLTWH(90, 10, 14, 14), legendPaint);
-    final jitterText = TextPainter(
-      text: const TextSpan(
-        text: 'Jitter',
-        style: TextStyle(color: Colors.black, fontSize: 12),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    jitterText.layout();
-    jitterText.paint(canvas, const Offset(110, 11));
-
-    // Packet Loss
-    legendPaint.color = Colors.red;
-    canvas.drawRect(const Rect.fromLTWH(160, 10, 14, 14), legendPaint);
-    final packetLossText = TextPainter(
-      text: const TextSpan(
-        text: 'Packet Loss',
-        style: TextStyle(color: Colors.black, fontSize: 12),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    packetLossText.layout();
-    packetLossText.paint(canvas, const Offset(180, 11));
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return true;
+  bool shouldRepaint(NetworkStatsPainter oldDelegate) {
+    // Only repaint if the data length changes (new data point added)
+    return oldDelegate.networkStats.length != networkStats.length;
   }
+}
+
+class NetworkData {
+  final DateTime timestamp;
+  final double latency;
+  final double packetLoss;
+  final double jitter;
+
+  NetworkData({
+    required this.timestamp,
+    required this.latency,
+    required this.packetLoss,
+    required this.jitter,
+  });
 }

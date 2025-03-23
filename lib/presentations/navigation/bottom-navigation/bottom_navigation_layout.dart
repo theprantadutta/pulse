@@ -184,7 +184,7 @@ class _BottomNavigationLayoutState extends State<BottomNavigationLayout> {
                           ),
                           BottomBarItem(
                             icon: Icon(Symbols.wifi),
-                            title: const Text('Network Info'),
+                            title: const Text('Network'),
                             selectedColor: kPrimaryColor,
                           ),
                           BottomBarItem(

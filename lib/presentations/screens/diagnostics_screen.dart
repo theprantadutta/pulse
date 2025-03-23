@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,15 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+
+// Fix for the extension method check
+extension FutureExtension<T> on Future<T> {
+  bool get isCompleted {
+    bool completed = false;
+    then((_) => completed = true).catchError((_) => completed = true);
+    return completed;
+  }
+}
 
 class DiagnosticsScreen extends StatefulWidget {
   static const kRouteName = '/diagnostics';
@@ -79,57 +89,459 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
       return;
     }
 
+    final host = _hostController.text;
+
     setState(() {
       _activeTest = 'Traceroute';
       _isRunningTest = true;
       _testProgress = 0.0;
       _currentResults = [];
+      _currentResults.add('Starting traceroute to $host...');
     });
 
-    // Simulated traceroute - in a real app, you would use a platform channel
-    // to execute the actual traceroute command
-    final host = _hostController.text;
-    final hopCount = Random().nextInt(10) + 5; // Between 5-15 hops
+    try {
+      List<String> tracerouteResults = [];
+      int totalHops = 0;
+      bool success = false;
 
-    for (int i = 1; i <= hopCount; i++) {
-      // Simulate network delay
-      await Future.delayed(Duration(milliseconds: 300 + Random().nextInt(500)));
+      if (Platform.isWindows) {
+        tracerouteResults = await _executeWindowsTraceroute(host);
+      } else if (Platform.isLinux || Platform.isMacOS) {
+        tracerouteResults = await _executeUnixTraceroute(host);
+      } else if (Platform.isAndroid || Platform.isIOS) {
+        tracerouteResults = await _executeMobileTraceroute(host);
+      } else {
+        throw Exception('Unsupported platform');
+      }
+
+      // Process and display results
+      if (tracerouteResults.isNotEmpty) {
+        totalHops = tracerouteResults.length;
+        success = true;
+
+        for (int i = 0; i < tracerouteResults.length; i++) {
+          setState(() {
+            _testProgress = (i + 1) / tracerouteResults.length;
+            _currentResults.add(tracerouteResults[i]);
+          });
+
+          // Add a small delay to show progressive updates
+          if (i < tracerouteResults.length - 1) {
+            await Future.delayed(Duration(milliseconds: 100));
+          }
+        }
+      } else {
+        throw Exception('No traceroute results returned');
+      }
 
       setState(() {
-        _testProgress = i / hopCount;
+        _testProgress = 1.0;
+        _currentResults.add('Traceroute complete');
 
-        // Generate a random IP for this hop
-        final ipParts = List.generate(4, (_) => Random().nextInt(256));
-        final hopIp = ipParts.join('.');
-
-        // Random response time between 5-100ms
-        final responseTime = Random().nextInt(95) + 5;
-
-        _currentResults.add('Hop $i: $hopIp - ${responseTime}ms');
+        // Add to log history
+        _diagnosticLogs.insert(
+          0,
+          DiagnosticLog(
+            type: 'Traceroute',
+            target: host,
+            timestamp: DateTime.now(),
+            summary:
+                '$totalHops hops, ${success ? "completed successfully" : "failed"}',
+          ),
+        );
+        _isRunningTest = false;
+      });
+    } catch (e) {
+      setState(() {
+        _currentResults.add('Error: ${e.toString()}');
+        _isRunningTest = false;
       });
     }
-
-    // Add final destination
-    await Future.delayed(const Duration(milliseconds: 300));
-    setState(() {
-      _testProgress = 1.0;
-      _currentResults.add('Hop ${hopCount + 1}: $host - Destination reached');
-      _isRunningTest = false;
-
-      // Add to log history
-      _diagnosticLogs.insert(
-        0,
-        DiagnosticLog(
-          type: 'Traceroute',
-          target: host,
-          timestamp: DateTime.now(),
-          summary: '${hopCount + 1} hops, completed successfully',
-        ),
-      );
-    });
   }
 
-  // Run speed test
+  Future<List<String>> _executeWindowsTraceroute(String host) async {
+    final result = await Process.run('tracert', ['-d', host]);
+
+    if (result.exitCode != 0) {
+      throw Exception('Traceroute failed: ${result.stderr}');
+    }
+
+    final output = result.stdout.toString();
+    final lines = output.split('\n');
+    final results = <String>[];
+
+    // Skip header lines
+    bool headerPassed = false;
+
+    for (final line in lines) {
+      final trimmedLine = line.trim();
+      if (!headerPassed) {
+        if (trimmedLine.startsWith('1')) {
+          headerPassed = true;
+        } else {
+          continue;
+        }
+      }
+
+      // Parse the hop line
+      if (trimmedLine.isNotEmpty && RegExp(r'^\s*\d+').hasMatch(trimmedLine)) {
+        final hopMatch = RegExp(r'^\s*(\d+)').firstMatch(trimmedLine);
+        final hopNumber = hopMatch?.group(1) ?? '';
+
+        if (trimmedLine.contains('*')) {
+          // Request timed out
+          results.add('Hop $hopNumber: Request timed out');
+        } else {
+          // Extract IP and times
+          final ipRegex = RegExp(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})');
+          final ipMatch = ipRegex.firstMatch(trimmedLine);
+          final ip = ipMatch?.group(1) ?? 'Unknown';
+
+          // Extract response times
+          final timeRegex = RegExp(r'(\d+)\s*ms');
+          final allTimes =
+              timeRegex
+                  .allMatches(trimmedLine)
+                  .map((m) => m.group(1))
+                  .whereType<String>()
+                  .toList();
+
+          if (allTimes.isNotEmpty) {
+            final avgTime =
+                allTimes.map(int.parse).reduce((a, b) => a + b) /
+                allTimes.length;
+            results.add(
+              'Hop $hopNumber: $ip - ${avgTime.toStringAsFixed(0)}ms',
+            );
+          } else {
+            results.add('Hop $hopNumber: $ip');
+          }
+        }
+      }
+    }
+
+    return results;
+  }
+
+  Future<List<String>> _executeUnixTraceroute(String host) async {
+    final result = await Process.run('traceroute', ['-n', host]);
+
+    if (result.exitCode != 0) {
+      throw Exception('Traceroute failed: ${result.stderr}');
+    }
+
+    final output = result.stdout.toString();
+    final lines = output.split('\n');
+    final results = <String>[];
+
+    // Skip header line
+    for (int i = 1; i < lines.length; i++) {
+      final line = lines[i].trim();
+      if (line.isEmpty) continue;
+
+      // Parse hop number
+      final hopMatch = RegExp(r'^\s*(\d+)').firstMatch(line);
+      if (hopMatch == null) continue;
+
+      final hopNumber = hopMatch.group(1);
+
+      if (line.contains('*')) {
+        // Request timed out
+        results.add('Hop $hopNumber: Request timed out');
+      } else {
+        // Extract IP
+        final ipRegex = RegExp(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})');
+        final ipMatch = ipRegex.firstMatch(line);
+        final ip = ipMatch?.group(1) ?? 'Unknown';
+
+        // Extract response times
+        final timeRegex = RegExp(r'(\d+\.\d+)\s*ms');
+        final allTimes =
+            timeRegex
+                .allMatches(line)
+                .map((m) => m.group(1))
+                .whereType<String>()
+                .toList();
+
+        if (allTimes.isNotEmpty) {
+          final avgTime =
+              allTimes.map(double.parse).reduce((a, b) => a + b) /
+              allTimes.length;
+          results.add('Hop $hopNumber: $ip - ${avgTime.toStringAsFixed(1)}ms');
+        } else {
+          results.add('Hop $hopNumber: $ip');
+        }
+      }
+    }
+
+    return results;
+  }
+
+  Future<List<String>> _executeMobileTraceroute(String host) async {
+    // On Android, we can use 'su -c traceroute' if the device is rooted
+    // Otherwise, we need to use a more complex approach or fall back to a simulated version
+
+    if (Platform.isAndroid) {
+      try {
+        // Try to execute traceroute command if available
+        final result = await Process.run('traceroute', ['-n', host]);
+        if (result.exitCode == 0) {
+          return _parseUnixTracerouteOutput(result.stdout.toString());
+        }
+
+        // Try with su if available (rooted devices)
+        try {
+          final rootResult = await Process.run('su', [
+            '-c',
+            'traceroute -n $host',
+          ]);
+          if (rootResult.exitCode == 0) {
+            return _parseUnixTracerouteOutput(rootResult.stdout.toString());
+          }
+        } catch (e) {
+          // Ignore if su fails
+        }
+      } catch (e) {
+        // traceroute command not available, fall back to ping-based approach
+      }
+    } else if (Platform.isIOS) {
+      // iOS doesn't provide access to traceroute without jailbreak
+    }
+
+    // If we can't use the native commands, use a simplified ping-based approach
+    return await _simplifiedPingBasedTraceroute(host);
+  }
+
+  List<String> _parseUnixTracerouteOutput(String output) {
+    final lines = output.split('\n');
+    final results = <String>[];
+
+    // Skip header line
+    for (int i = 1; i < lines.length; i++) {
+      final line = lines[i].trim();
+      if (line.isEmpty) continue;
+
+      // Parse hop number
+      final hopMatch = RegExp(r'^\s*(\d+)').firstMatch(line);
+      if (hopMatch == null) continue;
+
+      final hopNumber = hopMatch.group(1);
+
+      if (line.contains('*')) {
+        // Request timed out
+        results.add('Hop $hopNumber: Request timed out');
+      } else {
+        // Extract IP
+        final ipRegex = RegExp(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})');
+        final ipMatch = ipRegex.firstMatch(line);
+        final ip = ipMatch?.group(1) ?? 'Unknown';
+
+        // Extract response times
+        final timeRegex = RegExp(r'(\d+\.\d+)\s*ms');
+        final allTimes =
+            timeRegex
+                .allMatches(line)
+                .map((m) => m.group(1))
+                .whereType<String>()
+                .toList();
+
+        if (allTimes.isNotEmpty) {
+          final avgTime =
+              allTimes.map(double.parse).reduce((a, b) => a + b) /
+              allTimes.length;
+          results.add('Hop $hopNumber: $ip - ${avgTime.toStringAsFixed(1)}ms');
+        } else {
+          results.add('Hop $hopNumber: $ip');
+        }
+      }
+    }
+
+    return results;
+  }
+
+  Future<List<String>> _simplifiedPingBasedTraceroute(String host) async {
+    final results = <String>[];
+    final maxHops = 30;
+    final targetIp = (await InternetAddress.lookup(host)).first.address;
+    results.add('Resolved $host to $targetIp');
+
+    // Start with real first hop if possible
+    try {
+      // Try to get gateway IP (first hop) - this varies by platform
+      final defaultGateway = await _getDefaultGateway();
+      if (defaultGateway != null) {
+        final pingResult = await _pingHost(defaultGateway, 1);
+        results.add('Hop 1: $defaultGateway - ${pingResult}ms');
+      } else {
+        results.add('Hop 1: Default gateway - unknown');
+      }
+    } catch (e) {
+      results.add('Hop 1: Default gateway - unknown');
+    }
+
+    // For remaining hops, we'll use ping with increasing TTL values
+    // but this will likely be incomplete on mobile platforms
+    for (int ttl = 2; ttl <= maxHops; ttl++) {
+      final pingResult = await _pingHostWithTtl(host, ttl);
+      if (pingResult.ipAddress != null) {
+        results.add(
+          'Hop $ttl: ${pingResult.ipAddress} - ${pingResult.responseTime ?? "*"}ms',
+        );
+
+        // Check if we've reached the destination
+        if (pingResult.ipAddress == targetIp) {
+          results.add('Destination reached');
+          break;
+        }
+      } else {
+        results.add('Hop $ttl: * Request timed out');
+      }
+    }
+
+    return results;
+  }
+
+  // Get default gateway (platform-specific)
+  Future<String?> _getDefaultGateway() async {
+    try {
+      if (Platform.isAndroid) {
+        // On Android, we can try to read from /proc/net/route
+        final file = File('/proc/net/route');
+        if (await file.exists()) {
+          final lines = await file.readAsLines();
+          for (final line in lines.skip(1)) {
+            // Skip header
+            final parts = line.split('\t');
+            if (parts.length > 2 && parts[1] == '00000000') {
+              // Default route
+              // Gateway is in parts[2], but in hex and reversed byte order
+              final hex = parts[2];
+              final gateway = [
+                int.parse(hex.substring(6, 8), radix: 16),
+                int.parse(hex.substring(4, 6), radix: 16),
+                int.parse(hex.substring(2, 4), radix: 16),
+                int.parse(hex.substring(0, 2), radix: 16),
+              ].join('.');
+              return gateway;
+            }
+          }
+        }
+      } else if (Platform.isIOS) {
+        // iOS doesn't provide easy access to routing table
+        return null;
+      }
+
+      // For other platforms, we'd need more sophisticated methods
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Simple ping function
+  Future<int> _pingHost(String host, int count) async {
+    try {
+      final stopwatch = Stopwatch()..start();
+      final address = await InternetAddress.lookup(host);
+      if (address.isEmpty) return 0;
+
+      final ping = await Process.run('ping', [
+        if (Platform.isWindows) '-n' else '-c',
+        '$count',
+        address.first.address,
+      ]);
+
+      stopwatch.stop();
+
+      if (ping.exitCode == 0) {
+        // Parse ping time from output
+        final output = ping.stdout.toString();
+        final timeRegex =
+            Platform.isWindows
+                ? RegExp(r'Average = (\d+)ms')
+                : RegExp(r'min/avg/max/.+ = [0-9.]+/([0-9.]+)/');
+
+        final match = timeRegex.firstMatch(output);
+        if (match != null && match.group(1) != null) {
+          return double.parse(match.group(1)!).round();
+        }
+      }
+
+      return stopwatch.elapsedMilliseconds ~/ count;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  // Ping with TTL (to detect intermediate hops)
+  Future<ProbeResult> _pingHostWithTtl(String host, int ttl) async {
+    try {
+      List<String> pingArgs;
+      if (Platform.isWindows) {
+        pingArgs = ['-n', '1', '-i', '$ttl', '-w', '1000', host];
+      } else {
+        // Unix-like
+        pingArgs = ['-c', '1', '-t', '$ttl', '-W', '1', host];
+      }
+
+      final result = await Process.run('ping', pingArgs);
+      final output = result.stdout.toString() + result.stderr.toString();
+
+      // Check for "TTL expired in transit" or similar messages
+      // This indicates we've hit an intermediate router
+      final ttlExceededRegex = RegExp(
+        r'(TTL expired|Time to live exceeded|ttl=[0-9]+ time=([0-9.]+))',
+        caseSensitive: false,
+      );
+      final ttlMatch = ttlExceededRegex.firstMatch(output);
+
+      if (ttlMatch != null) {
+        // Try to extract the IP address of the router
+        final ipRegex = RegExp(r'from (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})');
+        final ipMatch = ipRegex.firstMatch(output);
+
+        // Try to extract response time
+        final timeRegex = RegExp(
+          r'time[=<]([0-9.]+)\s*ms',
+          caseSensitive: false,
+        );
+        final timeMatch = timeRegex.firstMatch(output);
+
+        return ProbeResult(
+          ipAddress: ipMatch?.group(1),
+          responseTime:
+              timeMatch != null
+                  ? double.parse(timeMatch.group(1)!).round()
+                  : null,
+        );
+      }
+
+      // If we got a normal response, we've reached the destination
+      if (result.exitCode == 0) {
+        final ipRegex = RegExp(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})');
+        final ipMatch = ipRegex.firstMatch(output);
+
+        final timeRegex = RegExp(
+          r'time[=<]([0-9.]+)\s*ms',
+          caseSensitive: false,
+        );
+        final timeMatch = timeRegex.firstMatch(output);
+
+        return ProbeResult(
+          ipAddress: ipMatch?.group(1),
+          responseTime:
+              timeMatch != null
+                  ? double.parse(timeMatch.group(1)!).round()
+                  : null,
+        );
+      }
+
+      return ProbeResult();
+    } catch (e) {
+      return ProbeResult();
+    }
+  }
+
   Future<void> _runSpeedTest() async {
     setState(() {
       _activeTest = 'Speed Test';
@@ -138,58 +550,340 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
       _currentResults = [];
     });
 
-    // Simulate download test
-    _currentResults.add('Testing download speed...');
-    await _simulateProgressiveTest(0.0, 0.5, (progress) {
+    try {
+      // Download test
+      _currentResults.add('Testing download speed...');
+      final downloadSpeed = await _measureDownloadSpeed();
       setState(() {
-        _testProgress = progress;
+        _testProgress = 0.5;
+        _currentResults.add(
+          'Download speed: ${downloadSpeed.toStringAsFixed(2)} Mbps',
+        );
       });
-    });
 
-    // Simulate random download speed result
-    final downloadSpeed = (Random().nextInt(200) + 50) + Random().nextDouble();
-    setState(() {
-      _currentResults.add(
-        'Download speed: ${downloadSpeed.toStringAsFixed(2)} Mbps',
-      );
-    });
-
-    // Simulate upload test
-    setState(() {
+      // Upload test
       _currentResults.add('');
       _currentResults.add('Testing upload speed...');
-    });
+      final uploadSpeed = await _measureUploadSpeed();
 
-    await _simulateProgressiveTest(0.5, 1.0, (progress) {
       setState(() {
-        _testProgress = progress;
+        _testProgress = 1.0;
+        _currentResults.add(
+          'Upload speed: ${uploadSpeed.toStringAsFixed(2)} Mbps',
+        );
+        _isRunningTest = false;
+
+        // Add to log history
+        _diagnosticLogs.insert(
+          0,
+          DiagnosticLog(
+            type: 'Speed Test',
+            target: 'Speed Test Server',
+            timestamp: DateTime.now(),
+            summary:
+                'Download: ${downloadSpeed.toStringAsFixed(1)} Mbps, Upload: ${uploadSpeed.toStringAsFixed(1)} Mbps',
+          ),
+        );
       });
-    });
-
-    // Simulate random upload speed result
-    final uploadSpeed = (Random().nextInt(100) + 10) + Random().nextDouble();
-
-    setState(() {
-      _currentResults.add(
-        'Upload speed: ${uploadSpeed.toStringAsFixed(2)} Mbps',
-      );
-      _isRunningTest = false;
-
-      // Add to log history
-      _diagnosticLogs.insert(
-        0,
-        DiagnosticLog(
-          type: 'Speed Test',
-          target: 'speedtest.net',
-          timestamp: DateTime.now(),
-          summary:
-              'Download: ${downloadSpeed.toStringAsFixed(1)} Mbps, Upload: ${uploadSpeed.toStringAsFixed(1)} Mbps',
-        ),
-      );
-    });
+    } catch (e) {
+      setState(() {
+        _currentResults.add('Error: ${e.toString()}');
+        _isRunningTest = false;
+      });
+    }
   }
 
-  // Run packet loss test
+  // Measures actual download speed by downloading a test file
+  Future<double> _measureDownloadSpeed() async {
+    final testFileUrl =
+        'https://speed.cloudflare.com/__down?bytes=10000000'; // 10MB test file from Cloudflare
+    final client = HttpClient();
+    final stopwatch = Stopwatch()..start();
+    double totalBytes = 0;
+
+    try {
+      final request = await client.getUrl(Uri.parse(testFileUrl));
+      final response = await request.close();
+
+      // Update progress in real-time as data comes in
+      await for (final chunk in response) {
+        totalBytes += chunk.length;
+        final elapsedSecs = stopwatch.elapsedMilliseconds / 1000;
+        if (elapsedSecs > 0) {
+          final currentSpeed = (totalBytes * 8 / 1000000) / elapsedSecs; // Mbps
+          setState(() {
+            _testProgress = 0.25; // Progressive update during download
+            _currentResults[_currentResults.length - 1] =
+                'Testing download speed... ${currentSpeed.toStringAsFixed(2)} Mbps';
+          });
+        }
+      }
+
+      // Calculate final speed
+      final elapsedSeconds = stopwatch.elapsedMilliseconds / 1000;
+      final speedMbps =
+          (totalBytes * 8 / 1000000) /
+          elapsedSeconds; // Convert bytes to bits, then to Mbps
+
+      return speedMbps;
+    } finally {
+      client.close();
+      stopwatch.stop();
+    }
+  }
+
+  // Measures actual upload speed by uploading random data
+  Future<double> _measureUploadSpeed() async {
+    final uploadUrl =
+        'https://speed.cloudflare.com/__up'; // Cloudflare upload endpoint
+    final client = HttpClient();
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      // Create a payload of random bytes (5MB)
+      final random = Random();
+      final payloadSize = 5 * 1024 * 1024; // 5MB
+      final payload = Uint8List(payloadSize);
+      for (int i = 0; i < payloadSize; i++) {
+        payload[i] = random.nextInt(256);
+      }
+
+      // Set up request
+      final request = await client.postUrl(Uri.parse(uploadUrl));
+      request.headers.set('Content-Type', 'application/octet-stream');
+
+      // Track progress
+      int bytesSent = 0;
+      final chunkSize = 256 * 1024; // 256KB chunks
+
+      for (int offset = 0; offset < payload.length; offset += chunkSize) {
+        final end =
+            (offset + chunkSize > payload.length)
+                ? payload.length
+                : offset + chunkSize;
+        final chunk = payload.sublist(offset, end);
+
+        request.add(chunk);
+        await request.flush(); // Force send
+
+        bytesSent += chunk.length;
+        final elapsedSecs = stopwatch.elapsedMilliseconds / 1000;
+        if (elapsedSecs > 0) {
+          final currentSpeed = (bytesSent * 8 / 1000000) / elapsedSecs; // Mbps
+          setState(() {
+            _testProgress =
+                0.5 +
+                (bytesSent / payloadSize) *
+                    0.5; // Update progress (0.5-1.0 range)
+            _currentResults[_currentResults.length - 1] =
+                'Testing upload speed... ${currentSpeed.toStringAsFixed(2)} Mbps';
+          });
+        }
+      }
+
+      // Complete the request and get response
+      final response = await request.close();
+      await response.drain(); // Ensure we read the response
+
+      // Calculate final speed
+      final elapsedSeconds = stopwatch.elapsedMilliseconds / 1000;
+      final speedMbps = (payloadSize * 8 / 1000000) / elapsedSeconds;
+
+      return speedMbps;
+    } finally {
+      client.close();
+      stopwatch.stop();
+    }
+  }
+
+  /// Runs a real packet loss test by sending actual ICMP ping requests
+  /// Returns detailed results about packet loss statistics
+  Future<Map<String, dynamic>> runPacketLossTest(
+    String host, {
+    int packetCount = 100,
+    int timeoutMs = 1000,
+    void Function(double progress, List<String> currentStatus)?
+    onProgressUpdate,
+  }) async {
+    if (host.isEmpty) {
+      throw ArgumentError('Host cannot be empty');
+    }
+
+    var results = <String>[];
+    int sentPackets = 0;
+    int receivedPackets = 0;
+    int lostPackets = 0;
+    List<int> responseTimes = [];
+
+    results.add('Sending $packetCount packets to $host...');
+
+    // Report initial status
+    if (onProgressUpdate != null) {
+      onProgressUpdate(0.0, List.from(results));
+    }
+
+    for (int i = 1; i <= packetCount; i++) {
+      sentPackets++;
+      bool received = false;
+      int? responseTime;
+
+      try {
+        // Create a socket for ICMP (ping) requests
+        final pingResult = await _sendPingRequest(host, timeoutMs);
+        received = pingResult.received;
+        responseTime = pingResult.responseTimeMs;
+
+        if (received) {
+          receivedPackets++;
+          if (responseTime != null) {
+            responseTimes.add(responseTime);
+          }
+        } else {
+          lostPackets++;
+        }
+      } catch (e) {
+        lostPackets++;
+        // Socket or network error - count as packet loss
+      }
+
+      // Update status periodically
+      if (i % 10 == 0 || i == packetCount) {
+        final currentLossRate = (lostPackets / sentPackets * 100)
+            .toStringAsFixed(1);
+
+        results = [
+          'Sending $packetCount packets to $host...',
+          'Progress: $i/$packetCount packets',
+          'Current packet loss: $currentLossRate%',
+        ];
+
+        if (responseTimes.isNotEmpty) {
+          final avgResponseTime =
+              responseTimes.reduce((a, b) => a + b) / responseTimes.length;
+          results.add(
+            'Avg response time: ${avgResponseTime.toStringAsFixed(1)}ms',
+          );
+        }
+
+        // Report progress
+        if (onProgressUpdate != null) {
+          onProgressUpdate(i / packetCount, List.from(results));
+        }
+      }
+
+      // Small delay between pings to avoid overwhelming the network
+      if (i < packetCount) {
+        await Future.delayed(Duration(milliseconds: 20));
+      }
+    }
+
+    // Calculate final results
+    final lossPercentage = (lostPackets / sentPackets * 100).toStringAsFixed(1);
+    String quality;
+    if (lostPackets == 0) {
+      quality = 'Excellent';
+    } else if (lostPackets < 2) {
+      quality = 'Very Good';
+    } else if (lostPackets < 5) {
+      quality = 'Good';
+    } else if (lostPackets < 10) {
+      quality = 'Fair';
+    } else {
+      quality = 'Poor';
+    }
+
+    // Prepare final statistics
+    double? avgResponseTime;
+    double? minResponseTime;
+    double? maxResponseTime;
+    double? jitter;
+
+    if (responseTimes.isNotEmpty) {
+      avgResponseTime =
+          responseTimes.reduce((a, b) => a + b) / responseTimes.length;
+      minResponseTime =
+          responseTimes.reduce((a, b) => a < b ? a : b).toDouble();
+      maxResponseTime =
+          responseTimes.reduce((a, b) => a > b ? a : b).toDouble();
+
+      // Calculate jitter (standard deviation of response times)
+      if (responseTimes.length > 1) {
+        final variance =
+            responseTimes
+                .map((t) => math.pow(t - avgResponseTime!, 2))
+                .reduce((a, b) => a + b) /
+            responseTimes.length;
+        jitter = math.sqrt(variance);
+      }
+    }
+
+    // Complete result data
+    final resultData = {
+      'host': host,
+      'timestamp': DateTime.now(),
+      'packetsSent': sentPackets,
+      'packetsReceived': receivedPackets,
+      'packetsLost': lostPackets,
+      'lossPercentage': double.parse(lossPercentage),
+      'quality': quality,
+      'avgResponseTime': avgResponseTime,
+      'minResponseTime': minResponseTime,
+      'maxResponseTime': maxResponseTime,
+      'jitter': jitter,
+      'summary': 'Loss rate: $lossPercentage%, Quality: $quality',
+    };
+
+    return resultData;
+  }
+
+  /// Sends a single ping request and waits for response
+  Future<PingResult> _sendPingRequest(String host, int timeoutMs) async {
+    final Stopwatch stopwatch = Stopwatch()..start();
+    bool received = false;
+    int? responseTimeMs;
+
+    try {
+      // On most platforms, we can use ProcessRunner to execute the ping command
+      final isWindows = Platform.isWindows;
+      final pingArgs =
+          isWindows
+              ? ['-n', '1', '-w', timeoutMs.toString(), host]
+              : ['-c', '1', '-W', (timeoutMs / 1000).toString(), host];
+
+      final pingCommand = isWindows ? 'ping' : 'ping';
+      final result = await Process.run(pingCommand, pingArgs);
+
+      // Check the output to determine if the ping was successful
+      final output = result.stdout.toString();
+      if (isWindows) {
+        received =
+            output.contains('Reply from') || output.contains('bytes from');
+      } else {
+        received = output.contains('bytes from');
+      }
+
+      // Try to extract the response time
+      if (received) {
+        final regex = RegExp(r'time=(\d+\.?\d*)');
+        final match = regex.firstMatch(output);
+        if (match != null && match.groupCount >= 1) {
+          responseTimeMs = double.parse(match.group(1)!).round();
+        } else {
+          // If we can't extract the time but got a response, estimate it from our stopwatch
+          responseTimeMs = stopwatch.elapsedMilliseconds;
+        }
+      }
+    } catch (e) {
+      // Handle exceptions (command not found, network issues, etc.)
+      received = false;
+    } finally {
+      stopwatch.stop();
+    }
+
+    return PingResult(received: received, responseTimeMs: responseTimeMs);
+  }
+
+  // Example of using the function in a Flutter context:
   Future<void> _runPacketLossTest() async {
     if (_hostController.text.isEmpty) {
       _showErrorSnackBar('Please enter a host name or IP address');
@@ -204,177 +898,418 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     });
 
     final host = _hostController.text;
-    final packetCount = 100;
-    int lostPackets = 0;
 
-    _currentResults.add('Sending $packetCount packets to $host...');
-    setState(() {});
+    try {
+      final results = await runPacketLossTest(
+        host,
+        onProgressUpdate: (progress, currentStatus) {
+          setState(() {
+            _testProgress = progress;
+            _currentResults = currentStatus;
+          });
+        },
+      );
 
-    for (int i = 1; i <= packetCount; i++) {
-      // Simulate sending a packet with random success/failure
-      await Future.delayed(Duration(milliseconds: 50 + Random().nextInt(30)));
+      setState(() {
+        _isRunningTest = false;
 
-      final bool packetLost =
-          Random().nextDouble() < 0.05; // 5% packet loss rate
-      if (packetLost) {
-        lostPackets++;
-      }
+        _currentResults.add('');
+        _currentResults.add('Test complete!');
+        _currentResults.add('Total packets sent: ${results['packetsSent']}');
+        _currentResults.add('Packets received: ${results['packetsReceived']}');
+        _currentResults.add('Packets lost: ${results['packetsLost']}');
+        _currentResults.add('Packet loss rate: ${results['lossPercentage']}%');
+        _currentResults.add('Connection quality: ${results['quality']}');
 
-      if (i % 10 == 0 || i == packetCount) {
-        setState(() {
-          _testProgress = i / packetCount;
-          _currentResults = [
-            'Sending $packetCount packets to $host...',
-            'Progress: $i/$packetCount packets',
-            'Current packet loss: ${(lostPackets / i * 100).toStringAsFixed(1)}%',
-          ];
-        });
-      }
+        if (results['avgResponseTime'] != null) {
+          _currentResults.add(
+            'Avg response time: ${results['avgResponseTime']!.toStringAsFixed(1)}ms',
+          );
+        }
+
+        if (results['jitter'] != null) {
+          _currentResults.add(
+            'Jitter: ${results['jitter']!.toStringAsFixed(1)}ms',
+          );
+        }
+
+        // Add to log history
+        _diagnosticLogs.insert(
+          0,
+          DiagnosticLog(
+            type: 'Packet Loss',
+            target: host,
+            timestamp: results['timestamp'],
+            summary: results['summary'],
+          ),
+        );
+      });
+    } catch (e) {
+      setState(() {
+        _isRunningTest = false;
+        _currentResults.add('Error: ${e.toString()}');
+      });
     }
-
-    setState(() {
-      _isRunningTest = false;
-      final lossPercentage = (lostPackets / packetCount * 100).toStringAsFixed(
-        1,
-      );
-
-      _currentResults.add('');
-      _currentResults.add('Test complete!');
-      _currentResults.add('Total packets sent: $packetCount');
-      _currentResults.add('Packets lost: $lostPackets');
-      _currentResults.add('Packet loss rate: $lossPercentage%');
-
-      String quality;
-      if (lostPackets == 0) {
-        quality = 'Excellent';
-      } else if (lostPackets < 2) {
-        quality = 'Very Good';
-      } else if (lostPackets < 5) {
-        quality = 'Good';
-      } else if (lostPackets < 10) {
-        quality = 'Fair';
-      } else {
-        quality = 'Poor';
-      }
-
-      _currentResults.add('Connection quality: $quality');
-
-      // Add to log history
-      _diagnosticLogs.insert(
-        0,
-        DiagnosticLog(
-          type: 'Packet Loss',
-          target: host,
-          timestamp: DateTime.now(),
-          summary: 'Loss rate: $lossPercentage%, Quality: $quality',
-        ),
-      );
-    });
   }
 
   // Run port scanner
+  // Future<void> _runPortScan() async {
+  //   debugPrint('Starting port scan...');
+
+  //   if (_hostController.text.isEmpty) {
+  //     debugPrint('Host field is empty. Showing error snackbar.');
+  //     _showErrorSnackBar('Please enter a host name or IP address');
+  //     return;
+  //   }
+
+  //   // Parse port range
+  //   List<int> ports = [];
+  //   try {
+  //     debugPrint('Parsing port range...');
+  //     final rangeParts = _portRangeController.text.split('-');
+  //     if (rangeParts.length == 1) {
+  //       // Single port
+  //       debugPrint('Single port detected: ${rangeParts[0]}');
+  //       ports = [int.parse(rangeParts[0])];
+  //     } else {
+  //       // Port range
+  //       debugPrint('Port range detected: ${rangeParts[0]}-${rangeParts[1]}');
+  //       final startPort = int.parse(rangeParts[0]);
+  //       final endPort = int.parse(rangeParts[1]);
+  //       if (startPort > endPort || startPort < 1 || endPort > 65535) {
+  //         debugPrint('Invalid port range: $startPort-$endPort');
+  //         throw const FormatException('Invalid port range');
+  //       }
+  //       ports = List.generate(endPort - startPort + 1, (i) => startPort + i);
+  //       debugPrint('Generated port list: $ports');
+  //     }
+  //   } catch (e) {
+  //     debugPrint('Error parsing port range: $e');
+  //     _showErrorSnackBar(
+  //       'Invalid port range format. Use "start-end" or a single port number.',
+  //     );
+  //     return;
+  //   }
+
+  //   if (ports.length > 1000) {
+  //     debugPrint('Port scan limit exceeded: ${ports.length} ports');
+  //     _showErrorSnackBar('Please limit scan to 1000 ports maximum');
+  //     return;
+  //   }
+
+  //   debugPrint('Setting up UI for port scan...');
+  //   setState(() {
+  //     _activeTest = 'Port Scan';
+  //     _isRunningTest = true;
+  //     _testProgress = 0.0;
+  //     _currentResults = [];
+  //   });
+
+  //   final host = _hostController.text;
+  //   final openPorts = <int>[];
+
+  //   debugPrint('Starting scan on host: $host');
+  //   _currentResults.add('Scanning ${ports.length} ports on $host...');
+  //   setState(() {});
+
+  //   // Set a reasonable timeout for connection attempts
+  //   const timeout = Duration(milliseconds: 500);
+
+  //   // Track scan progress
+  //   int completedPorts = 0;
+
+  //   // Limit concurrent connection attempts to avoid overwhelming the device
+  //   final maxConcurrent = 20;
+  //   final queue = <int>[...ports];
+  //   final active = <Future<void>>[];
+
+  //   debugPrint('Starting port scan with max concurrency: $maxConcurrent');
+  //   while (queue.isNotEmpty || active.isNotEmpty) {
+  //     // Start new scans up to the concurrent limit
+  //     while (queue.isNotEmpty && active.length < maxConcurrent) {
+  //       final port = queue.removeAt(0);
+  //       debugPrint('Scanning port: $port');
+  //       active.add(
+  //         _scanPort(host, port, timeout).then((isOpen) {
+  //           completedPorts++;
+  //           debugPrint('Port $port scan completed. Open: $isOpen');
+
+  //           if (isOpen) {
+  //             openPorts.add(port);
+  //             setState(() {
+  //               _currentResults.add('Port $port: OPEN');
+  //             });
+  //           }
+
+  //           // Update progress
+  //           setState(() {
+  //             _testProgress = completedPorts / ports.length;
+  //           });
+  //         }),
+  //       );
+  //     }
+
+  //     // Wait for at least one scan to complete before continuing
+  //     if (active.isNotEmpty) {
+  //       debugPrint('Waiting for active scans to complete...');
+  //       await Future.any(active);
+  //       active.removeWhere((future) => future.isCompleted);
+  //     }
+  //   }
+
+  //   debugPrint('Port scan completed. Updating UI...');
+  //   setState(() {
+  //     _isRunningTest = false;
+
+  //     _currentResults.add('');
+  //     _currentResults.add('Scan complete!');
+  //     _currentResults.add('Total ports scanned: ${ports.length}');
+  //     _currentResults.add('Open ports found: ${openPorts.length}');
+
+  //     if (openPorts.isNotEmpty) {
+  //       _currentResults.add('');
+  //       _currentResults.add('Open ports:');
+  //       openPorts.sort();
+  //       for (final port in openPorts) {
+  //         final service = _getCommonPortService(port);
+  //         _currentResults.add('$port: $service');
+  //       }
+  //     }
+
+  //     // Add to log history
+  //     _diagnosticLogs.insert(
+  //       0,
+  //       DiagnosticLog(
+  //         type: 'Port Scan',
+  //         target: host,
+  //         timestamp: DateTime.now(),
+  //         summary:
+  //             'Found ${openPorts.length} open ports out of ${ports.length} scanned',
+  //       ),
+  //     );
+  //   });
+
+  //   debugPrint('Port scan process finished.');
+  // }
+
+  // // Function to scan a single port
+  // Future<bool> _scanPort(String host, int port, Duration timeout) async {
+  //   debugPrint('Attempting to connect to $host:$port...');
+  //   try {
+  //     // Attempt to establish a socket connection
+  //     final socket = await Socket.connect(host, port, timeout: timeout);
+
+  //     // Connection successful, port is open
+  //     debugPrint('Connection to $host:$port succeeded. Port is open.');
+  //     await socket.close();
+  //     return true;
+  //   } catch (e) {
+  //     // Connection failed, port is likely closed or filtered
+  //     debugPrint(
+  //       'Connection to $host:$port failed. Port is closed or filtered. Error: $e',
+  //     );
+  //     return false;
+  //   }
+  // }
+
   Future<void> _runPortScan() async {
-    if (_hostController.text.isEmpty) {
-      _showErrorSnackBar('Please enter a host name or IP address');
-      return;
-    }
+    debugPrint('Starting port scan...');
 
-    // Parse port range
-    List<int> ports = [];
+    // Add a global timeout for the entire port scan operation
+    const globalTimeout = Duration(seconds: 30); // Adjust as needed
+    final globalTimeoutTimer = Timer(globalTimeout, () {
+      debugPrint('Port scan timed out after $globalTimeout');
+      setState(() {
+        _isRunningTest = false;
+        _currentResults.add('Port scan timed out after $globalTimeout');
+      });
+    });
+
     try {
-      final rangeParts = _portRangeController.text.split('-');
-      if (rangeParts.length == 1) {
-        // Single port
-        ports = [int.parse(rangeParts[0])];
-      } else {
-        // Port range
-        final startPort = int.parse(rangeParts[0]);
-        final endPort = int.parse(rangeParts[1]);
-        if (startPort > endPort || startPort < 1 || endPort > 65535) {
-          throw const FormatException('Invalid port range');
+      if (_hostController.text.isEmpty) {
+        debugPrint('Host field is empty. Showing error snackbar.');
+        _showErrorSnackBar('Please enter a host name or IP address');
+        return;
+      }
+
+      // Parse port range
+      List<int> ports = [];
+      try {
+        debugPrint('Parsing port range...');
+        final rangeParts = _portRangeController.text.split('-');
+        if (rangeParts.length == 1) {
+          // Single port
+          debugPrint('Single port detected: ${rangeParts[0]}');
+          ports = [int.parse(rangeParts[0])];
+        } else {
+          // Port range
+          debugPrint('Port range detected: ${rangeParts[0]}-${rangeParts[1]}');
+          final startPort = int.parse(rangeParts[0]);
+          final endPort = int.parse(rangeParts[1]);
+          if (startPort > endPort || startPort < 1 || endPort > 65535) {
+            debugPrint('Invalid port range: $startPort-$endPort');
+            throw const FormatException('Invalid port range');
+          }
+          ports = List.generate(endPort - startPort + 1, (i) => startPort + i);
+          debugPrint('Generated port list: $ports');
         }
-        ports = List.generate(endPort - startPort + 1, (i) => startPort + i);
-      }
-    } catch (e) {
-      _showErrorSnackBar(
-        'Invalid port range format. Use "start-end" or a single port number.',
-      );
-      return;
-    }
-
-    if (ports.length > 1000) {
-      _showErrorSnackBar('Please limit scan to 1000 ports maximum');
-      return;
-    }
-
-    setState(() {
-      _activeTest = 'Port Scan';
-      _isRunningTest = true;
-      _testProgress = 0.0;
-      _currentResults = [];
-    });
-
-    final host = _hostController.text;
-    final openPorts = <int>[];
-
-    _currentResults.add('Scanning ${ports.length} ports on $host...');
-    setState(() {});
-
-    for (int i = 0; i < ports.length; i++) {
-      // Simulate port scan with random results
-      await Future.delayed(Duration(milliseconds: 20 + Random().nextInt(30)));
-
-      final port = ports[i];
-      final isOpen = Random().nextDouble() < 0.1; // 10% chance of open port
-
-      if (isOpen) {
-        openPorts.add(port);
-        setState(() {
-          _currentResults.add('Port $port: OPEN');
-        });
+      } catch (e) {
+        debugPrint('Error parsing port range: $e');
+        _showErrorSnackBar(
+          'Invalid port range format. Use "start-end" or a single port number.',
+        );
+        return;
       }
 
-      if (i % 10 == 0 || i == ports.length - 1) {
-        setState(() {
-          _testProgress = (i + 1) / ports.length;
-        });
+      if (ports.length > 1000) {
+        debugPrint('Port scan limit exceeded: ${ports.length} ports');
+        _showErrorSnackBar('Please limit scan to 1000 ports maximum');
+        return;
       }
-    }
 
-    setState(() {
-      _isRunningTest = false;
+      debugPrint('Setting up UI for port scan...');
+      setState(() {
+        _activeTest = 'Port Scan';
+        _isRunningTest = true;
+        _testProgress = 0.0;
+        _currentResults = [];
+      });
 
-      _currentResults.add('');
-      _currentResults.add('Scan complete!');
-      _currentResults.add('Total ports scanned: ${ports.length}');
-      _currentResults.add('Open ports found: ${openPorts.length}');
+      final host = _hostController.text;
+      final openPorts = <int>[];
 
-      if (openPorts.isNotEmpty) {
+      debugPrint('Starting scan on host: $host');
+      _currentResults.add('Scanning ${ports.length} ports on $host...');
+      setState(() {});
+
+      // Set a reasonable timeout for connection attempts
+      const timeout = Duration(milliseconds: 500);
+
+      // Track scan progress
+      int completedPorts = 0;
+
+      // Limit concurrent connection attempts to avoid overwhelming the device
+      final maxConcurrent = 20;
+      final queue = <int>[...ports];
+
+      debugPrint('Starting port scan with max concurrency: $maxConcurrent');
+      while (queue.isNotEmpty) {
+        // Create a batch of futures to process concurrently
+        final batch = <Future<void>>[];
+
+        // Fill the batch up to max concurrent limit
+        while (queue.isNotEmpty && batch.length < maxConcurrent) {
+          final port = queue.removeAt(0);
+          debugPrint('Scanning port: $port');
+          batch.add(
+            _scanPort(host, port, timeout)
+                .then((isOpen) {
+                  completedPorts++;
+                  debugPrint('Port $port scan completed. Open: $isOpen');
+
+                  if (isOpen) {
+                    openPorts.add(port);
+                    setState(() {
+                      _currentResults.add('Port $port: OPEN');
+                    });
+                  }
+
+                  // Update progress
+                  setState(() {
+                    _testProgress = completedPorts / ports.length;
+                  });
+                })
+                .timeout(
+                  timeout,
+                  onTimeout: () {
+                    debugPrint('Port $port scan timed out.');
+                    completedPorts++;
+                    return;
+                  },
+                )
+                .catchError((e) {
+                  debugPrint('Error scanning port $port: $e');
+                  completedPorts++;
+                }),
+          );
+        }
+
+        // Wait for all futures in the current batch to complete
+        if (batch.isNotEmpty) {
+          debugPrint(
+            'Waiting for batch of ${batch.length} scans to complete...',
+          );
+          await Future.wait(batch);
+        }
+      }
+
+      debugPrint('Port scan completed. Updating UI...');
+      setState(() {
+        _isRunningTest = false;
+
         _currentResults.add('');
-        _currentResults.add('Open ports:');
-        openPorts.sort();
-        for (final port in openPorts) {
-          final service = _getCommonPortService(port);
-          _currentResults.add('$port: $service');
-        }
-      }
+        _currentResults.add('Scan complete!');
+        _currentResults.add('Total ports scanned: ${ports.length}');
+        _currentResults.add('Open ports found: ${openPorts.length}');
 
-      // Add to log history
-      _diagnosticLogs.insert(
-        0,
-        DiagnosticLog(
-          type: 'Port Scan',
-          target: host,
-          timestamp: DateTime.now(),
-          summary:
-              'Found ${openPorts.length} open ports out of ${ports.length} scanned',
-        ),
+        if (openPorts.isNotEmpty) {
+          _currentResults.add('');
+          _currentResults.add('Open ports:');
+          openPorts.sort();
+          for (final port in openPorts) {
+            final service = _getCommonPortService(port);
+            _currentResults.add('$port: $service');
+          }
+        }
+
+        // Add to log history
+        _diagnosticLogs.insert(
+          0,
+          DiagnosticLog(
+            type: 'Port Scan',
+            target: host,
+            timestamp: DateTime.now(),
+            summary:
+                'Found ${openPorts.length} open ports out of ${ports.length} scanned',
+          ),
+        );
+      });
+    } finally {
+      // Cancel the global timeout timer
+      globalTimeoutTimer.cancel();
+      debugPrint('Port scan process finished.');
+    }
+  }
+
+  // Function to scan a single port
+  Future<bool> _scanPort(String host, int port, Duration timeout) async {
+    debugPrint('Attempting to connect to $host:$port...');
+    try {
+      // Attempt to establish a socket connection with a timeout
+      final socket = await Socket.connect(host, port, timeout: timeout).timeout(
+        timeout,
+        onTimeout: () {
+          debugPrint('Connection to $host:$port timed out.');
+          throw TimeoutException('Connection timed out');
+        },
       );
-    });
+
+      // Connection successful, port is open
+      debugPrint('Connection to $host:$port succeeded. Port is open.');
+      await socket.close();
+      return true;
+    } catch (e) {
+      // Connection failed, port is likely closed or filtered
+      debugPrint(
+        'Connection to $host:$port failed. Port is closed or filtered. Error: $e',
+      );
+      return false;
+    }
   }
 
   // Utility for port scan to show common services
   String _getCommonPortService(int port) {
+    debugPrint('Looking up service for port: $port');
     final Map<int, String> commonPorts = {
       20: 'FTP Data',
       21: 'FTP Control',
@@ -393,24 +1328,18 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
       3389: 'RDP',
       5432: 'PostgreSQL',
       8080: 'HTTP-Alt',
+      8443: 'HTTPS-Alt',
+      1433: 'MS SQL',
+      27017: 'MongoDB',
+      6379: 'Redis',
+      5672: 'AMQP',
+      9092: 'Kafka',
+      2181: 'ZooKeeper',
+      9200: 'Elasticsearch',
+      5601: 'Kibana',
     };
 
     return commonPorts[port] ?? 'Unknown service';
-  }
-
-  // Helper for simulating a test with progress
-  Future<void> _simulateProgressiveTest(
-    double start,
-    double end,
-    Function(double) progressCallback,
-  ) async {
-    final steps = 20;
-    final increment = (end - start) / steps;
-
-    for (int i = 0; i <= steps; i++) {
-      await Future.delayed(const Duration(milliseconds: 150));
-      progressCallback(start + (increment * i));
-    }
   }
 
   // Export logs functionality
@@ -465,6 +1394,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final kPrimaryColor = Theme.of(context).primaryColor;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Network Diagnostics'),
@@ -553,12 +1483,12 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                 length: 2,
                 child: Column(
                   children: [
-                    const TabBar(
+                    TabBar(
                       tabs: [
                         Tab(text: 'Current Results'),
                         Tab(text: 'History'),
                       ],
-                      labelColor: Colors.blue,
+                      labelColor: kPrimaryColor,
                     ),
                     Expanded(
                       child: TabBarView(
@@ -763,7 +1693,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     }
 
     return CircleAvatar(
-      backgroundColor: iconColor.withOpacity(0.2),
+      backgroundColor: iconColor.withValues(alpha: 0.2),
       child: Icon(iconData, color: iconColor),
     );
   }
@@ -782,4 +1712,19 @@ class DiagnosticLog {
     required this.timestamp,
     required this.summary,
   });
+}
+
+// Class to hold probe result data
+class ProbeResult {
+  final String? ipAddress;
+  final int? responseTime;
+
+  ProbeResult({this.ipAddress, this.responseTime});
+}
+
+class PingResult {
+  final bool received;
+  final int? responseTimeMs;
+
+  PingResult({required this.received, this.responseTimeMs});
 }

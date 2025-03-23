@@ -178,7 +178,3 @@ class PingPage extends StatelessWidget {
   }
 }
 ```
-
----
-
-This structure ensures your app is modular, scalable, and easy to maintain. Let me know if you need further clarification or help with specific implementations!

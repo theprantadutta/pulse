@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../screens/create_new_ping_screen.dart';
 import '../screens/diagnostics_screen.dart';
-import '../screens/network_info_screen.dart';
+import '../screens/network_screen.dart';
 import '../screens/ping_screen.dart';
 import '../screens/tools_screen.dart';
 import 'bottom-navigation/bottom_navigation_layout.dart';
@@ -18,8 +18,8 @@ class AppNavigation {
   static final _shellNavigatorPing = GlobalKey<NavigatorState>(
     debugLabel: 'shellPing',
   );
-  static final _shellNavigatorNetworkInfo = GlobalKey<NavigatorState>(
-    debugLabel: 'shellNetworkInfo',
+  static final _shellNavigatorNetwork = GlobalKey<NavigatorState>(
+    debugLabel: 'shellNetwork',
   );
   static final _shellNavigatorDiagnostics = GlobalKey<NavigatorState>(
     debugLabel: 'shellDiagnostics',
@@ -77,15 +77,15 @@ class AppNavigation {
           ),
 
           StatefulShellBranch(
-            navigatorKey: _shellNavigatorNetworkInfo,
+            navigatorKey: _shellNavigatorNetwork,
             routes: <RouteBase>[
               GoRoute(
-                path: NetworkInfoScreen.kRouteName,
-                name: "NetworkInfo",
+                path: NetworkScreen.kRouteName,
+                name: "Network",
                 pageBuilder:
                     (context, state) => reusableTransitionPage(
                       state: state,
-                      child: const NetworkInfoScreen(),
+                      child: const NetworkScreen(),
                     ),
               ),
             ],
