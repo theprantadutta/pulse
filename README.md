@@ -39,13 +39,13 @@ flutter run
 ## Screenshots
 
 <p align="center">
-  <img alt="Ping Screen" src="./screenshots/windows/Windows_Screenshot_1.png" width="45%" />
-  <img alt="Network Screen" src="./screenshots/windows/Windows_Screenshot_2.png" width="45%" />
+  <img alt="Ping Screen" src="./screenshots/Windows/Windows_Screenshot_1.png" width="45%" />
+  <img alt="Network Screen" src="./screenshots/Windows/Windows_Screenshot_2.png" width="45%" />
 </p>
 
 <p align="center">
-  <img alt="Diagnostics Screen" src="./screenshots/windows/Windows_Screenshot_3.png" width="45%" />
-  <img alt="Tools Screen" src="./screenshots/windows/Windows_Screenshot_4.png" width="45%" />
+  <img alt="Diagnostics Screen" src="./screenshots/Windows/Windows_Screenshot_3.png" width="45%" />
+  <img alt="Tools Screen" src="./screenshots/Windows/Windows_Screenshot_4.png" width="45%" />
 </p>
 
 ## Roadmap
