@@ -2,6 +2,12 @@
 
 A **network diagnostics** Flutter app that allows users to **ping hosts**, perform **network scans**, and gather useful **connection statistics**.
 
+## Download
+
+[![Download for Windows](https://img.shields.io/badge/Download-Windows-blue?style=for-the-badge&logo=windows)](https://github.com/theprantadutta/pulse/releases/download/v1.0.0/pulse_windows_v1.0.0.msix)  
+[![Download for Android](https://img.shields.io/badge/Download-Android-green?style=for-the-badge&logo=android)](https://github.com/theprantadutta/pulse/releases/download/v1.0.0/pulse_android_v1.0.0.apk)
+
+
 ## Features
 
 - 🌐 **Ping Utility** – Test network connectivity with real-time results.
@@ -32,14 +38,15 @@ flutter run
 
 ## Screenshots
 
+<p align="center">
+  <img alt="Ping Screen" src="./screenshots/windows/Windows_Screenshot_1.png" width="45%" />
+  <img alt="Network Screen" src="./screenshots/windows/Windows_Screenshot_2.png" width="45%" />
+</p>
 
-```
-![Ping Screen](./screenshots/windows/Windows_Screenshot_1.png)
-![Network Screen](./screenshots/windows/Windows_Screenshot_2.png)
-![Diagnostics Screen](./screenshots/windows/Windows_Screenshot_3.png)
-![Tools Screen](./screenshots/windows/Windows_Screenshot_4.png)
-```
-
+<p align="center">
+  <img alt="Diagnostics Screen" src="./screenshots/windows/Windows_Screenshot_3.png" width="45%" />
+  <img alt="Tools Screen" src="./screenshots/windows/Windows_Screenshot_4.png" width="45%" />
+</p>
 
 ## Roadmap
 - ✅ Core functionality (Ping, Scan, Stats, Traceroute, Port Scan)
