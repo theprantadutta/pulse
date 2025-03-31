@@ -17,17 +17,18 @@ class BottomNavigationLayout extends StatefulWidget {
   const BottomNavigationLayout({super.key, required this.navigationShell});
 
   @override
-  State<BottomNavigationLayout> createState() => _BottomNavigationLayoutState();
+  State<BottomNavigationLayout> createState() => BottomNavigationLayoutState();
 
   // ignore: library_private_types_in_public_api
-  static _BottomNavigationLayoutState of(BuildContext context) =>
-      context.findAncestorStateOfType<_BottomNavigationLayoutState>()!;
+  static BottomNavigationLayoutState of(BuildContext context) =>
+      context.findAncestorStateOfType<BottomNavigationLayoutState>()!;
 }
 
-class _BottomNavigationLayoutState extends State<BottomNavigationLayout> {
+class BottomNavigationLayoutState extends State<BottomNavigationLayout> {
   int selectedIndex = 0;
   late PageController pageController;
   bool isSidebarExpanded = true;
+  List<Widget> appBarActions = [];
 
   @override
   void initState() {
@@ -114,6 +115,21 @@ class _BottomNavigationLayoutState extends State<BottomNavigationLayout> {
     });
   }
 
+  String getAppBarText() {
+    switch (selectedIndex) {
+      case 0:
+        return 'Ping Tool';
+      case 1:
+        return 'Network Info';
+      case 2:
+        return 'Diagnostics';
+      case 3:
+        return 'Tools';
+      default:
+        return 'Pulse';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
@@ -126,6 +142,12 @@ class _BottomNavigationLayoutState extends State<BottomNavigationLayout> {
         return BackButtonListener(
           onBackButtonPressed: _onBackButtonPressed,
           child: Scaffold(
+            // appBar: AppBar(
+            //   title: Text(getAppBarText()),
+            //   elevation: 0,
+            //   backgroundColor: kPrimaryColor.withValues(alpha: 0.1),
+            //   actions: appBarActions,
+            // ),
             extendBodyBehindAppBar: false,
             resizeToAvoidBottomInset: false,
             body: AnnotatedRegion(

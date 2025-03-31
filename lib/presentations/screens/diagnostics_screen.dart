@@ -3,10 +3,12 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:pulse/presentations/widgets/app_bar_layout.dart';
 import 'package:share_plus/share_plus.dart';
 
 // Fix for the extension method check
@@ -108,8 +110,8 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
         tracerouteResults = await _executeWindowsTraceroute(host);
       } else if (Platform.isLinux || Platform.isMacOS) {
         tracerouteResults = await _executeUnixTraceroute(host);
-      } else if (Platform.isAndroid || Platform.isIOS) {
-        tracerouteResults = await _executeMobileTraceroute(host);
+      } else if (Platform.isAndroid) {
+        await runNativeTraceroute(host);
       } else {
         throw Exception('Unsupported platform');
       }
@@ -131,7 +133,9 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
           }
         }
       } else {
-        throw Exception('No traceroute results returned');
+        if (!Platform.isAndroid) {
+          throw Exception('No traceroute results returned');
+        }
       }
 
       setState(() {
@@ -277,268 +281,46 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     return results;
   }
 
-  Future<List<String>> _executeMobileTraceroute(String host) async {
-    // On Android, we can use 'su -c traceroute' if the device is rooted
-    // Otherwise, we need to use a more complex approach or fall back to a simulated version
+  Future<void> runNativeTraceroute(
+    String host, {
+    Function(String)? onProgress, // Optional progress callback
+  }) async {
+    // final results = <String>[];
 
-    if (Platform.isAndroid) {
-      try {
-        // Try to execute traceroute command if available
-        final result = await Process.run('traceroute', ['-n', host]);
-        if (result.exitCode == 0) {
-          return _parseUnixTracerouteOutput(result.stdout.toString());
-        }
-
-        // Try with su if available (rooted devices)
-        try {
-          final rootResult = await Process.run('su', [
-            '-c',
-            'traceroute -n $host',
-          ]);
-          if (rootResult.exitCode == 0) {
-            return _parseUnixTracerouteOutput(rootResult.stdout.toString());
-          }
-        } catch (e) {
-          // Ignore if su fails
-        }
-      } catch (e) {
-        // traceroute command not available, fall back to ping-based approach
-      }
-    } else if (Platform.isIOS) {
-      // iOS doesn't provide access to traceroute without jailbreak
-    }
-
-    // If we can't use the native commands, use a simplified ping-based approach
-    return await _simplifiedPingBasedTraceroute(host);
-  }
-
-  List<String> _parseUnixTracerouteOutput(String output) {
-    final lines = output.split('\n');
-    final results = <String>[];
-
-    // Skip header line
-    for (int i = 1; i < lines.length; i++) {
-      final line = lines[i].trim();
-      if (line.isEmpty) continue;
-
-      // Parse hop number
-      final hopMatch = RegExp(r'^\s*(\d+)').firstMatch(line);
-      if (hopMatch == null) continue;
-
-      final hopNumber = hopMatch.group(1);
-
-      if (line.contains('*')) {
-        // Request timed out
-        results.add('Hop $hopNumber: Request timed out');
-      } else {
-        // Extract IP
-        final ipRegex = RegExp(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})');
-        final ipMatch = ipRegex.firstMatch(line);
-        final ip = ipMatch?.group(1) ?? 'Unknown';
-
-        // Extract response times
-        final timeRegex = RegExp(r'(\d+\.\d+)\s*ms');
-        final allTimes =
-            timeRegex
-                .allMatches(line)
-                .map((m) => m.group(1))
-                .whereType<String>()
-                .toList();
-
-        if (allTimes.isNotEmpty) {
-          final avgTime =
-              allTimes.map(double.parse).reduce((a, b) => a + b) /
-              allTimes.length;
-          results.add('Hop $hopNumber: $ip - ${avgTime.toStringAsFixed(1)}ms');
-        } else {
-          results.add('Hop $hopNumber: $ip');
-        }
-      }
-    }
-
-    return results;
-  }
-
-  Future<List<String>> _simplifiedPingBasedTraceroute(String host) async {
-    final results = <String>[];
-    final maxHops = 30;
-    final targetIp = (await InternetAddress.lookup(host)).first.address;
-    results.add('Resolved $host to $targetIp');
-
-    // Start with real first hop if possible
     try {
-      // Try to get gateway IP (first hop) - this varies by platform
-      final defaultGateway = await _getDefaultGateway();
-      if (defaultGateway != null) {
-        final pingResult = await _pingHost(defaultGateway, 1);
-        results.add('Hop 1: $defaultGateway - ${pingResult}ms');
-      } else {
-        results.add('Hop 1: Default gateway - unknown');
+      // Start traceroute
+      const channel = MethodChannel('network_info');
+      await channel.invokeMethod('traceroute', host);
+
+      // Listen to stream
+      final eventChannel = EventChannel('traceroute_stream');
+      final stream = eventChannel.receiveBroadcastStream().cast<String>();
+
+      await for (final line in stream) {
+        // results.add(line);
+        setState(() {
+          _currentResults.add(line);
+        });
+        // Update UI in real-time if callback provided
+        onProgress?.call(line);
+
+        // Optional: Add to debug log
+        if (kDebugMode) print('Traceroute: $line');
       }
     } catch (e) {
-      results.add('Hop 1: Default gateway - unknown');
-    }
+      if (kDebugMode) print('Traceroute error: $e');
 
-    // For remaining hops, we'll use ping with increasing TTL values
-    // but this will likely be incomplete on mobile platforms
-    for (int ttl = 2; ttl <= maxHops; ttl++) {
-      final pingResult = await _pingHostWithTtl(host, ttl);
-      if (pingResult.ipAddress != null) {
-        results.add(
-          'Hop $ttl: ${pingResult.ipAddress} - ${pingResult.responseTime ?? "*"}ms',
-        );
-
-        // Check if we've reached the destination
-        if (pingResult.ipAddress == targetIp) {
-          results.add('Destination reached');
-          break;
-        }
+      // More graceful error handling
+      if (e is PlatformException) {
+        _currentResults.add('Error: ${e.message ?? 'Traceroute failed'}');
       } else {
-        results.add('Hop $ttl: * Request timed out');
-      }
-    }
-
-    return results;
-  }
-
-  // Get default gateway (platform-specific)
-  Future<String?> _getDefaultGateway() async {
-    try {
-      if (Platform.isAndroid) {
-        // On Android, we can try to read from /proc/net/route
-        final file = File('/proc/net/route');
-        if (await file.exists()) {
-          final lines = await file.readAsLines();
-          for (final line in lines.skip(1)) {
-            // Skip header
-            final parts = line.split('\t');
-            if (parts.length > 2 && parts[1] == '00000000') {
-              // Default route
-              // Gateway is in parts[2], but in hex and reversed byte order
-              final hex = parts[2];
-              final gateway = [
-                int.parse(hex.substring(6, 8), radix: 16),
-                int.parse(hex.substring(4, 6), radix: 16),
-                int.parse(hex.substring(2, 4), radix: 16),
-                int.parse(hex.substring(0, 2), radix: 16),
-              ].join('.');
-              return gateway;
-            }
-          }
-        }
-      } else if (Platform.isIOS) {
-        // iOS doesn't provide easy access to routing table
-        return null;
+        _currentResults.add('Error: ${e.toString()}');
       }
 
-      // For other platforms, we'd need more sophisticated methods
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // Simple ping function
-  Future<int> _pingHost(String host, int count) async {
-    try {
-      final stopwatch = Stopwatch()..start();
-      final address = await InternetAddress.lookup(host);
-      if (address.isEmpty) return 0;
-
-      final ping = await Process.run('ping', [
-        if (Platform.isWindows) '-n' else '-c',
-        '$count',
-        address.first.address,
-      ]);
-
-      stopwatch.stop();
-
-      if (ping.exitCode == 0) {
-        // Parse ping time from output
-        final output = ping.stdout.toString();
-        final timeRegex =
-            Platform.isWindows
-                ? RegExp(r'Average = (\d+)ms')
-                : RegExp(r'min/avg/max/.+ = [0-9.]+/([0-9.]+)/');
-
-        final match = timeRegex.firstMatch(output);
-        if (match != null && match.group(1) != null) {
-          return double.parse(match.group(1)!).round();
-        }
+      // Still provide partial results if available
+      if (_currentResults.isEmpty) {
+        _currentResults.add('Could not complete traceroute');
       }
-
-      return stopwatch.elapsedMilliseconds ~/ count;
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  // Ping with TTL (to detect intermediate hops)
-  Future<ProbeResult> _pingHostWithTtl(String host, int ttl) async {
-    try {
-      List<String> pingArgs;
-      if (Platform.isWindows) {
-        pingArgs = ['-n', '1', '-i', '$ttl', '-w', '1000', host];
-      } else {
-        // Unix-like
-        pingArgs = ['-c', '1', '-t', '$ttl', '-W', '1', host];
-      }
-
-      final result = await Process.run('ping', pingArgs);
-      final output = result.stdout.toString() + result.stderr.toString();
-
-      // Check for "TTL expired in transit" or similar messages
-      // This indicates we've hit an intermediate router
-      final ttlExceededRegex = RegExp(
-        r'(TTL expired|Time to live exceeded|ttl=[0-9]+ time=([0-9.]+))',
-        caseSensitive: false,
-      );
-      final ttlMatch = ttlExceededRegex.firstMatch(output);
-
-      if (ttlMatch != null) {
-        // Try to extract the IP address of the router
-        final ipRegex = RegExp(r'from (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})');
-        final ipMatch = ipRegex.firstMatch(output);
-
-        // Try to extract response time
-        final timeRegex = RegExp(
-          r'time[=<]([0-9.]+)\s*ms',
-          caseSensitive: false,
-        );
-        final timeMatch = timeRegex.firstMatch(output);
-
-        return ProbeResult(
-          ipAddress: ipMatch?.group(1),
-          responseTime:
-              timeMatch != null
-                  ? double.parse(timeMatch.group(1)!).round()
-                  : null,
-        );
-      }
-
-      // If we got a normal response, we've reached the destination
-      if (result.exitCode == 0) {
-        final ipRegex = RegExp(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})');
-        final ipMatch = ipRegex.firstMatch(output);
-
-        final timeRegex = RegExp(
-          r'time[=<]([0-9.]+)\s*ms',
-          caseSensitive: false,
-        );
-        final timeMatch = timeRegex.firstMatch(output);
-
-        return ProbeResult(
-          ipAddress: ipMatch?.group(1),
-          responseTime:
-              timeMatch != null
-                  ? double.parse(timeMatch.group(1)!).round()
-                  : null,
-        );
-      }
-
-      return ProbeResult();
-    } catch (e) {
-      return ProbeResult();
     }
   }
 
@@ -1395,148 +1177,328 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
   @override
   Widget build(BuildContext context) {
     final kPrimaryColor = Theme.of(context).primaryColor;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Network Diagnostics'),
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (choice) {
-              if (choice == 'export') {
-                _exportLogs();
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              return [
-                const PopupMenuItem<String>(
-                  value: 'export',
-                  child: Text('Export Logs'),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppBarLayout(
+            title: 'Diagnostics',
+            appBarActions: [
+              PopupMenuButton<String>(
+                onSelected: (choice) {
+                  if (choice == 'export') {
+                    _exportLogs();
+                  }
+                },
+                itemBuilder: (BuildContext context) {
+                  return [
+                    const PopupMenuItem<String>(
+                      value: 'export',
+                      child: Text('Export Logs'),
+                    ),
+                  ];
+                },
+              ),
+            ],
+          ),
+          // Input area
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: _hostController,
+                decoration: InputDecoration(
+                  labelText: 'Host / IP Address',
+                  hintText: 'e.g., google.com or 192.168.1.1',
+                  // Default border
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12), // Rounded corners
+                    borderSide: BorderSide(
+                      color: kPrimaryColor.withValues(alpha: 0.1),
+                      width: 1.5,
+                    ),
+                  ),
+
+                  // Focused border (when tapped)
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: kPrimaryColor.withValues(alpha: 0.8),
+                      width: 1.5,
+                    ),
+                  ),
+
+                  // Error border (when validation fails)
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Colors.red, // Red for errors
+                      width: 2,
+                    ),
+                  ),
+
+                  // Border when the field is focused & has an error
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Colors.red.shade700, // Darker red when focused
+                      width: 2.5,
+                    ),
+                  ),
+
+                  // Disabled border
+                  disabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Colors.grey.shade300, // Light gray
+                      width: 1.5,
+                    ),
+                  ),
+
+                  // Padding inside the input
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 16,
+                  ),
                 ),
-              ];
-            },
+                enabled: !_isRunningTest,
+              ),
+              const SizedBox(height: 16),
+              if (_activeTest == 'Port Scan' || _activeTest == '')
+                TextField(
+                  controller: _portRangeController,
+                  decoration: InputDecoration(
+                    labelText: 'Port Range (for Port Scan)',
+                    hintText: 'e.g., 1-1000 or 80',
+                    // Default border
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(
+                        12,
+                      ), // Rounded corners
+                      borderSide: BorderSide(
+                        color: kPrimaryColor.withValues(alpha: 0.1),
+                        width: 1.5,
+                      ),
+                    ),
+
+                    // Focused border (when tapped)
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: kPrimaryColor.withValues(alpha: 0.8),
+                        width: 1.5,
+                      ),
+                    ),
+
+                    // Error border (when validation fails)
+                    errorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.red, // Red for errors
+                        width: 2,
+                      ),
+                    ),
+
+                    // Border when the field is focused & has an error
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.red.shade700, // Darker red when focused
+                        width: 2.5,
+                      ),
+                    ),
+
+                    // Disabled border
+                    disabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.grey.shade300, // Light gray
+                        width: 1.5,
+                      ),
+                    ),
+
+                    // Padding inside the input
+                    contentPadding: EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
+                  ),
+                  enabled: !_isRunningTest,
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Diagnostics buttons
+          _isRunningTest
+              ? Column(
+                children: [
+                  // Test progress
+                  Text(
+                    '$_activeTest in progress...',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(value: _testProgress),
+                  const SizedBox(height: 16),
+                ],
+              )
+              : _buildDiagnosticTools(kPrimaryColor),
+
+          const SizedBox(height: 16),
+
+          // Results area
+          Expanded(
+            child: DefaultTabController(
+              length: 2,
+              child: Column(
+                children: [
+                  TabBar(
+                    tabs: [Tab(text: 'Current Results'), Tab(text: 'History')],
+                    labelColor: kPrimaryColor,
+                  ),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        // Current results tab
+                        _buildResultsView(),
+
+                        // History tab
+                        _buildHistoryView(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Input area
-            Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: _hostController,
-                      decoration: const InputDecoration(
-                        labelText: 'Host / IP Address',
-                        border: OutlineInputBorder(),
-                        hintText: 'e.g., google.com or 192.168.1.1',
-                      ),
-                      enabled: !_isRunningTest,
-                    ),
-                    const SizedBox(height: 16),
-                    if (_activeTest == 'Port Scan' || _activeTest == '')
-                      TextField(
-                        controller: _portRangeController,
-                        decoration: const InputDecoration(
-                          labelText: 'Port Range (for Port Scan)',
-                          border: OutlineInputBorder(),
-                          hintText: 'e.g., 1-1000 or 80',
-                        ),
-                        enabled: !_isRunningTest,
-                      ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Diagnostics buttons
-            _isRunningTest
-                ? Column(
-                  children: [
-                    // Test progress
-                    Text(
-                      '$_activeTest in progress...',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    LinearProgressIndicator(value: _testProgress),
-                    const SizedBox(height: 16),
-                  ],
-                )
-                : _buildDiagnosticTools(),
-
-            const SizedBox(height: 16),
-
-            // Results area
-            Expanded(
-              child: DefaultTabController(
-                length: 2,
-                child: Column(
-                  children: [
-                    TabBar(
-                      tabs: [
-                        Tab(text: 'Current Results'),
-                        Tab(text: 'History'),
-                      ],
-                      labelColor: kPrimaryColor,
-                    ),
-                    Expanded(
-                      child: TabBarView(
-                        children: [
-                          // Current results tab
-                          _buildResultsView(),
-
-                          // History tab
-                          _buildHistoryView(),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  Widget _buildDiagnosticTools() {
-    return Wrap(
-      spacing: 8.0,
-      runSpacing: 8.0,
-      children: [
-        ElevatedButton.icon(
-          icon: const Icon(Icons.route),
-          label: const Text('Traceroute'),
-          onPressed: _runTraceroute,
+  Widget _buildDiagnosticTools(Color kPrimaryColor) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Use 600px as breakpoint between mobile and desktop
+        final bool isDesktop = constraints.maxWidth > 600;
+
+        if (isDesktop) {
+          // Single row layout for desktop
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildDiagnosticButton(
+                iconData: Icons.route,
+                title: 'Traceroute',
+                color: kPrimaryColor,
+                onPressed: _runTraceroute,
+              ),
+              _buildDiagnosticButton(
+                iconData: Icons.speed,
+                title: 'Speed Test',
+                color: kPrimaryColor,
+                onPressed: _runSpeedTest,
+              ),
+              _buildDiagnosticButton(
+                iconData: Icons.trending_down,
+                title: 'Packet Loss',
+                color: kPrimaryColor,
+                onPressed: _runPacketLossTest,
+              ),
+              _buildDiagnosticButton(
+                iconData: Icons.filter_list,
+                title: 'Port Scan',
+                color: kPrimaryColor,
+                onPressed: _runPortScan,
+              ),
+            ],
+          );
+        } else {
+          // Two-row layout for mobile
+          return Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildDiagnosticButton(
+                    iconData: Icons.route,
+                    title: 'Traceroute',
+                    color: kPrimaryColor,
+                    onPressed: _runTraceroute,
+                  ),
+                  _buildDiagnosticButton(
+                    iconData: Icons.speed,
+                    title: 'Speed Test',
+                    color: kPrimaryColor,
+                    onPressed: _runSpeedTest,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildDiagnosticButton(
+                    iconData: Icons.trending_down,
+                    title: 'Packet Loss',
+                    color: kPrimaryColor,
+                    onPressed: _runPacketLossTest,
+                  ),
+                  _buildDiagnosticButton(
+                    iconData: Icons.filter_list,
+                    title: 'Port Scan',
+                    color: kPrimaryColor,
+                    onPressed: _runPortScan,
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildDiagnosticButton({
+    required String title,
+    required IconData iconData,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onPressed,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          margin: EdgeInsets.symmetric(horizontal: 5),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: 5,
+              children: [
+                Icon(iconData, color: color),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.speed),
-          label: const Text('Speed Test'),
-          onPressed: _runSpeedTest,
-        ),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.trending_down),
-          label: const Text('Packet Loss'),
-          onPressed: _runPacketLossTest,
-        ),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.filter_list),
-          label: const Text('Port Scan'),
-          onPressed: _runPortScan,
-        ),
-      ],
+      ),
     );
   }
 
@@ -1566,20 +1528,23 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.content_copy),
-                  onPressed: () {
-                    Clipboard.setData(
-                      ClipboardData(text: _currentResults.join('\n')),
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Results copied to clipboard'),
-                      ),
-                    );
-                  },
-                  tooltip: 'Copy results',
+                Expanded(
+                  child: IconButton(
+                    icon: const Icon(Icons.content_copy),
+                    onPressed: () {
+                      Clipboard.setData(
+                        ClipboardData(text: _currentResults.join('\n')),
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Results copied to clipboard'),
+                        ),
+                      );
+                    },
+                    tooltip: 'Copy results',
+                  ),
                 ),
               ],
             ),

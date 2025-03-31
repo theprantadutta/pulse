@@ -2,18 +2,23 @@ import 'dart:async';
 
 import 'package:dart_ping/dart_ping.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pulse/presentations/ping_screen/charts_tab_view.dart';
+import 'package:pulse/presentations/ping_screen/history_tab_view.dart';
 
-class PingScreen extends StatefulWidget {
+import '../ping_screen/results_tab_view.dart';
+import '../widgets/app_bar_layout.dart';
+
+class PingScreen extends ConsumerStatefulWidget {
   static const kRouteName = '/ping';
   const PingScreen({super.key});
 
   @override
-  State<PingScreen> createState() => _PingScreenState();
+  ConsumerState<PingScreen> createState() => _PingScreenState();
 }
 
-class _PingScreenState extends State<PingScreen> {
+class _PingScreenState extends ConsumerState<PingScreen>
+    with TickerProviderStateMixin {
   final TextEditingController _addressController = TextEditingController();
   bool _isPinging = false;
   int _pingCount = 4;
@@ -31,11 +36,21 @@ class _PingScreenState extends State<PingScreen> {
   int _interval = 1;
   int _timeout = 5;
 
+  late TabController _tabController;
+  int _selectedTabIndex = 0;
+
+  @override
+  void initState() {
+    _tabController = TabController(length: 3, vsync: this);
+    super.initState();
+  }
+
   @override
   void dispose() {
     _addressController.dispose();
     _pingTimer?.cancel();
     _scrollController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -214,13 +229,20 @@ class _PingScreenState extends State<PingScreen> {
   void _rePing(String address, {int? interval, int? timeout}) {
     _addressController.text = address;
 
-    // Apply saved settings if provided
-    if (interval != null) {
-      setState(() => _interval = interval);
-    }
-    if (timeout != null) {
-      setState(() => _timeout = timeout);
-    }
+    // // Apply saved settings if provided
+    // if (interval != null) {
+    //   setState(() => _interval = interval);
+    // }
+    // if (timeout != null) {
+    //   setState(() => _timeout = timeout);
+    // }
+
+    setState(() {
+      if (interval != null) _interval = interval;
+      if (timeout != null) _timeout = timeout;
+      _selectedTabIndex = 0;
+      _tabController.animateTo(0);
+    });
 
     _startPing();
   }
@@ -228,134 +250,134 @@ class _PingScreenState extends State<PingScreen> {
   @override
   Widget build(BuildContext context) {
     final kPrimaryColor = Theme.of(context).primaryColor;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Ping Tool'), elevation: 0),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Input field and ping button
-            Row(
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: TextField(
-                    controller: _addressController,
-                    enabled: !_isPinging,
-                    decoration: InputDecoration(
-                      labelText: 'IP Address or Domain',
-                      hintText: 'e.g., google.com or 192.168.1.1',
-                      floatingLabelBehavior: FloatingLabelBehavior.always,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppBarLayout(title: 'Ping Tool'),
+          // Input field and ping button
+          Row(
+            children: [
+              Expanded(
+                flex: 5,
+                child: TextField(
+                  controller: _addressController,
+                  enabled: !_isPinging,
+                  decoration: InputDecoration(
+                    labelText: 'IP Address or Domain',
+                    hintText: 'e.g., google.com or 192.168.1.1',
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
 
-                      // Default border
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(
-                          12,
-                        ), // Rounded corners
-                        borderSide: BorderSide(
-                          color: kPrimaryColor.withValues(alpha: 0.1),
-                          width: 1.5,
-                        ),
+                    // Default border
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(
+                        12,
+                      ), // Rounded corners
+                      borderSide: BorderSide(
+                        color: kPrimaryColor.withValues(alpha: 0.1),
+                        width: 1.5,
                       ),
+                    ),
 
-                      // Focused border (when tapped)
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: kPrimaryColor.withValues(alpha: 0.8),
-                          width: 1.5,
-                        ),
+                    // Focused border (when tapped)
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: kPrimaryColor.withValues(alpha: 0.8),
+                        width: 1.5,
                       ),
+                    ),
 
-                      // Error border (when validation fails)
-                      errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.red, // Red for errors
-                          width: 2,
-                        ),
+                    // Error border (when validation fails)
+                    errorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.red, // Red for errors
+                        width: 2,
                       ),
+                    ),
 
-                      // Border when the field is focused & has an error
-                      focusedErrorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.red.shade700, // Darker red when focused
-                          width: 2.5,
-                        ),
+                    // Border when the field is focused & has an error
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.red.shade700, // Darker red when focused
+                        width: 2.5,
                       ),
+                    ),
 
-                      // Disabled border
-                      disabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.grey.shade300, // Light gray
-                          width: 1.5,
-                        ),
+                    // Disabled border
+                    disabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.grey.shade300, // Light gray
+                        width: 1.5,
                       ),
+                    ),
 
-                      // Padding inside the input
-                      contentPadding: EdgeInsets.symmetric(
-                        vertical: 14,
-                        horizontal: 16,
-                      ),
+                    // Padding inside the input
+                    contentPadding: EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
                     ),
                   ),
                 ),
+              ),
 
-                SizedBox(width: 8),
-                Expanded(
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: _isPinging ? _stopPing : _startPing,
-                      child: Container(
-                        height: 50,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 15,
-                        ),
-                        decoration: BoxDecoration(
-                          color:
-                              _isPinging
-                                  ? Colors.red.withValues(alpha: 0.1)
-                                  : kPrimaryColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: Center(
-                          child: Text(
-                            _isPinging ? 'Stop' : 'Ping',
-                            style: TextStyle(
-                              color: _isPinging ? Colors.red : kPrimaryColor,
-                            ),
-                          ),
+              SizedBox(width: 8),
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: _isPinging ? _stopPing : _startPing,
+                  child: Container(
+                    height: 50,
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                    decoration: BoxDecoration(
+                      color:
+                          _isPinging
+                              ? Colors.red.withValues(alpha: 0.1)
+                              : kPrimaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Center(
+                      child: Text(
+                        _isPinging ? 'Stop' : 'Ping',
+                        style: TextStyle(
+                          color: _isPinging ? Colors.red : kPrimaryColor,
                         ),
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
 
-            SizedBox(height: 16),
+          SizedBox(height: 16),
 
-            // Ping options - First row
-            Row(
-              children: [
-                // Number of pings
-                Expanded(
+          // Ping options - First row
+          Row(
+            children: [
+              // Number of pings
+              Expanded(
+                child: SizedBox(
+                  height: 50,
                   child: DropdownButtonFormField<int>(
                     decoration: const InputDecoration(
                       labelText: 'Number of Pings',
                       border: OutlineInputBorder(),
                     ),
+                    padding: EdgeInsets.zero,
                     value: _pingCount,
                     items:
                         [4, 8, 16, 32, 64].map((count) {
                           return DropdownMenuItem<int>(
                             value: count,
-                            child: Text('$count pings'),
+                            child: Text(
+                              '$count pings',
+                              style: TextStyle(fontSize: 13),
+                            ),
                           );
                         }).toList(),
                     onChanged:
@@ -370,47 +392,61 @@ class _PingScreenState extends State<PingScreen> {
                             },
                   ),
                 ),
-                const SizedBox(width: 16),
-                // Continuous ping toggle
-                Expanded(
-                  child: Row(
-                    children: [
-                      Checkbox(
-                        value: _continuousPing,
-                        onChanged:
-                            _isPinging
-                                ? null
-                                : (value) {
-                                  setState(() {
-                                    _continuousPing = value ?? false;
-                                  });
-                                },
+              ),
+              const SizedBox(width: 8),
+              // Continuous ping toggle
+              Expanded(
+                child: Row(
+                  children: [
+                    Checkbox(
+                      value: _continuousPing,
+                      onChanged:
+                          _isPinging
+                              ? null
+                              : (value) {
+                                setState(() {
+                                  _continuousPing = value ?? false;
+                                });
+                              },
+                    ),
+                    const Expanded(
+                      // Wrap the Text widget in Expanded
+                      child: Text(
+                        'Continuous Ping',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const Text('Continuous Ping'),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
 
-            SizedBox(height: 16),
+          SizedBox(height: 16),
 
-            // New options - Second row
-            Row(
-              children: [
-                // Timeout
-                Expanded(
+          // New options - Second row
+          Row(
+            children: [
+              // Timeout
+              Expanded(
+                child: SizedBox(
+                  height: 50,
                   child: DropdownButtonFormField<int>(
                     decoration: const InputDecoration(
                       labelText: 'Timeout (seconds)',
                       border: OutlineInputBorder(),
                     ),
+                    padding: EdgeInsets.zero,
                     value: _timeout,
                     items:
                         [1, 2, 3, 5, 10, 15, 30].map((timeout) {
                           return DropdownMenuItem<int>(
                             value: timeout,
-                            child: Text('$timeout sec'),
+                            child: Text(
+                              '$timeout sec',
+                              style: TextStyle(fontSize: 13),
+                            ),
                           );
                         }).toList(),
                     onChanged:
@@ -425,20 +461,27 @@ class _PingScreenState extends State<PingScreen> {
                             },
                   ),
                 ),
-                const SizedBox(width: 16),
-                // Interval
-                Expanded(
+              ),
+              const SizedBox(width: 8),
+              // Interval
+              Expanded(
+                child: SizedBox(
+                  height: 50,
                   child: DropdownButtonFormField<int>(
                     decoration: const InputDecoration(
                       labelText: 'Interval (seconds)',
                       border: OutlineInputBorder(),
                     ),
+                    padding: EdgeInsets.zero,
                     value: _interval,
                     items:
                         [1, 2, 3, 5, 10].map((interval) {
                           return DropdownMenuItem<int>(
                             value: interval,
-                            child: Text('$interval sec'),
+                            child: Text(
+                              '$interval sec',
+                              style: TextStyle(fontSize: 13),
+                            ),
                           );
                         }).toList(),
                     onChanged:
@@ -453,350 +496,66 @@ class _PingScreenState extends State<PingScreen> {
                             },
                   ),
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Results display
-            Expanded(
-              child: DefaultTabController(
-                length: 3,
-                child: Column(
-                  children: [
-                    TabBar(
-                      tabs: [
-                        Tab(text: 'Results'),
-                        Tab(text: 'Chart'),
-                        Tab(text: 'History'),
-                      ],
-                      labelColor: kPrimaryColor,
-                    ),
-                    Expanded(
-                      child: TabBarView(
-                        children: [
-                          // Results tab
-                          _buildResultsTab(kPrimaryColor),
-
-                          // Chart tab
-                          _buildChartTab(),
-
-                          // History tab
-                          _buildHistoryTab(),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildResultsTab(Color kPrimaryColor) {
-    return Column(
-      children: [
-        // Header
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: const [
-              Expanded(
-                flex: 1,
-                child: Text(
-                  'No.',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  'Time',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  'Status',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  'Time (ms)',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Expanded(
-                flex: 1,
-                child: Text(
-                  'TTL',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
               ),
             ],
           ),
-        ),
-        const Divider(),
-        // Results list
-        Expanded(
-          child:
-              _currentResults.isEmpty
-                  ? const Center(child: Text('No results yet'))
-                  : ListView.builder(
-                    itemCount: _currentResults.length,
-                    controller: _scrollController,
-                    itemBuilder: (context, index) {
-                      final result = _currentResults[index];
-                      return Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        color:
-                            index % 2 == 0
-                                ? Colors.grey.withValues(alpha: 0.1)
-                                : null,
-                        child: Row(
-                          children: [
-                            Expanded(flex: 1, child: Text('${index + 1}')),
-                            Expanded(
-                              flex: 3,
-                              child: Text(
-                                DateFormat(
-                                  "hh:mm:ss a",
-                                ).format(result.timestamp),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                result.timedOut
-                                    ? 'Timeout'
-                                    : (result.success ? 'Success' : 'Failed'),
-                                style: TextStyle(
-                                  color:
-                                      result.timedOut
-                                          ? Colors.orange
-                                          : (result.success
-                                              ? Colors.green
-                                              : Colors.red),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                result.success
-                                    ? '${result.responseTime}ms'
-                                    : '-',
-                              ),
-                            ),
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                result.success ? '${result.ttl}' : '-',
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-        ),
-        // Summary
-        if (_currentResults.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              children: [
-                const Divider(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildSummaryItem('Packets', '${_currentResults.length}'),
-                    _buildSummaryItem(
-                      'Success',
-                      '${_currentResults.where((r) => r.success).length}',
-                      Colors.green,
-                    ),
-                    _buildSummaryItem(
-                      'Failed',
-                      '${_currentResults.where((r) => !r.success && !r.timedOut).length}',
-                      Colors.red,
-                    ),
-                    _buildSummaryItem(
-                      'Timeout',
-                      '${_currentResults.where((r) => r.timedOut).length}',
-                      Colors.orange,
-                    ),
-                    _buildSummaryItem(
-                      'Avg Time',
-                      '${_calculateAverageTime()}ms',
-                      kPrimaryColor,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
 
-  Widget _buildSummaryItem(String label, String value, [Color? color]) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12)),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
+          const SizedBox(height: 10),
 
-  Widget _buildChartTab() {
-    return _chartData.isEmpty
-        ? const Center(child: Text('No data to display'))
-        : _buildResponseTimeChart();
-  }
-
-  Widget _buildResponseTimeChart() {
-    return Column(
-      children: [
-        const SizedBox(height: 16),
-        const Text(
-          'Response Time (ms)',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: SfCartesianChart(
-            primaryXAxis: NumericAxis(
-              title: AxisTitle(text: 'Ping Sequence'),
-              majorGridLines: const MajorGridLines(width: 0),
-            ),
-            primaryYAxis: NumericAxis(
-              title: AxisTitle(text: 'Response Time (ms)'),
-            ),
-            tooltipBehavior: TooltipBehavior(enable: true),
-            legend: Legend(isVisible: true, position: LegendPosition.bottom),
-            series: <CartesianSeries>[
-              ColumnSeries<PingDataPoint, int>(
-                animationDuration: 1000,
-                name: 'Success',
-                dataSource:
-                    _chartData
-                        .where((data) => data.success && !data.timedOut)
-                        .toList(),
-                xValueMapper:
-                    (PingDataPoint data, _) => _chartData.indexOf(data),
-                yValueMapper: (PingDataPoint data, _) => data.responseTime,
-                color: Colors.green,
-                width: 0.8,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(4),
-                ),
-              ),
-              ColumnSeries<PingDataPoint, int>(
-                animationDuration: 1000,
-                name: 'Failed',
-                dataSource:
-                    _chartData
-                        .where((data) => !data.success && !data.timedOut)
-                        .toList(),
-                xValueMapper:
-                    (PingDataPoint data, _) => _chartData.indexOf(data),
-                yValueMapper:
-                    (PingDataPoint data, _) =>
-                        data.responseTime > 0 ? data.responseTime : 10,
-                color: Colors.red,
-                width: 0.8,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(4),
-                ),
-              ),
-              ColumnSeries<PingDataPoint, int>(
-                animationDuration: 1000,
-                name: 'Timeout',
-                dataSource: _chartData.where((data) => data.timedOut).toList(),
-                xValueMapper:
-                    (PingDataPoint data, _) => _chartData.indexOf(data),
-                yValueMapper:
-                    (PingDataPoint data, _) =>
-                        data.responseTime > 0 ? data.responseTime : 10,
-                color: Colors.orange,
-                width: 0.8,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(4),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHistoryTab() {
-    return _history.isEmpty
-        ? const Center(child: Text('No ping history'))
-        : ListView.builder(
-          itemCount: _history.length,
-          itemBuilder: (context, index) {
-            final item = _history[index];
-            return ListTile(
-              title: Text(item.address),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          // Results display
+          Expanded(
+            child: DefaultTabController(
+              initialIndex: _selectedTabIndex,
+              length: 3,
+              child: Column(
                 children: [
-                  Text(
-                    '${item.timestamp.day}/${item.timestamp.month}/${item.timestamp.year} ${item.timestamp.hour}:${item.timestamp.minute}',
+                  TabBar(
+                    controller: _tabController,
+                    onTap:
+                        (value) => setState(() {
+                          _selectedTabIndex = value;
+                          _tabController.animateTo(value);
+                        }),
+                    tabs: [
+                      Tab(text: 'Results'),
+                      Tab(text: 'Chart'),
+                      Tab(text: 'History'),
+                    ],
+                    labelColor: kPrimaryColor,
                   ),
-                  Text(
-                    'Interval: ${item.interval}s | Timeout: ${item.timeout}s',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        // Results tab
+                        ResultsTabView(
+                          currentResults: _currentResults,
+                          scrollController: _scrollController,
+                        ),
+
+                        // Chart tab
+                        ChartsTabView(chartData: _chartData),
+
+                        // History tab
+                        HistoryTabView(
+                          history: _history,
+                          rePing:
+                              (address, {interval, timeout}) => _rePing(
+                                address,
+                                interval: interval,
+                                timeout: timeout,
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              trailing: IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed:
-                    () => _rePing(
-                      item.address,
-                      interval: item.interval,
-                      timeout: item.timeout,
-                    ),
-              ),
-              onTap:
-                  () => _rePing(
-                    item.address,
-                    interval: item.interval,
-                    timeout: item.timeout,
-                  ),
-              isThreeLine: true,
-            );
-          },
-        );
-  }
-
-  String _calculateAverageTime() {
-    final successfulPings = _currentResults.where((r) => r.success).toList();
-    if (successfulPings.isEmpty) return '0';
-
-    final totalTime = successfulPings.fold<int>(
-      0,
-      (prev, result) => prev + result.responseTime,
+            ),
+          ),
+        ],
+      ),
     );
-    return (totalTime / successfulPings.length).toStringAsFixed(1);
   }
 }
 

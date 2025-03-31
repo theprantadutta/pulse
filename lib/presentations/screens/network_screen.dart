@@ -7,19 +7,26 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:network_info_plus/network_info_plus.dart';
+import 'package:open_settings_plus/core/open_settings_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:pulse/core/utils/get_dns.dart';
+import 'package:pulse/presentations/widgets/app_bar_layout.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class NetworkScreen extends StatefulWidget {
+import '../../core/utils/get_wifi_strength.dart';
+
+class NetworkScreen extends ConsumerStatefulWidget {
   static const kRouteName = '/network';
   const NetworkScreen({super.key});
 
   @override
-  State<NetworkScreen> createState() => _NetworkScreenState();
+  ConsumerState<NetworkScreen> createState() => _NetworkScreenState();
 }
 
-class _NetworkScreenState extends State<NetworkScreen> {
+class _NetworkScreenState extends ConsumerState<NetworkScreen> {
   final NetworkInfo _networkInfo = NetworkInfo();
   final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
   final Connectivity _connectivity = Connectivity();
@@ -30,7 +37,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
   String _wifiIP = 'Unknown';
   String _wifiGateway = 'Unknown';
   String _wifiSubnet = 'Unknown';
-  String _wifiDNS = 'Unknown';
+  List<String> _wifiDNS = ['Unknown'];
   String _macAddress = 'Unknown';
   String _publicIP = 'Fetching...';
   String _signalStrength = 'Unknown';
@@ -52,10 +59,34 @@ class _NetworkScreenState extends State<NetworkScreen> {
     _initConnectivityListener();
   }
 
+  // @override
+  // void didChangeDependencies() {
+  //   super.didChangeDependencies();
+
+  //   // Ensure this only runs once
+  //   if (!_isInitialized) {
+  //     Future.delayed(Duration(seconds: 1), () {
+  //       ref.read(appBarActionsProvider.notifier).changeAppBarList([
+  //         IconButton(
+  //           icon: const Icon(Icons.refresh),
+  //           onPressed: _loadNetworkInfo,
+  //           tooltip: 'Refresh',
+  //         ),
+  //         IconButton(
+  //           icon: const Icon(Icons.settings),
+  //           onPressed: () => _openNetworkSettings(context),
+  //           tooltip: 'Network Settings',
+  //         ),
+  //       ]);
+  //     });
+  //     _isInitialized = true;
+  //   }
+  // }
+
   @override
   void dispose() {
-    _connectivitySubscription?.cancel();
     super.dispose();
+    _connectivitySubscription?.cancel();
   }
 
   void _initConnectivityListener() {
@@ -224,7 +255,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
       // For cellular, we can only reliably get limited information
       try {
         _wifiIP = 'Cellular IP'; // Usually unavailable directly
-        _wifiDNS = 'Carrier DNS'; // Usually unavailable directly
+        _wifiDNS = ['Carrier DNS']; // Usually unavailable directly
       } catch (e) {
         debugPrint('Error getting cellular info: $e');
       }
@@ -233,20 +264,17 @@ class _NetworkScreenState extends State<NetworkScreen> {
 
   Future<void> _getAndroidWifiDetails() async {
     try {
-      // Use platform channels to get additional details
-      const platform = MethodChannel('com/myapp/networkinfo');
-      final Map<String, dynamic> wifiDetails =
-          await platform.invokeMethod('getWifiDetails') ?? {};
-
-      _wifiGateway = wifiDetails['gateway'] ?? 'Unknown';
-      _wifiSubnet = wifiDetails['subnet'] ?? 'Unknown';
-      _wifiDNS = wifiDetails['dns'] ?? 'Unknown';
-      _signalStrength = wifiDetails['signalStrength'] ?? 'Unknown';
+      _wifiGateway = await _networkInfo.getWifiGatewayIP() ?? 'Unknown';
+      _wifiSubnet = await _networkInfo.getWifiSubmask() ?? 'Unknown';
+      // _wifiDNS = [await _networkInfo.getWifiBroadcast() ?? 'Unknown'];
+      final dnsServers = await getWifiDns();
+      _wifiDNS = dnsServers;
+      _signalStrength = await getWifiStrength();
     } catch (e) {
       // Fallback to sensible default values when platform channel fails
       _wifiGateway = 'Not available';
       _wifiSubnet = 'Not available';
-      _wifiDNS = 'Not available';
+      _wifiDNS = ['Not available'];
       _signalStrength = 'Not available';
     }
   }
@@ -259,12 +287,12 @@ class _NetworkScreenState extends State<NetworkScreen> {
 
       _wifiGateway = wifiDetails['gateway'] ?? 'Unknown';
       _wifiSubnet = wifiDetails['subnet'] ?? 'Unknown';
-      _wifiDNS = wifiDetails['dns'] ?? 'Unknown';
+      _wifiDNS = [wifiDetails['dns'] ?? 'Unknown'];
       _signalStrength = wifiDetails['signalStrength'] ?? 'Unknown';
     } catch (e) {
       _wifiGateway = 'Not available';
       _wifiSubnet = 'Not available';
-      _wifiDNS = 'Not available';
+      _wifiDNS = ['Not available'];
       _signalStrength = 'Not available';
     }
   }
@@ -284,7 +312,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
       _wifiIP = wifiIP ?? 'Unknown';
       _wifiGateway = wifiGateway ?? 'Unknown';
       _wifiSubnet = wifiSubnet ?? 'Unknown';
-      _wifiDNS = wifiDNS ?? 'Unknown';
+      _wifiDNS = [wifiDNS ?? 'Unknown'];
       _macAddress = macAddress ?? 'Unknown';
       _signalStrength =
           'Unknown'; // Signal strength is not supported by network_info_plus
@@ -296,7 +324,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
       _wifiIP = '192.168.1.105';
       _wifiGateway = '192.168.1.1';
       _wifiSubnet = '255.255.255.0';
-      _wifiDNS = '8.8.8.8, 8.8.4.4';
+      _wifiDNS = ['8.8.8.8', '8.8.4.4'];
       _macAddress = 'XX:XX:XX:XX:XX:XX';
       _signalStrength = 'Unknown';
     }
@@ -402,34 +430,88 @@ class _NetworkScreenState extends State<NetworkScreen> {
     ).showSnackBar(SnackBar(content: Text('$label copied to clipboard')));
   }
 
-  void _openNetworkSettings() {
+  // void _openNetworkSettings() {
+  //   try {
+  //     if (Platform.isAndroid) {
+  //       const platform = MethodChannel('com/myapp/settings');
+  //       platform.invokeMethod('openWifiSettings');
+  //     } else if (Platform.isIOS) {
+  //       const platform = MethodChannel('com/myapp/settings');
+  //       platform.invokeMethod('openSettings');
+  //     } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+  //       // Open desktop network settings
+  //       if (Platform.isWindows) {
+  //         Process.run('control.exe', ['ncpa.cpl']);
+  //       } else if (Platform.isLinux) {
+  //         Process.run('gnome-control-center', ['network']);
+  //       } else if (Platform.isMacOS) {
+  //         Process.run('open', [
+  //           '/System/Library/PreferencePanes/Network.prefPane',
+  //         ]);
+  //       }
+  //     }
+  //   } catch (e) {
+  //     debugPrint('Error opening network settings: $e');
+  //     if (!mounted) return;
+
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text('Could not open network settings')),
+  //     );
+  //   }
+  // }
+
+  void _openNetworkSettings(BuildContext context) async {
+    Uri? settingsUri;
+
     try {
-      if (Platform.isAndroid) {
-        const platform = MethodChannel('com/myapp/settings');
-        platform.invokeMethod('openWifiSettings');
-      } else if (Platform.isIOS) {
-        const platform = MethodChannel('com/myapp/settings');
-        platform.invokeMethod('openSettings');
-      } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-        // Open desktop network settings
-        if (Platform.isWindows) {
-          Process.run('control.exe', ['ncpa.cpl']);
-        } else if (Platform.isLinux) {
-          Process.run('gnome-control-center', ['network']);
-        } else if (Platform.isMacOS) {
-          Process.run('open', [
-            '/System/Library/PreferencePanes/Network.prefPane',
-          ]);
+      if (Platform.isAndroid || Platform.isIOS) {
+        //   // Android: Open Wi-Fi settings
+        //   settingsUri = Uri.parse('android.settings.WIFI_SETTINGS');
+        // } else if (Platform.isIOS) {
+        //   // iOS: Open Wi-Fi settings
+        //   settingsUri = Uri.parse('App-Prefs:Wi-Fi');
+        switch (OpenSettingsPlus.shared) {
+          case OpenSettingsPlusAndroid settings:
+            settings.wifi();
+            return;
+          case OpenSettingsPlusIOS settings:
+            settings.wifi();
+            return;
+          default:
+            throw Exception('Platform not supported');
         }
+      } else if (Platform.isWindows) {
+        // Windows: Network settings
+        settingsUri = Uri.parse('ms-settings:network-wifi');
+      } else if (Platform.isLinux) {
+        // Linux: Typically uses gnome-control-center
+        settingsUri = Uri.parse('settings://network');
+      } else if (Platform.isMacOS) {
+        // macOS: Network preferences
+        settingsUri = Uri.parse(
+          'x-apple.systempreferences:com.apple.preference.network',
+        );
+      }
+
+      if (settingsUri != null) {
+        if (await canLaunchUrl(settingsUri)) {
+          await launchUrl(settingsUri);
+        } else {
+          _showErrorSnackBar(context, 'Could not open network settings');
+        }
+      } else {
+        _showErrorSnackBar(context, 'Unsupported platform');
       }
     } catch (e) {
-      debugPrint('Error opening network settings: $e');
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open network settings')),
-      );
+      print(e);
+      _showErrorSnackBar(context, 'Error opening network settings');
     }
+  }
+
+  void _showErrorSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _checkVpnConnection() {
@@ -446,50 +528,48 @@ class _NetworkScreenState extends State<NetworkScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Network Information'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadNetworkInfo,
-            tooltip: 'Refresh',
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: _openNetworkSettings,
-            tooltip: 'Network Settings',
-          ),
-        ],
-      ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : RefreshIndicator(
-                onRefresh: _loadNetworkInfo,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildConnectionStatusCard(),
-                      const SizedBox(height: 16),
-                      _buildNetworkDetailsCard(),
-                      const SizedBox(height: 16),
-                      _buildAdvancedDetailsCard(),
-                      if (!_hasLocationPermission ||
-                          !_hasNetworkPermission) ...[
-                        const SizedBox(height: 16),
-                        _buildPermissionCard(),
-                      ],
-                      const SizedBox(height: 16),
-                      _buildQuickActionsCard(),
-                    ],
-                  ),
+    return _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : RefreshIndicator(
+          onRefresh: _loadNetworkInfo,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppBarLayout(
+                  title: 'Network',
+                  appBarActions: [
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      onPressed: _loadNetworkInfo,
+                      tooltip: 'Refresh',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.settings),
+                      onPressed: () => _openNetworkSettings(context),
+                      tooltip: 'Network Settings',
+                    ),
+                  ],
                 ),
-              ),
-    );
+                SizedBox(height: 10),
+                if (!_hasLocationPermission || !_hasNetworkPermission) ...[
+                  _buildPermissionCard(),
+                  SizedBox(height: 10),
+                ],
+                _buildConnectionStatusCard(),
+                SizedBox(height: 10),
+                _buildNetworkDetailsCard(),
+                SizedBox(height: 10),
+                _buildAdvancedDetailsCard(),
+                SizedBox(height: 10),
+                _buildQuickActionsCard(),
+                SizedBox(height: 10),
+              ],
+            ),
+          ),
+        );
   }
 
   Widget _buildConnectionStatusCard() {
@@ -522,160 +602,166 @@ class _NetworkScreenState extends State<NetworkScreen> {
         connectionColor = Colors.grey;
     }
 
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Icon(connectionIcon, size: 48, color: connectionColor),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _connectionType,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
+    final kPrimaryColor = Theme.of(context).primaryColor;
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: kPrimaryColor.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(connectionIcon, size: 48, color: connectionColor),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _connectionType,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
                       ),
-                      if (_connectionType == 'WiFi')
-                        Text(_wifiName, style: const TextStyle(fontSize: 16)),
-                      if (_isVpnActive && _connectionType != 'VPN')
-                        Row(
-                          children: [
-                            Icon(Icons.vpn_key, size: 16, color: Colors.purple),
-                            const SizedBox(width: 4),
-                            const Text(
-                              'VPN Active',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.purple,
-                                fontWeight: FontWeight.w500,
-                              ),
+                    ),
+                    if (_connectionType == 'WiFi')
+                      Text(_wifiName, style: const TextStyle(fontSize: 16)),
+                    if (_isVpnActive && _connectionType != 'VPN')
+                      Row(
+                        children: [
+                          Icon(Icons.vpn_key, size: 16, color: Colors.purple),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'VPN Active',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.purple,
+                              fontWeight: FontWeight.w500,
                             ),
-                          ],
-                        ),
-                      Text(
-                        'Signal: $_signalStrength',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    Text(
+                      'Signal: $_signalStrength',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildNetworkDetailsCard() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Network Details',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.copy, size: 20),
-                  onPressed:
-                      () => _copyToClipboard(
-                        _getAllNetworkDetailsAsText(),
-                        'All network details',
-                      ),
-                  tooltip: 'Copy all details',
-                ),
-              ],
-            ),
-            const Divider(),
-            _buildDetailRow(
-              'IP Address',
-              _wifiIP,
-              Icons.computer,
-              onTap: () => _copyToClipboard(_wifiIP, 'IP Address'),
-            ),
-            _buildDetailRow(
-              'Subnet Mask',
-              _wifiSubnet,
-              Icons.lens,
-              onTap: () => _copyToClipboard(_wifiSubnet, 'Subnet Mask'),
-            ),
-            _buildDetailRow(
-              'Gateway',
-              _wifiGateway,
-              Icons.router,
-              onTap: () => _copyToClipboard(_wifiGateway, 'Gateway'),
-            ),
-            _buildDetailRow(
-              'DNS',
-              _wifiDNS,
-              Icons.dns,
-              onTap: () => _copyToClipboard(_wifiDNS, 'DNS'),
-            ),
-          ],
-        ),
+    final kPrimaryColor = Theme.of(context).primaryColor;
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: kPrimaryColor.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Network Details',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.copy, size: 20),
+                onPressed:
+                    () => _copyToClipboard(
+                      _getAllNetworkDetailsAsText(),
+                      'All network details',
+                    ),
+                tooltip: 'Copy all details',
+              ),
+            ],
+          ),
+          const Divider(),
+          _buildDetailRow(
+            'IP Address',
+            _wifiIP,
+            Icons.computer,
+            onTap: () => _copyToClipboard(_wifiIP, 'IP Address'),
+          ),
+          _buildDetailRow(
+            'Subnet Mask',
+            _wifiSubnet,
+            Icons.lens,
+            onTap: () => _copyToClipboard(_wifiSubnet, 'Subnet Mask'),
+          ),
+          _buildDetailRow(
+            'Gateway',
+            _wifiGateway,
+            Icons.router,
+            onTap: () => _copyToClipboard(_wifiGateway, 'Gateway'),
+          ),
+          _buildDetailRow(
+            'DNS',
+            _wifiDNS.join(','),
+            Icons.dns,
+            onTap: () => _copyToClipboard(_wifiDNS.join(','), 'DNS'),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildAdvancedDetailsCard() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Advanced Details',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const Divider(),
+    final kPrimaryColor = Theme.of(context).primaryColor;
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: kPrimaryColor.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Advanced Details',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const Divider(),
+          _buildDetailRow(
+            'MAC Address',
+            _macAddress,
+            Icons.perm_device_information,
+            onTap: () => _copyToClipboard(_macAddress, 'MAC Address'),
+          ),
+          _buildDetailRow(
+            'Public IP',
+            _publicIP,
+            Icons.public,
+            onTap: () => _copyToClipboard(_publicIP, 'Public IP'),
+          ),
+          if (_hasLocationPermission)
             _buildDetailRow(
-              'MAC Address',
-              _macAddress,
-              Icons.perm_device_information,
-              onTap: () => _copyToClipboard(_macAddress, 'MAC Address'),
+              'Geolocation',
+              _geolocation,
+              Icons.location_on,
+              onTap: () => _copyToClipboard(_geolocation, 'Geolocation'),
             ),
-            _buildDetailRow(
-              'Public IP',
-              _publicIP,
-              Icons.public,
-              onTap: () => _copyToClipboard(_publicIP, 'Public IP'),
-            ),
-            if (_hasLocationPermission)
-              _buildDetailRow(
-                'Geolocation',
-                _geolocation,
-                Icons.location_on,
-                onTap: () => _copyToClipboard(_geolocation, 'Geolocation'),
-              ),
-            _buildDetailRow(
-              'VPN Status',
-              _isVpnActive ? 'Active' : 'Not Active',
-              Icons.vpn_key,
-              onTap:
-                  () => _copyToClipboard(
-                    _isVpnActive ? 'Active' : 'Not Active',
-                    'VPN Status',
-                  ),
-            ),
-          ],
-        ),
+          _buildDetailRow(
+            'VPN Status',
+            _isVpnActive ? 'Active' : 'Not Active',
+            Icons.vpn_key,
+            onTap:
+                () => _copyToClipboard(
+                  _isVpnActive ? 'Active' : 'Not Active',
+                  'VPN Status',
+                ),
+          ),
+        ],
       ),
     );
   }
@@ -712,72 +798,75 @@ class _NetworkScreenState extends State<NetworkScreen> {
       );
     }
 
-    return Card(
-      elevation: 2,
-      color: Colors.amber[50],
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: const [
-                Icon(Icons.warning, color: Colors.amber),
-                SizedBox(width: 8),
-                Text(
-                  'Permissions Required',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Some network details require additional permissions to access on this device.',
-              style: TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 8),
-            ...permissionButtons,
-          ],
-        ),
+    final kPrimaryColor = Theme.of(context).primaryColor;
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: kPrimaryColor.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.warning, color: Colors.amber),
+              SizedBox(width: 8),
+              Text(
+                'Permissions Required',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Some network details require additional permissions to access on this device.',
+            style: TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          ...permissionButtons,
+        ],
       ),
     );
   }
 
   Widget _buildQuickActionsCard() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Quick Actions',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildActionButton(
-                  icon: Icons.wifi,
-                  label: 'Wi-Fi Settings',
-                  onTap: _openNetworkSettings,
-                ),
-                _buildActionButton(
-                  icon: Icons.vpn_key,
-                  label: 'VPN Status',
-                  onTap: _checkVpnConnection,
-                ),
-                _buildActionButton(
-                  icon: Icons.refresh,
-                  label: 'Refresh All',
-                  onTap: _loadNetworkInfo,
-                ),
-              ],
-            ),
-          ],
-        ),
+    final kPrimaryColor = Theme.of(context).primaryColor;
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: kPrimaryColor.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Quick Actions',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildActionButton(
+                icon: Icons.wifi,
+                label: 'Wi-Fi Settings',
+                onTap: () => _openNetworkSettings(context),
+              ),
+              _buildActionButton(
+                icon: Icons.vpn_key,
+                label: 'VPN Status',
+                onTap: _checkVpnConnection,
+              ),
+              _buildActionButton(
+                icon: Icons.refresh,
+                label: 'Refresh All',
+                onTap: _loadNetworkInfo,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -824,21 +913,23 @@ class _NetworkScreenState extends State<NetworkScreen> {
     required String label,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          children: [
-            Icon(icon, size: 28, color: Colors.blue),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12),
-              textAlign: TextAlign.center,
-            ),
-          ],
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              Icon(icon, size: 28, color: Colors.blue),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );

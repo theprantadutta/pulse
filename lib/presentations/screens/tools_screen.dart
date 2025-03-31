@@ -206,10 +206,11 @@ class _ToolsScreenState extends State<ToolsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Network Tools'),
-        bottom: TabBar(
+    final kPrimaryColor = Theme.of(context).primaryColor;
+    return Column(
+      children: [
+        // TabBar
+        TabBar(
           controller: _tabController,
           tabs: const [
             Tab(text: 'Geolocation', icon: Icon(Icons.location_on)),
@@ -217,184 +218,261 @@ class _ToolsScreenState extends State<ToolsScreen>
             Tab(text: 'Alerts', icon: Icon(Icons.notifications)),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildGeolocationTab(),
-          _buildNetworkMonitorTab(),
-          Center(
-            child: Center(
-              child: SizedBox(
-                width: 400,
-                child: Column(
-                  spacing: 10,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(Icons.warning, size: 80),
-                    Text(
-                      'Not Implemented Yet',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    Text(
-                      'This feature is not implemented yet. We are working on it and it will be available soon.',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.grey.shade600,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+
+        // TabBarView (expanded to fill remaining space)
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildGeolocationTab(kPrimaryColor),
+              _buildNetworkMonitorTab(kPrimaryColor),
+              _buildAlertsTab(),
+            ],
           ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAlertsTab() {
+    return Center(
+      child: Center(
+        child: SizedBox(
+          width: 400,
+          child: Column(
+            spacing: 10,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(Icons.warning, size: 80),
+              Text(
+                'Not Implemented Yet',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              Text(
+                'This feature is not implemented yet. We are working on it and it will be available soon.',
+                style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildGeolocationTab() {
+  Widget _buildGeolocationTab(Color kPrimaryColor) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'IP Geolocation',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          decoration: const InputDecoration(
-                            labelText: 'Enter IP Address',
-                            hintText: 'e.g. 8.8.8.8',
-                            border: OutlineInputBorder(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'IP Geolocation',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Enter IP Address',
+                          hintText: 'e.g. 8.8.8.8',
+                          floatingLabelBehavior: FloatingLabelBehavior.always,
+
+                          // Default border
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              12,
+                            ), // Rounded corners
+                            borderSide: BorderSide(
+                              color: kPrimaryColor.withValues(alpha: 0.1),
+                              width: 1.5,
+                            ),
                           ),
-                          onChanged: (value) {
-                            setState(() {
-                              geoIpAddress = value;
-                            });
-                          },
+
+                          // Focused border (when tapped)
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: kPrimaryColor.withValues(alpha: 0.8),
+                              width: 1.5,
+                            ),
+                          ),
+
+                          // Error border (when validation fails)
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Colors.red, // Red for errors
+                              width: 2,
+                            ),
+                          ),
+
+                          // Border when the field is focused & has an error
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color:
+                                  Colors
+                                      .red
+                                      .shade700, // Darker red when focused
+                              width: 2.5,
+                            ),
+                          ),
+
+                          // Disabled border
+                          disabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Colors.grey.shade300, // Light gray
+                              width: 1.5,
+                            ),
+                          ),
+
+                          // Padding inside the input
+                          contentPadding: EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 16,
+                          ),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            geoIpAddress = value;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: isLoadingGeo ? null : lookupGeolocation,
+                        child: Container(
+                          height: 50,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 15,
+                          ),
+                          decoration: BoxDecoration(
+                            color: kPrimaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Center(
+                            child:
+                                isLoadingGeo
+                                    ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                    : Text(
+                                      'Lookup',
+                                      style: TextStyle(
+                                        color: kPrimaryColor,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      ElevatedButton(
-                        onPressed: isLoadingGeo ? null : lookupGeolocation,
-                        child:
-                            isLoadingGeo
-                                ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                                : const Text('Lookup'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child:
-                    geoResults.isEmpty
-                        ? const Center(
-                          child: Text('Enter an IP address and click Lookup'),
-                        )
-                        : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'IP: ${geoResults['ip']}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 10),
+              child:
+                  geoResults.isEmpty
+                      ? const Center(
+                        child: Text('Enter an IP address and click Lookup'),
+                      )
+                      : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'IP: ${geoResults['ip']}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Location: ${geoResults['city']}, ${geoResults['region']}, ${geoResults['country']}',
+                          ),
+                          Text('ISP: ${geoResults['isp']}'),
+                          Text(
+                            'Coordinates: ${geoResults['lat']}, ${geoResults['lng']}',
+                          ),
+                          const SizedBox(height: 16),
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                                color: kPrimaryColor.withValues(alpha: 0.05),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Location: ${geoResults['city']}, ${geoResults['region']}, ${geoResults['country']}',
-                            ),
-                            Text('ISP: ${geoResults['isp']}'),
-                            Text(
-                              'Coordinates: ${geoResults['lat']}, ${geoResults['lng']}',
-                            ),
-                            const SizedBox(height: 16),
-                            Expanded(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                clipBehavior: Clip.antiAlias,
-                                child: StatefulBuilder(
-                                  key: Key(geoResults.toString()),
-                                  builder: (context, setMapState) {
-                                    return FlutterMap(
-                                      options: MapOptions(
-                                        initialCenter: latlong2.LatLng(
-                                          double.tryParse(
-                                                geoResults['lat'] ?? '',
-                                              ) ??
-                                              51.509364,
-                                          double.tryParse(
-                                                geoResults['lng'] ?? '',
-                                              ) ??
-                                              -0.128928,
-                                        ),
-                                        initialZoom: 9.2,
+                              clipBehavior: Clip.antiAlias,
+                              child: StatefulBuilder(
+                                key: Key(geoResults.toString()),
+                                builder: (context, setMapState) {
+                                  return FlutterMap(
+                                    options: MapOptions(
+                                      initialCenter: latlong2.LatLng(
+                                        double.tryParse(
+                                              geoResults['lat'] ?? '',
+                                            ) ??
+                                            51.509364,
+                                        double.tryParse(
+                                              geoResults['lng'] ?? '',
+                                            ) ??
+                                            -0.128928,
                                       ),
-                                      children: [
-                                        TileLayer(
-                                          // Bring your own tiles
-                                          urlTemplate:
-                                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // For demonstration only
-                                          userAgentPackageName:
-                                              'com.example.app', // Add your app identifier
-                                          // And many more recommended properties!
-                                        ),
-                                        RichAttributionWidget(
-                                          // Include a stylish prebuilt attribution widget that meets all requirments
-                                          attributions: [
-                                            TextSourceAttribution(
-                                              'OpenStreetMap contributors',
-                                              // onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')), // (external)
-                                              onTap: () {}, // (external)
-                                            ),
-                                            // Also add images...
-                                          ],
-                                        ),
-                                        MarkerLayer(markers: _markers),
-                                      ],
-                                    );
-                                  },
-                                ),
+                                      initialZoom: 9.2,
+                                    ),
+                                    children: [
+                                      TileLayer(
+                                        // Bring your own tiles
+                                        urlTemplate:
+                                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // For demonstration only
+                                        userAgentPackageName:
+                                            'com.example.app', // Add your app identifier
+                                        // And many more recommended properties!
+                                      ),
+                                      RichAttributionWidget(
+                                        // Include a stylish prebuilt attribution widget that meets all requirments
+                                        attributions: [
+                                          TextSourceAttribution(
+                                            'OpenStreetMap contributors',
+                                            // onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')), // (external)
+                                            onTap: () {}, // (external)
+                                          ),
+                                          // Also add images...
+                                        ],
+                                      ),
+                                      MarkerLayer(markers: _markers),
+                                    ],
+                                  );
+                                },
                               ),
                             ),
-                          ],
-                        ),
-              ),
+                          ),
+                        ],
+                      ),
             ),
           ),
         ],
@@ -402,126 +480,171 @@ class _ToolsScreenState extends State<ToolsScreen>
     );
   }
 
-  Widget _buildNetworkMonitorTab() {
+  Widget _buildNetworkMonitorTab(Color kPrimaryColor) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Network Monitor',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton.icon(
-                          icon: Icon(
-                            isMonitoring ? Icons.stop : Icons.play_arrow,
-                          ),
-                          label: Text(
-                            isMonitoring
-                                ? 'Stop Monitoring'
-                                : 'Start Monitoring',
-                          ),
-                          onPressed:
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Network Monitor',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // ElevatedButton.icon(
+                      //   icon: Icon(
+                      //     isMonitoring ? Icons.stop : Icons.play_arrow,
+                      //   ),
+                      //   label: Text(
+                      //     isMonitoring ? 'Stop Monitoring' : 'Start Monitoring',
+                      //   ),
+                      //   onPressed:
+                      //       isMonitoring
+                      //           ? stopNetworkMonitoring
+                      //           : startNetworkMonitoring,
+                      //   style: ElevatedButton.styleFrom(
+                      //     padding: const EdgeInsets.symmetric(
+                      //       horizontal: 24,
+                      //       vertical: 12,
+                      //     ),
+                      //   ),
+                      // ),
+                      MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap:
                               isMonitoring
                                   ? stopNetworkMonitoring
                                   : startNetworkMonitoring,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
+                          child: Container(
+                            height: 50,
+                            padding: EdgeInsets.symmetric(
                               horizontal: 24,
                               vertical: 12,
                             ),
+                            decoration: BoxDecoration(
+                              color:
+                                  isMonitoring
+                                      ? Colors.red.withOpacity(0.1)
+                                      : kPrimaryColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Center(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isMonitoring
+                                        ? Icons.stop
+                                        : Icons.play_arrow,
+                                    color:
+                                        isMonitoring
+                                            ? Colors.red
+                                            : kPrimaryColor,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    isMonitoring
+                                        ? 'Stop Monitoring'
+                                        : 'Start Monitoring',
+                                    style: TextStyle(
+                                      color:
+                                          isMonitoring
+                                              ? Colors.red
+                                              : kPrimaryColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Network Statistics',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 5.0,
+                vertical: 10.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Network Statistics',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (isMonitoring)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(
+                                Icons.check_circle,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Active',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        if (isMonitoring)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(
-                                  Icons.check_circle,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Active',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 200,
-                      child:
-                          networkStats.isEmpty
-                              ? const Center(
-                                child: Text('No monitoring data yet'),
-                              )
-                              : _buildNetworkStatsChart(),
-                    ),
-                    const SizedBox(height: 16),
-                    if (networkStats.isNotEmpty) ...[
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Latest Measurements',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildNetworkStatsTable(),
                     ],
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 200,
+                    child:
+                        networkStats.isEmpty
+                            ? const Center(
+                              child: Text('No monitoring data yet'),
+                            )
+                            : _buildNetworkStatsChart(),
+                  ),
+                  const SizedBox(height: 16),
+                  if (networkStats.isNotEmpty) ...[
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Latest Measurements',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildNetworkStatsTable(),
                   ],
-                ),
+                ],
               ),
             ),
           ],
