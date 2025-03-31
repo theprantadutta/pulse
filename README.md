@@ -1,16 +1,56 @@
-# pulse
+# Pulse App
 
-A new Flutter project.
+A **network diagnostics** Flutter app that allows users to **ping hosts**, perform **network scans**, and gather useful **connection statistics**.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
+- 🌐 **Ping Utility** – Test network connectivity with real-time results.
+- 🔎 **Network Scanner** – Scan local devices and retrieve details.
+- 📊 **Connection Stats** – View latency, packet loss, and response times.
+- 🛠 **Traceroute** – Analyze network routes and hops.
+- 📡 **Port Scanner** – Check for open ports on a target IP.
+- 🚀 **Fast & Lightweight** – Built with Flutter for a smooth experience.
 
-A few resources to get you started if this is your first Flutter project:
+## Installation
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### Prerequisites
+- Flutter installed ([Get Flutter](https://flutter.dev/docs/get-started/install))
+- Dart SDK
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Steps
+```sh
+# Clone the repo
+git clone https://github.com/theprantadutta/pulse
+cd pulse
+
+# Install dependencies
+flutter pub get
+
+# Run the app
+flutter run
+```
+
+## Screenshots
+
+
+```
+![Ping Screen](./screenshots/windows/Windows_Screenshot_1.png)
+![Network Screen](./screenshots/windows/Windows_Screenshot_2.png)
+![Diagnostics Screen](./screenshots/windows/Windows_Screenshot_3.png)
+![Tools Screen](./screenshots/windows/Windows_Screenshot_4.png)
+```
+
+
+## Roadmap
+- ✅ Core functionality (Ping, Scan, Stats, Traceroute, Port Scan)
+- ⏳ Alert System (Planned for future release)
+
+## Contributing
+Feel free to submit pull requests to improve **Pulse**.
+
+## License
+This project is licensed under the **MIT License**.
+
+---
+Made with ❤️ using Flutter!
+
