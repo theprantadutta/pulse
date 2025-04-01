@@ -56,7 +56,7 @@ flutter run
 Feel free to submit pull requests to improve **Pulse**.
 
 ## License
-This project is licensed under the **MIT License**.
+This project is licensed under the **Apache License**.
 
 ---
 Made with ❤️ using Flutter!
