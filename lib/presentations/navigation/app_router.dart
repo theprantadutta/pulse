@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/theme/wire_theme.dart';
 import '../screens/diagnostics_screen.dart';
+import '../screens/geo/geo_screen.dart';
 import '../screens/history/history_screen.dart';
 import '../screens/lan/lan_screen.dart';
 import '../screens/launch/launch_screen.dart';
@@ -66,7 +67,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           _route(Routes.loss, (s) => const DiagnosticsScreen()),
           _route(Routes.network, (s) => const NetworkScreen()),
           _route(Routes.lan, (s) => const LanScreen()),
-          _route(Routes.geo, (s) => const ToolsScreen()),
+          _route(Routes.geo, (s) => GeoScreen(initialTarget: s.uri.queryParameters['target'])),
           _route(Routes.monitor, (s) => const ToolsScreen()),
           _route(Routes.alerts, (s) => const ToolsScreen()),
           _route(Routes.history, (s) => const HistoryScreen()),
