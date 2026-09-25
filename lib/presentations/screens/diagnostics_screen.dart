@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -1158,7 +1158,9 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
       await file.writeAsString(buffer.toString());
 
       // Use share_plus to share the file
-      await Share.shareXFiles([XFile(path)], text: 'Network Diagnostics Log');
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(path)], text: 'Network Diagnostics Log'),
+      );
     } catch (e) {
       _showErrorSnackBar('Failed to export logs: $e');
     } finally {

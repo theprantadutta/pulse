@@ -1,5 +1,5 @@
 import 'package:flex_color_scheme/flex_color_scheme.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -87,6 +87,10 @@ class _MyAppState extends State<MyApp> {
       ).copyWith(brightness: Brightness.dark),
       themeMode: _themeMode,
       debugShowCheckedModeBanner: false,
+      // go_router, syncfusion, flutter_map and stylish_bottom_bar still build
+      // against package:flutter/material.dart, whose Theme is a different
+      // InheritedWidget. The bridge forwards our theme to them.
+      builder: (context, child) => MaterialUiCompatibilityBridge(child: child!),
     );
   }
 }

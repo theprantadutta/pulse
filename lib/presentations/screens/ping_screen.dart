@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:dart_ping/dart_ping.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pulse/presentations/ping_screen/charts_tab_view.dart';
 import 'package:pulse/presentations/ping_screen/history_tab_view.dart';
@@ -97,97 +97,75 @@ class _PingScreenState extends ConsumerState<PingScreen>
     // Listen to the ping stream
     ping.stream.listen(
       (event) {
-        if (event.response != null) {
-          final response = event.response!;
-          // Handle PingResponse
-          final bool success = response.time != null;
-          // final int responseTime = response.time?.round() ?? 0;
-          final int responseTime = response.time?.inMilliseconds ?? 0;
-          final int ttl = response.ttl ?? 0;
-          final bool timedOut = !success;
-
-          final result = PingResult(
-            timestamp: DateTime.now(),
-            success: success,
-            responseTime: responseTime,
-            ttl: ttl,
-            timedOut: timedOut,
-          );
-
-          setState(() {
-            _currentResults.add(result);
-
-            // Add to chart data
-            _chartData.add(
-              PingDataPoint(
-                time: _chartData.length.toString(),
-                responseTime: responseTime.toDouble(),
-                success: success,
-                timedOut: timedOut,
-              ),
+        switch (event) {
+          case PingResponse():
+            // A reply without a round-trip time is a lost probe.
+            final responseTime = event.time?.inMilliseconds;
+            _recordPingResult(
+              success: responseTime != null,
+              responseTime: responseTime ?? 0,
+              ttl: event.ttl ?? 0,
             );
-
-            // Keep chart data limited to max points
-            if (_chartData.length > _maxChartPoints) {
-              _chartData.removeAt(0);
+          case PingError():
+            // Per-probe failures (timeout, TTL exceeded, unreachable) carry
+            // a seq; run-level errors without one are not a probe result.
+            if (event.seq != null) {
+              _recordPingResult(success: false, responseTime: 0, ttl: 0);
             }
-
-            if (_scrollController.hasClients) {
-              _scrollController.animateTo(
-                _scrollController.position.maxScrollExtent + 50,
-                duration: Duration(milliseconds: 500),
-                curve: Curves.easeOut,
-              );
-            }
-          });
-        } else if (event.summary != null) {
-          // final summary = event.summary!;
-          // Handle PingSummary if needed
-          // print(
-          //   'Ping Summary: ${summary.transmitted} transmitted, ${summary.received} received',
-          // );
+          case PingSummary():
+            break;
         }
       },
       onError: (error) {
         // Handle any errors that occur during the ping process
-        print('Ping error: $error');
-
-        final result = PingResult(
-          timestamp: DateTime.now(),
-          success: false,
-          responseTime: 0,
-          ttl: 0,
-          timedOut: true,
-        );
-
-        setState(() {
-          _currentResults.add(result);
-
-          // Add to chart data
-          _chartData.add(
-            PingDataPoint(
-              time: _chartData.length.toString(),
-              responseTime: 0.0,
-              success: false,
-              timedOut: true,
-            ),
-          );
-
-          // Keep chart data limited to max points
-          if (_chartData.length > _maxChartPoints) {
-            _chartData.removeAt(0);
-          }
-
-          if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent + 50,
-              duration: Duration(milliseconds: 500),
-              curve: Curves.easeOut,
-            );
-          }
-        });
+        debugPrint('Ping error: $error');
+        _recordPingResult(success: false, responseTime: 0, ttl: 0);
       },
     );
+  }
+
+  void _recordPingResult({
+    required bool success,
+    required int responseTime,
+    required int ttl,
+  }) {
+    if (!mounted) return;
+    final timedOut = !success;
+
+    setState(() {
+      _currentResults.add(
+        PingResult(
+          timestamp: DateTime.now(),
+          success: success,
+          responseTime: responseTime,
+          ttl: ttl,
+          timedOut: timedOut,
+        ),
+      );
+
+      // Add to chart data
+      _chartData.add(
+        PingDataPoint(
+          time: _chartData.length.toString(),
+          responseTime: responseTime.toDouble(),
+          success: success,
+          timedOut: timedOut,
+        ),
+      );
+
+      // Keep chart data limited to max points
+      if (_chartData.length > _maxChartPoints) {
+        _chartData.removeAt(0);
+      }
+
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent + 50,
+          duration: Duration(milliseconds: 500),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   void _addToHistory(String address) {

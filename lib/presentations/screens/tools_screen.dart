@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
@@ -534,8 +534,8 @@ class _ToolsScreenState extends State<ToolsScreen>
                             decoration: BoxDecoration(
                               color:
                                   isMonitoring
-                                      ? Colors.red.withOpacity(0.1)
-                                      : kPrimaryColor.withOpacity(0.1),
+                                      ? Colors.red.withValues(alpha: 0.1)
+                                      : kPrimaryColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(30),
                             ),
                             child: Center(
