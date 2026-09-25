@@ -20,16 +20,15 @@ dependencies:
   shared_preferences: ^2.5.5
   drift: ^2.35.0
   drift_flutter: ^0.3.1
-  path_provider: ^2.1.6
   path: ^1.9.1
 
   # Network
   dart_ping: ^10.0.1
+  ffi: ^2.2.0
   http: ^1.6.0
   network_info_plus: ^8.2.1
   connectivity_plus: ^7.3.1
   permission_handler: ^13.0.2
-  device_info_plus: ^13.2.0
   package_info_plus: ^10.2.1
   flutter_dotenv: ^6.0.1
 
@@ -45,21 +44,13 @@ dependencies:
   flutter_foreground_task: ^11.0.3
   tray_manager: ^0.7.0
   window_manager: ^0.5.2
+  screen_retriever: ^0.2.2
 
-  # Export / share
+  # Export / links / formatting
   file_picker: ^13.1.0
-  share_plus: ^13.3.0
   url_launcher: ^6.3.2
   intl: ^0.20.3
-
-  # Legacy UI, removed once the Wire screens replace it.
-  stylish_bottom_bar: ^1.1.0
-  material_symbols_icons: ^4.2810.1
-  syncfusion_flutter_charts: ^34.2.9
-  open_settings_plus: ^0.5.1
-  ffi: ^2.2.0
   timezone: ^0.11.1
-  screen_retriever: ^0.2.2
 
 dev_dependencies:
   flutter_test:
