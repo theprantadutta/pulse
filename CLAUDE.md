@@ -22,38 +22,27 @@ Full visual + functional overhaul of Pulse to the **Wire** design language.
 - Commit after each step; no Claude / AI attribution in commit messages. Style: `feat: :sparkles: ...` (gitmoji).
 - The app imports `package:material_ui/material_ui.dart` (decoupled Material), not `flutter/material.dart`.
 
-### Progress (update as you go)
-1. ✅ Foundation — Wire theme, fonts (Archivo variable, Space Mono, `WireGlyphs` fallback subset for ■▶↻●✓▲),
-   settings provider (theme mode + accent persisted), drift DB.
-2. ✅ Primitives — `lib/core/widgets/wire/` (barrel `wire.dart`), `PulseMark` / `PulseLockup` in `lib/core/brand/`.
-3. ✅ Adaptive shell + go_router — `lib/presentations/navigation/` (`app_router.dart`, `wire_shell.dart`,
-   `destinations.dart`), launch route, mobile Tools hub. Unbuilt routes still point at the legacy screens
-   (`ping_screen.dart`, `network_screen.dart`, `diagnostics_screen.dart`, `tools_screen.dart`) until replaced.
-4. ⏳ Screens 01–14, one commit each.
-   - ✅ 01–03 Ping / Configure / History, **plus multi-ping** (user request): up to 32 concurrent named pings
-     (`pingBoardProvider` in `lib/providers/ping_provider.dart`), board grid view, session strip, saved named
-     targets (`SavedTargets` table, schema v2) with multi-select "PING SELECTED", names stored on History sessions
-     (`Sessions.label`) and searchable. Engine: `lib/services/net/ping_prober.dart` (+ `windows_icmp.dart` FFI),
-     `dns.dart`, `gateway.dart`; export via `lib/services/export_service.dart`.
-   - Next: 04 Network info, 05 LAN scan, 06 Geo IP, 08–11 tools, 12 Monitor, 13 Alerts, 14 Settings
-     (07 Tools hub already done). Remaining legacy screens: `network_screen.dart`, `diagnostics_screen.dart`,
-     `tools_screen.dart` — delete each once its replacement lands, then drop syncfusion/stylish/material_symbols.
-5. ☐ States (empty / loading / UNREACHABLE / hover-pressed-focus).
-6. ☐ Dark-mode pass.
-7. ☐ Brand everywhere (launcher icons, native splash, tray/window/notification icons, web manifest, delete
-   `assets/pulse_500x500_logo.png`).
+### Progress
+All seven steps are done (see `git log`). Every screen 01–14 is rebuilt on real engines; no legacy screens remain.
+- Engines: `lib/services/net/` (ping prober + Windows ICMP FFI, traceroute, port scanner, speed test, LAN scan with
+  ARP/NetBIOS/mDNS/OUI, Wake-on-LAN, geo IP, per-OS network details, gateway), `lib/services/background/`
+  (MonitorEngine, notifications, foreground service), `lib/services/desktop/` (window + tray, launch at login).
+- Providers: `lib/providers/*` (one per tool; `pingBoardProvider` = multi-ping; `monitorRunnerProvider` decides where
+  monitoring runs: tray on desktop, foreground service on Android/iOS when "Run in background" is on, else in-app).
+- DB schema v2 (saved_targets + sessions.label). Bump `schemaVersion` + add an `onUpgrade` step for changes.
 
-### Planned engine approach (for remaining tools)
-- Traceroute: Windows FFI TTL probes; macOS `/usr/sbin/traceroute -n`; Linux `traceroute` → `tracepath` → TTL pings;
-  Android/iOS TTL probes + direct ping of each hop for RTT.
-- LAN scan: ICMP sweep + ARP table (`arp -a` / `/proc/net/arp` / `ip neigh`) + bundled OUI vendor list + reverse DNS;
-  Wake-on-LAN via UDP broadcast. Android 10+ cannot read MACs of other devices (platform limit — show "—").
-- Geo IP: ip-api.com (needs cleartext exception) with ipinfo.io fallback (`IP_INFO_TOKEN` in `.env`); flutter_map
-  with grayscale OSM tiles and square markers.
-- Speed test: Cloudflare (`speed.cloudflare.com/__down` / `__up`) plus Hetzner download servers.
+### Test checklist for real devices (office PC: Android phone + Windows)
+- Android: install `flutter run` → allow notifications; Network screen asks for location (needed for SSID);
+  Monitor → add a target → Settings › Monitor › Run in background → a "Pulse · monitoring" notification should stay;
+  kill the app, targets keep being checked; alert rules notify. LAN scan on Android cannot read MACs (OS limit).
+- Windows: closing the window hides to the tray (tray menu: Show / Pause / Quit); launch at login adds a Run key and
+  starts hidden with `--autostart`; the first launch shows the 720×440 launch window then grows to the app.
+- iOS/macOS were not built on this machine (Windows). On a Mac: `flutter build ios` / `macos`; iOS needs the
+  "Access Wi-Fi Information" capability enabled in Xcode for the SSID. `ios/Podfile` already defines the
+  permission_handler macros. macOS runs un-sandboxed (system tools) — see `macos/Runner/*.entitlements`.
 
 ## Verifying
-- `flutter analyze` must be clean for new code (legacy screens carry pre-existing infos until deleted).
+- `flutter analyze` must be clean. `dart format` uses page width 120 (analysis_options.yaml).
 - `flutter test` — `test/render/*` (tag `render`) writes PNG renders to `build/renders/` with real fonts;
   `test/services/*_live_test.dart` (tag `network`) hits the real network.
 - Windows build needs the Visual Studio component **"C++ ATL for latest v143 build tools"** (for
