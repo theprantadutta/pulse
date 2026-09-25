@@ -39,6 +39,15 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _startedAtMeta = const VerificationMeta(
     'startedAt',
   );
@@ -120,6 +129,7 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
     id,
     tool,
     target,
+    label,
     startedAt,
     endedAt,
     avgMs,
@@ -158,6 +168,12 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
       );
     } else if (isInserting) {
       context.missing(_targetMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
     }
     if (data.containsKey('started_at')) {
       context.handle(
@@ -226,6 +242,10 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
         DriftSqlType.string,
         data['${effectivePrefix}target'],
       )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      ),
       startedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}started_at'],
@@ -269,6 +289,9 @@ class Session extends DataClass implements Insertable<Session> {
   /// One of [SessionTool] names.
   final String tool;
   final String target;
+
+  /// User-given name, e.g. "Office PC" (schema v2).
+  final String? label;
   final DateTime startedAt;
   final DateTime endedAt;
   final double? avgMs;
@@ -286,6 +309,7 @@ class Session extends DataClass implements Insertable<Session> {
     required this.id,
     required this.tool,
     required this.target,
+    this.label,
     required this.startedAt,
     required this.endedAt,
     this.avgMs,
@@ -300,6 +324,9 @@ class Session extends DataClass implements Insertable<Session> {
     map['id'] = Variable<int>(id);
     map['tool'] = Variable<String>(tool);
     map['target'] = Variable<String>(target);
+    if (!nullToAbsent || label != null) {
+      map['label'] = Variable<String>(label);
+    }
     map['started_at'] = Variable<DateTime>(startedAt);
     map['ended_at'] = Variable<DateTime>(endedAt);
     if (!nullToAbsent || avgMs != null) {
@@ -319,6 +346,9 @@ class Session extends DataClass implements Insertable<Session> {
       id: Value(id),
       tool: Value(tool),
       target: Value(target),
+      label: label == null && nullToAbsent
+          ? const Value.absent()
+          : Value(label),
       startedAt: Value(startedAt),
       endedAt: Value(endedAt),
       avgMs: avgMs == null && nullToAbsent
@@ -342,6 +372,7 @@ class Session extends DataClass implements Insertable<Session> {
       id: serializer.fromJson<int>(json['id']),
       tool: serializer.fromJson<String>(json['tool']),
       target: serializer.fromJson<String>(json['target']),
+      label: serializer.fromJson<String?>(json['label']),
       startedAt: serializer.fromJson<DateTime>(json['startedAt']),
       endedAt: serializer.fromJson<DateTime>(json['endedAt']),
       avgMs: serializer.fromJson<double?>(json['avgMs']),
@@ -358,6 +389,7 @@ class Session extends DataClass implements Insertable<Session> {
       'id': serializer.toJson<int>(id),
       'tool': serializer.toJson<String>(tool),
       'target': serializer.toJson<String>(target),
+      'label': serializer.toJson<String?>(label),
       'startedAt': serializer.toJson<DateTime>(startedAt),
       'endedAt': serializer.toJson<DateTime>(endedAt),
       'avgMs': serializer.toJson<double?>(avgMs),
@@ -372,6 +404,7 @@ class Session extends DataClass implements Insertable<Session> {
     int? id,
     String? tool,
     String? target,
+    Value<String?> label = const Value.absent(),
     DateTime? startedAt,
     DateTime? endedAt,
     Value<double?> avgMs = const Value.absent(),
@@ -383,6 +416,7 @@ class Session extends DataClass implements Insertable<Session> {
     id: id ?? this.id,
     tool: tool ?? this.tool,
     target: target ?? this.target,
+    label: label.present ? label.value : this.label,
     startedAt: startedAt ?? this.startedAt,
     endedAt: endedAt ?? this.endedAt,
     avgMs: avgMs.present ? avgMs.value : this.avgMs,
@@ -396,6 +430,7 @@ class Session extends DataClass implements Insertable<Session> {
       id: data.id.present ? data.id.value : this.id,
       tool: data.tool.present ? data.tool.value : this.tool,
       target: data.target.present ? data.target.value : this.target,
+      label: data.label.present ? data.label.value : this.label,
       startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
       endedAt: data.endedAt.present ? data.endedAt.value : this.endedAt,
       avgMs: data.avgMs.present ? data.avgMs.value : this.avgMs,
@@ -412,6 +447,7 @@ class Session extends DataClass implements Insertable<Session> {
           ..write('id: $id, ')
           ..write('tool: $tool, ')
           ..write('target: $target, ')
+          ..write('label: $label, ')
           ..write('startedAt: $startedAt, ')
           ..write('endedAt: $endedAt, ')
           ..write('avgMs: $avgMs, ')
@@ -428,6 +464,7 @@ class Session extends DataClass implements Insertable<Session> {
     id,
     tool,
     target,
+    label,
     startedAt,
     endedAt,
     avgMs,
@@ -443,6 +480,7 @@ class Session extends DataClass implements Insertable<Session> {
           other.id == this.id &&
           other.tool == this.tool &&
           other.target == this.target &&
+          other.label == this.label &&
           other.startedAt == this.startedAt &&
           other.endedAt == this.endedAt &&
           other.avgMs == this.avgMs &&
@@ -456,6 +494,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
   final Value<int> id;
   final Value<String> tool;
   final Value<String> target;
+  final Value<String?> label;
   final Value<DateTime> startedAt;
   final Value<DateTime> endedAt;
   final Value<double?> avgMs;
@@ -467,6 +506,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     this.id = const Value.absent(),
     this.tool = const Value.absent(),
     this.target = const Value.absent(),
+    this.label = const Value.absent(),
     this.startedAt = const Value.absent(),
     this.endedAt = const Value.absent(),
     this.avgMs = const Value.absent(),
@@ -479,6 +519,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     this.id = const Value.absent(),
     required String tool,
     required String target,
+    this.label = const Value.absent(),
     required DateTime startedAt,
     required DateTime endedAt,
     this.avgMs = const Value.absent(),
@@ -494,6 +535,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     Expression<int>? id,
     Expression<String>? tool,
     Expression<String>? target,
+    Expression<String>? label,
     Expression<DateTime>? startedAt,
     Expression<DateTime>? endedAt,
     Expression<double>? avgMs,
@@ -506,6 +548,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
       if (id != null) 'id': id,
       if (tool != null) 'tool': tool,
       if (target != null) 'target': target,
+      if (label != null) 'label': label,
       if (startedAt != null) 'started_at': startedAt,
       if (endedAt != null) 'ended_at': endedAt,
       if (avgMs != null) 'avg_ms': avgMs,
@@ -520,6 +563,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     Value<int>? id,
     Value<String>? tool,
     Value<String>? target,
+    Value<String?>? label,
     Value<DateTime>? startedAt,
     Value<DateTime>? endedAt,
     Value<double?>? avgMs,
@@ -532,6 +576,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
       id: id ?? this.id,
       tool: tool ?? this.tool,
       target: target ?? this.target,
+      label: label ?? this.label,
       startedAt: startedAt ?? this.startedAt,
       endedAt: endedAt ?? this.endedAt,
       avgMs: avgMs ?? this.avgMs,
@@ -553,6 +598,9 @@ class SessionsCompanion extends UpdateCompanion<Session> {
     }
     if (target.present) {
       map['target'] = Variable<String>(target.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
     }
     if (startedAt.present) {
       map['started_at'] = Variable<DateTime>(startedAt.value);
@@ -584,6 +632,7 @@ class SessionsCompanion extends UpdateCompanion<Session> {
           ..write('id: $id, ')
           ..write('tool: $tool, ')
           ..write('target: $target, ')
+          ..write('label: $label, ')
           ..write('startedAt: $startedAt, ')
           ..write('endedAt: $endedAt, ')
           ..write('avgMs: $avgMs, ')
@@ -591,6 +640,406 @@ class SessionsCompanion extends UpdateCompanion<Session> {
           ..write('summary: $summary, ')
           ..write('trend: $trend, ')
           ..write('payload: $payload')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SavedTargetsTable extends SavedTargets
+    with TableInfo<$SavedTargetsTable, SavedTarget> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SavedTargetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _hostMeta = const VerificationMeta('host');
+  @override
+  late final GeneratedColumn<String> host = GeneratedColumn<String>(
+    'host',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastUsedAtMeta = const VerificationMeta(
+    'lastUsedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastUsedAt = GeneratedColumn<DateTime>(
+    'last_used_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    host,
+    sortOrder,
+    createdAt,
+    lastUsedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'saved_targets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SavedTarget> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('host')) {
+      context.handle(
+        _hostMeta,
+        host.isAcceptableOrUnknown(data['host']!, _hostMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_hostMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('last_used_at')) {
+      context.handle(
+        _lastUsedAtMeta,
+        lastUsedAt.isAcceptableOrUnknown(
+          data['last_used_at']!,
+          _lastUsedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SavedTarget map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SavedTarget(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      host: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}host'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      lastUsedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_used_at'],
+      ),
+    );
+  }
+
+  @override
+  $SavedTargetsTable createAlias(String alias) {
+    return $SavedTargetsTable(attachedDatabase, alias);
+  }
+}
+
+class SavedTarget extends DataClass implements Insertable<SavedTarget> {
+  final int id;
+  final String name;
+  final String host;
+  final int sortOrder;
+  final DateTime createdAt;
+  final DateTime? lastUsedAt;
+  const SavedTarget({
+    required this.id,
+    required this.name,
+    required this.host,
+    required this.sortOrder,
+    required this.createdAt,
+    this.lastUsedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['host'] = Variable<String>(host);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || lastUsedAt != null) {
+      map['last_used_at'] = Variable<DateTime>(lastUsedAt);
+    }
+    return map;
+  }
+
+  SavedTargetsCompanion toCompanion(bool nullToAbsent) {
+    return SavedTargetsCompanion(
+      id: Value(id),
+      name: Value(name),
+      host: Value(host),
+      sortOrder: Value(sortOrder),
+      createdAt: Value(createdAt),
+      lastUsedAt: lastUsedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastUsedAt),
+    );
+  }
+
+  factory SavedTarget.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SavedTarget(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      host: serializer.fromJson<String>(json['host']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      lastUsedAt: serializer.fromJson<DateTime?>(json['lastUsedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'host': serializer.toJson<String>(host),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'lastUsedAt': serializer.toJson<DateTime?>(lastUsedAt),
+    };
+  }
+
+  SavedTarget copyWith({
+    int? id,
+    String? name,
+    String? host,
+    int? sortOrder,
+    DateTime? createdAt,
+    Value<DateTime?> lastUsedAt = const Value.absent(),
+  }) => SavedTarget(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    host: host ?? this.host,
+    sortOrder: sortOrder ?? this.sortOrder,
+    createdAt: createdAt ?? this.createdAt,
+    lastUsedAt: lastUsedAt.present ? lastUsedAt.value : this.lastUsedAt,
+  );
+  SavedTarget copyWithCompanion(SavedTargetsCompanion data) {
+    return SavedTarget(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      host: data.host.present ? data.host.value : this.host,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      lastUsedAt: data.lastUsedAt.present
+          ? data.lastUsedAt.value
+          : this.lastUsedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedTarget(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('host: $host, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('lastUsedAt: $lastUsedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, name, host, sortOrder, createdAt, lastUsedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SavedTarget &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.host == this.host &&
+          other.sortOrder == this.sortOrder &&
+          other.createdAt == this.createdAt &&
+          other.lastUsedAt == this.lastUsedAt);
+}
+
+class SavedTargetsCompanion extends UpdateCompanion<SavedTarget> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<String> host;
+  final Value<int> sortOrder;
+  final Value<DateTime> createdAt;
+  final Value<DateTime?> lastUsedAt;
+  const SavedTargetsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.host = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.lastUsedAt = const Value.absent(),
+  });
+  SavedTargetsCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    required String host,
+    this.sortOrder = const Value.absent(),
+    required DateTime createdAt,
+    this.lastUsedAt = const Value.absent(),
+  }) : name = Value(name),
+       host = Value(host),
+       createdAt = Value(createdAt);
+  static Insertable<SavedTarget> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<String>? host,
+    Expression<int>? sortOrder,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? lastUsedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (host != null) 'host': host,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (createdAt != null) 'created_at': createdAt,
+      if (lastUsedAt != null) 'last_used_at': lastUsedAt,
+    });
+  }
+
+  SavedTargetsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<String>? host,
+    Value<int>? sortOrder,
+    Value<DateTime>? createdAt,
+    Value<DateTime?>? lastUsedAt,
+  }) {
+    return SavedTargetsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      host: host ?? this.host,
+      sortOrder: sortOrder ?? this.sortOrder,
+      createdAt: createdAt ?? this.createdAt,
+      lastUsedAt: lastUsedAt ?? this.lastUsedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (host.present) {
+      map['host'] = Variable<String>(host.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (lastUsedAt.present) {
+      map['last_used_at'] = Variable<DateTime>(lastUsedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedTargetsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('host: $host, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('lastUsedAt: $lastUsedAt')
           ..write(')'))
         .toString();
   }
@@ -3591,6 +4040,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $SessionsTable sessions = $SessionsTable(this);
+  late final $SavedTargetsTable savedTargets = $SavedTargetsTable(this);
   late final $MonitorTargetsTable monitorTargets = $MonitorTargetsTable(this);
   late final $MonitorChecksTable monitorChecks = $MonitorChecksTable(this);
   late final $IncidentsTable incidents = $IncidentsTable(this);
@@ -3603,6 +4053,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     sessions,
+    savedTargets,
     monitorTargets,
     monitorChecks,
     incidents,
@@ -3641,6 +4092,7 @@ typedef $$SessionsTableCreateCompanionBuilder =
       Value<int> id,
       required String tool,
       required String target,
+      Value<String?> label,
       required DateTime startedAt,
       required DateTime endedAt,
       Value<double?> avgMs,
@@ -3654,6 +4106,7 @@ typedef $$SessionsTableUpdateCompanionBuilder =
       Value<int> id,
       Value<String> tool,
       Value<String> target,
+      Value<String?> label,
       Value<DateTime> startedAt,
       Value<DateTime> endedAt,
       Value<double?> avgMs,
@@ -3684,6 +4137,11 @@ class $$SessionsTableFilterComposer
 
   ColumnFilters<String> get target => $composableBuilder(
     column: $table.target,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3747,6 +4205,11 @@ class $$SessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get startedAt => $composableBuilder(
     column: $table.startedAt,
     builder: (column) => ColumnOrderings(column),
@@ -3801,6 +4264,9 @@ class $$SessionsTableAnnotationComposer
   GeneratedColumn<String> get target =>
       $composableBuilder(column: $table.target, builder: (column) => column);
 
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
   GeneratedColumn<DateTime> get startedAt =>
       $composableBuilder(column: $table.startedAt, builder: (column) => column);
 
@@ -3854,6 +4320,7 @@ class $$SessionsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> tool = const Value.absent(),
                 Value<String> target = const Value.absent(),
+                Value<String?> label = const Value.absent(),
                 Value<DateTime> startedAt = const Value.absent(),
                 Value<DateTime> endedAt = const Value.absent(),
                 Value<double?> avgMs = const Value.absent(),
@@ -3865,6 +4332,7 @@ class $$SessionsTableTableManager
                 id: id,
                 tool: tool,
                 target: target,
+                label: label,
                 startedAt: startedAt,
                 endedAt: endedAt,
                 avgMs: avgMs,
@@ -3878,6 +4346,7 @@ class $$SessionsTableTableManager
                 Value<int> id = const Value.absent(),
                 required String tool,
                 required String target,
+                Value<String?> label = const Value.absent(),
                 required DateTime startedAt,
                 required DateTime endedAt,
                 Value<double?> avgMs = const Value.absent(),
@@ -3889,6 +4358,7 @@ class $$SessionsTableTableManager
                 id: id,
                 tool: tool,
                 target: target,
+                label: label,
                 startedAt: startedAt,
                 endedAt: endedAt,
                 avgMs: avgMs,
@@ -3926,6 +4396,230 @@ typedef $$SessionsTableProcessedTableManager =
       $$SessionsTableUpdateCompanionBuilder,
       (Session, BaseReferences<_$AppDatabase, $SessionsTable, Session>),
       Session,
+      PrefetchHooks Function()
+    >;
+typedef $$SavedTargetsTableCreateCompanionBuilder =
+    SavedTargetsCompanion Function({
+      Value<int> id,
+      required String name,
+      required String host,
+      Value<int> sortOrder,
+      required DateTime createdAt,
+      Value<DateTime?> lastUsedAt,
+    });
+typedef $$SavedTargetsTableUpdateCompanionBuilder =
+    SavedTargetsCompanion Function({
+      Value<int> id,
+      Value<String> name,
+      Value<String> host,
+      Value<int> sortOrder,
+      Value<DateTime> createdAt,
+      Value<DateTime?> lastUsedAt,
+    });
+
+class $$SavedTargetsTableFilterComposer
+    extends Composer<_$AppDatabase, $SavedTargetsTable> {
+  $$SavedTargetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get host => $composableBuilder(
+    column: $table.host,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastUsedAt => $composableBuilder(
+    column: $table.lastUsedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SavedTargetsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SavedTargetsTable> {
+  $$SavedTargetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get host => $composableBuilder(
+    column: $table.host,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastUsedAt => $composableBuilder(
+    column: $table.lastUsedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SavedTargetsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SavedTargetsTable> {
+  $$SavedTargetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get host =>
+      $composableBuilder(column: $table.host, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUsedAt => $composableBuilder(
+    column: $table.lastUsedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$SavedTargetsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SavedTargetsTable,
+          SavedTarget,
+          $$SavedTargetsTableFilterComposer,
+          $$SavedTargetsTableOrderingComposer,
+          $$SavedTargetsTableAnnotationComposer,
+          $$SavedTargetsTableCreateCompanionBuilder,
+          $$SavedTargetsTableUpdateCompanionBuilder,
+          (
+            SavedTarget,
+            BaseReferences<_$AppDatabase, $SavedTargetsTable, SavedTarget>,
+          ),
+          SavedTarget,
+          PrefetchHooks Function()
+        > {
+  $$SavedTargetsTableTableManager(_$AppDatabase db, $SavedTargetsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SavedTargetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SavedTargetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SavedTargetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> host = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> lastUsedAt = const Value.absent(),
+              }) => SavedTargetsCompanion(
+                id: id,
+                name: name,
+                host: host,
+                sortOrder: sortOrder,
+                createdAt: createdAt,
+                lastUsedAt: lastUsedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                required String host,
+                Value<int> sortOrder = const Value.absent(),
+                required DateTime createdAt,
+                Value<DateTime?> lastUsedAt = const Value.absent(),
+              }) => SavedTargetsCompanion.insert(
+                id: id,
+                name: name,
+                host: host,
+                sortOrder: sortOrder,
+                createdAt: createdAt,
+                lastUsedAt: lastUsedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SavedTargetsTable, SavedTarget>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $SavedTargetsTable,
+                    SavedTarget
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SavedTargetsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SavedTargetsTable,
+      SavedTarget,
+      $$SavedTargetsTableFilterComposer,
+      $$SavedTargetsTableOrderingComposer,
+      $$SavedTargetsTableAnnotationComposer,
+      $$SavedTargetsTableCreateCompanionBuilder,
+      $$SavedTargetsTableUpdateCompanionBuilder,
+      (
+        SavedTarget,
+        BaseReferences<_$AppDatabase, $SavedTargetsTable, SavedTarget>,
+      ),
+      SavedTarget,
       PrefetchHooks Function()
     >;
 typedef $$MonitorTargetsTableCreateCompanionBuilder =
@@ -6122,6 +6816,8 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$SessionsTableTableManager get sessions =>
       $$SessionsTableTableManager(_db, _db.sessions);
+  $$SavedTargetsTableTableManager get savedTargets =>
+      $$SavedTargetsTableTableManager(_db, _db.savedTargets);
   $$MonitorTargetsTableTableManager get monitorTargets =>
       $$MonitorTargetsTableTableManager(_db, _db.monitorTargets);
   $$MonitorChecksTableTableManager get monitorChecks =>

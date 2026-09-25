@@ -29,11 +29,15 @@ Full visual + functional overhaul of Pulse to the **Wire** design language.
 3. ✅ Adaptive shell + go_router — `lib/presentations/navigation/` (`app_router.dart`, `wire_shell.dart`,
    `destinations.dart`), launch route, mobile Tools hub. Unbuilt routes still point at the legacy screens
    (`ping_screen.dart`, `network_screen.dart`, `diagnostics_screen.dart`, `tools_screen.dart`) until replaced.
-4. ⏳ Screens 01–14, one commit each. In progress: 01–03 Ping/Configure/History.
-   - Done so far: `lib/services/net/ping_prober.dart` (system ping on desktop/Android with size/TTL/family,
-     dart_ping native engine on iOS, **Windows uses IcmpSendEcho via FFI** in `windows_icmp.dart` for exact RTT
-     incl. TTL-expired hops), `dns.dart`, `lib/data/models/ping_models.dart`.
-   - Next: `pingSessionProvider`, history repository, then the Ping Live / Configure / History screens.
+4. ⏳ Screens 01–14, one commit each.
+   - ✅ 01–03 Ping / Configure / History, **plus multi-ping** (user request): up to 32 concurrent named pings
+     (`pingBoardProvider` in `lib/providers/ping_provider.dart`), board grid view, session strip, saved named
+     targets (`SavedTargets` table, schema v2) with multi-select "PING SELECTED", names stored on History sessions
+     (`Sessions.label`) and searchable. Engine: `lib/services/net/ping_prober.dart` (+ `windows_icmp.dart` FFI),
+     `dns.dart`, `gateway.dart`; export via `lib/services/export_service.dart`.
+   - Next: 04 Network info, 05 LAN scan, 06 Geo IP, 08–11 tools, 12 Monitor, 13 Alerts, 14 Settings
+     (07 Tools hub already done). Remaining legacy screens: `network_screen.dart`, `diagnostics_screen.dart`,
+     `tools_screen.dart` — delete each once its replacement lands, then drop syncfusion/stylish/material_symbols.
 5. ☐ States (empty / loading / UNREACHABLE / hover-pressed-focus).
 6. ☐ Dark-mode pass.
 7. ☐ Brand everywhere (launcher icons, native splash, tray/window/notification icons, web manifest, delete

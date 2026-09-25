@@ -11,6 +11,9 @@ class Sessions extends Table {
   /// One of [SessionTool] names.
   TextColumn get tool => text()();
   TextColumn get target => text()();
+
+  /// User-given name, e.g. "Office PC" (schema v2).
+  TextColumn get label => text().nullable()();
   DateTimeColumn get startedAt => dateTime()();
   DateTimeColumn get endedAt => dateTime()();
   RealColumn get avgMs => real().nullable()();
@@ -24,6 +27,17 @@ class Sessions extends Table {
 
   /// Tool-specific JSON with the complete result.
   TextColumn get payload => text().withDefault(const Constant('{}'))();
+}
+
+/// Named ping targets ("Personal PC" → 192.168.1.20) that can be started
+/// together as a multi-ping (schema v2).
+class SavedTargets extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get host => text()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get lastUsedAt => dateTime().nullable()();
 }
 
 class MonitorTargets extends Table {
@@ -119,6 +133,7 @@ class LanDevices extends Table {
 @DriftDatabase(
   tables: [
     Sessions,
+    SavedTargets,
     MonitorTargets,
     MonitorChecks,
     Incidents,
@@ -141,7 +156,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -153,6 +168,12 @@ class AppDatabase extends _$AppDatabase {
       await customStatement(
         'CREATE INDEX sessions_started ON sessions (started_at)',
       );
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(sessions, sessions.label);
+        await m.createTable(savedTargets);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
