@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#CFCBC2;font-family:'Archivo',sans-serif;-webkit-font-smoothing:antialiased}a{color:#E8612C}a:hover{color:#111}</style>
+</helmet>
+<div style="padding:64px;display:flex;flex-direction:column;gap:48px;min-width:max-content;color:#111">
+  <div style="display:flex;align-items:baseline;gap:16px">
+    <span style="font-size:56px;font-weight:900;font-stretch:70%">PULSE / WIRE</span>
+    <span style="font:700 16px 'Space Mono',monospace;background:#E8612C;padding:4px 10px;border:2px solid #111">0 — PALETTE &amp; TYPE</span>
+  </div>
+  <div style="display:flex;gap:48px">
+    <div style="width:760px;background:#F2F0EB;border:2px solid #111;box-shadow:12px 12px 0 #111">
+      <div style="padding:14px 20px;border-bottom:2px solid #111;display:flex;justify-content:space-between;align-items:center"><span style="font-size:32px;font-weight:900;font-stretch:72%">LIGHT · PAPER</span><span style="font:700 12px 'Space Mono',monospace">DEFAULT THEME</span></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr)">
+        <sc-for list="{{ light }}" as="c" hint-placeholder-count="12">
+          <div style="border-right:{{ c.br }};border-bottom:2px solid #111;display:flex;flex-direction:column">
+            <div style="height:90px;background:{{ c.hex }};border-bottom:2px solid #111"></div>
+            <div style="padding:10px 12px;display:flex;flex-direction:column;gap:2px"><span style="font-size:18px;font-weight:900;font-stretch:75%;text-transform:uppercase">{{ c.name }}</span><span style="font:700 12px 'Space Mono',monospace">{{ c.hex }}</span><span style="font:400 11px 'Space Mono',monospace;color:#4A4740">{{ c.use }}</span></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="width:760px;background:#111;color:#F2F0EB;border:2px solid #F2F0EB;box-shadow:12px 12px 0 #E8612C">
+      <div style="padding:14px 20px;border-bottom:2px solid #F2F0EB;display:flex;justify-content:space-between;align-items:center"><span style="font-size:32px;font-weight:900;font-stretch:72%">DARK · INK</span><span style="font:700 12px 'Space Mono',monospace;color:#E8612C">DARK THEME</span></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr)">
+        <sc-for list="{{ dark }}" as="c" hint-placeholder-count="12">
+          <div style="border-right:{{ c.br }};border-bottom:2px solid #F2F0EB;display:flex;flex-direction:column">
+            <div style="height:90px;background:{{ c.hex }};border-bottom:2px solid #F2F0EB"></div>
+            <div style="padding:10px 12px;display:flex;flex-direction:column;gap:2px"><span style="font-size:18px;font-weight:900;font-stretch:75%;text-transform:uppercase">{{ c.name }}</span><span style="font:700 12px 'Space Mono',monospace">{{ c.hex }}</span><span style="font:400 11px 'Space Mono',monospace;color:#B5B0A6">{{ c.use }}</span></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:48px">
+    <div style="width:760px;background:#F2F0EB;border:2px solid #111;box-shadow:12px 12px 0 #111">
+      <div style="padding:14px 20px;border-bottom:2px solid #111;font-size:32px;font-weight:900;font-stretch:72%">TYPE SCALE</div>
+      <sc-for list="{{ type }}" as="t" hint-placeholder-count="8">
+        <div style="display:grid;grid-template-columns:200px 1fr;align-items:center;border-bottom:1px solid #111;padding:10px 20px;gap:16px">
+          <div style="display:flex;flex-direction:column"><span style="font:700 12px 'Space Mono',monospace">{{ t.name }}</span><span style="font:400 11px 'Space Mono',monospace;color:#4A4740">{{ t.spec }}</span></div>
+          <span style="font-family:{{ t.ff }};font-size:{{ t.size }};font-weight:{{ t.w }};font-stretch:{{ t.st }};line-height:0.95;white-space:nowrap;overflow:hidden">{{ t.sample }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="width:760px;display:flex;flex-direction:column;gap:24px">
+      <div style="background:#F2F0EB;border:2px solid #111;box-shadow:12px 12px 0 #111">
+        <div style="padding:14px 20px;border-bottom:2px solid #111;font-size:32px;font-weight:900;font-stretch:72%">RULES</div>
+        <sc-for list="{{ rules }}" as="r" hint-placeholder-count="7">
+          <div style="display:grid;grid-template-columns:40px 1fr;padding:10px 20px;border-bottom:1px solid #111;font:400 13px/1.5 'Space Mono',monospace"><span style="font-weight:700">{{ r.n }}</span><span>{{ r.t }}</span></div>
+        </sc-for>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div style="border:2px solid #111;background:#F2F0EB;display:flex;flex-direction:column;gap:12px;padding:20px">
+          <span style="font:700 11px 'Space Mono',monospace">BUTTONS · LIGHT</span>
+          <div style="display:flex;gap:0;border:2px solid #111;align-self:flex-start"><span style="padding:12px 20px;background:#E8612C;font-size:18px;font-weight:800;font-stretch:80%">▶ START</span><span style="padding:12px 20px;background:#111;color:#F2F0EB;font-size:18px;font-weight:800;font-stretch:80%;border-left:2px solid #111">■ STOP</span><span style="padding:12px 20px;font-size:18px;font-weight:800;font-stretch:80%;border-left:2px solid #111">COPY</span></div>
+        </div>
+        <div style="border:2px solid #F2F0EB;background:#111;color:#F2F0EB;display:flex;flex-direction:column;gap:12px;padding:20px">
+          <span style="font:700 11px 'Space Mono',monospace">BUTTONS · DARK</span>
+          <div style="display:flex;border:2px solid #F2F0EB;align-self:flex-start"><span style="padding:12px 20px;background:#E8612C;color:#111;font-size:18px;font-weight:800;font-stretch:80%">▶ START</span><span style="padding:12px 20px;background:#F2F0EB;color:#111;font-size:18px;font-weight:800;font-stretch:80%;border-left:2px solid #F2F0EB">■ STOP</span><span style="padding:12px 20px;font-size:18px;font-weight:800;font-stretch:80%;border-left:2px solid #F2F0EB">COPY</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const withBr = (arr, col) => arr.map((c, i) => ({ ...c, br: (i % 4 === 3) ? '0' : `2px solid ${col}` }));
+    const light = [
+      {name:'Paper',hex:'#F2F0EB',use:'background'},{name:'Ink',hex:'#111111',use:'text, borders, inverse fill'},{name:'Signal',hex:'#E8612C',use:'accent, live, spikes, CTA'},{name:'Signal tint',hex:'#F6C9B3',use:'selected / warning row'},
+      {name:'Surface',hex:'#FFFFFF',use:'text inputs'},{name:'Muted row',hex:'#E4E0D8',use:'timeout / disabled row'},{name:'Grid line',hex:'#D9D5CC',use:'chart gridlines'},{name:'Filtered',hex:'#8E8A82',use:'neutral state cell'},
+      {name:'Text 2',hex:'#4A4740',use:'secondary text'},{name:'Text 3',hex:'#6B675E',use:'tertiary / hints'},{name:'Degraded',hex:'#C98A2E',use:'late / degraded'},{name:'Canvas',hex:'#CFCBC2',use:'desktop window backdrop'}
+    ];
+    const dark = [
+      {name:'Ink bg',hex:'#111111',use:'background'},{name:'Paper',hex:'#F2F0EB',use:'text, borders, inverse fill'},{name:'Signal',hex:'#E8612C',use:'accent (text on it: #111)'},{name:'Signal tint',hex:'#4A2616',use:'selected / warning row'},
+      {name:'Surface',hex:'#1C1C1C',use:'text inputs'},{name:'Muted row',hex:'#262523',use:'timeout / disabled row'},{name:'Grid line',hex:'#2E2D2A',use:'chart gridlines'},{name:'Filtered',hex:'#6E6A63',use:'neutral state cell'},
+      {name:'Text 2',hex:'#B5B0A6',use:'secondary text'},{name:'Text 3',hex:'#8C877D',use:'tertiary / hints'},{name:'Degraded',hex:'#E0A445',use:'late / degraded'},{name:'Chart bar',hex:'#F2F0EB',use:'normal bars invert'}
+    ];
+    const A = "'Archivo',sans-serif", M = "'Space Mono',monospace";
+    return {
+      light: withBr(light, '#111'), dark: withBr(dark, '#F2F0EB'),
+      type: [
+        {name:'HERO NUMERAL',spec:'Archivo 900 · 62% · 150–210',ff:A,size:'96px',w:900,st:'62%',sample:'25MS'},
+        {name:'DISPLAY',spec:'Archivo 900 · 62–70% · 48–120',ff:A,size:'56px',w:900,st:'65%',sample:'HOME-5G'},
+        {name:'STAT VALUE',spec:'Archivo 900 · 70% · 22–40',ff:A,size:'34px',w:900,st:'70%',sample:'28.9'},
+        {name:'SECTION / TITLE',spec:'Archivo 900 · 72–75% · 26–32',ff:A,size:'28px',w:900,st:'75%',sample:'TRACEROUTE'},
+        {name:'NAV / BUTTON',spec:'Archivo 800 · 80% · 16–20',ff:A,size:'18px',w:800,st:'80%',sample:'■ STOP'},
+        {name:'DATA',spec:'Space Mono 700 · 13–20',ff:M,size:'16px',w:700,st:'100%',sample:'192.168.1.42'},
+        {name:'BODY',spec:'Space Mono 400 · 12–14',ff:M,size:'13px',w:400,st:'100%',sample:'Loss comes in bursts every ~40 s.'},
+        {name:'LABEL',spec:'Space Mono 700 · 10–12 · CAPS',ff:M,size:'11px',w:700,st:'100%',sample:'RTT / NOW'}
+      ],
+      rules: [
+        {n:'01',t:'Every container is a 2px ink border. No radius (except device frame). No blur shadows.'},
+        {n:'02',t:'Desktop window gets a hard offset shadow: 12px 12px 0 ink.'},
+        {n:'03',t:'Orange means "look here": live value, spike, primary action, active incident. Never decorative.'},
+        {n:'04',t:'Headlines & numbers: Archivo condensed, uppercase. Data & labels: Space Mono.'},
+        {n:'05',t:'Selected = inverse (ink fill, paper text). Warning row = signal tint.'},
+        {n:'06',t:'Spacing: 2 · 4 · 8 · 10 · 12 · 14 · 16 · 20 · 24 · 28 · 32. Row padding 10–16px vertical.'},
+        {n:'07',t:'Dark theme is a strict inversion: swap paper↔ink, keep Signal orange.'}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

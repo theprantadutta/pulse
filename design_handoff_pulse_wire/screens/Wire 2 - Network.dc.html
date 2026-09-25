@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#CFCBC2;font-family:'Archivo',sans-serif;-webkit-font-smoothing:antialiased}a{color:#E8612C}a:hover{color:#111}</style>
+</helmet>
+<div style="padding:64px;display:flex;flex-direction:column;gap:72px;min-width:max-content;color:#111">
+  <div style="display:flex;align-items:baseline;gap:16px">
+    <span style="font-size:56px;font-weight:900;font-stretch:70%;text-transform:uppercase">Pulse / Wire</span>
+    <span style="font:700 16px 'Space Mono',monospace;background:#E8612C;padding:4px 10px;border:2px solid #111">2 — NETWORK</span>
+    <span style="font:400 15px 'Space Mono',monospace;color:#4A4740">Screens 04–06 · Network info · LAN scan · Geo IP</span>
+  </div>
+
+  <!-- 04 NETWORK INFO -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">04 — NETWORK INFO</span>
+    <div style="display:flex;gap:48px;align-items:flex-start">
+      <div data-screen-label="04 Network Desktop" style="width:1280px;height:800px;background:#F2F0EB;border:2px solid #111;box-sizing:border-box;display:grid;grid-template-columns:220px 1fr;grid-template-rows:64px 1fr;box-shadow:12px 12px 0 #111">
+        <div style="border-right:2px solid #111;border-bottom:2px solid #111;background:#E8612C;display:flex;align-items:center;gap:10px;padding:0 20px;font-size:32px;font-weight:900;font-stretch:75%"><svg width="28" height="34" viewBox="18 2 70 100"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg>PULSE</div>
+        <div style="border-bottom:2px solid #111;display:flex;align-items:stretch">
+          <div style="flex:1;display:flex;align-items:center;padding:0 20px;border-right:2px solid #111;font-size:28px;font-weight:900;font-stretch:75%">NETWORK <span style="font:400 13px 'Space Mono',monospace;margin-left:14px">UPDATED 14:02:31</span></div>
+          <div style="display:flex;align-items:center;padding:0 20px;border-right:2px solid #111;font:700 13px 'Space Mono',monospace">COPY ALL</div>
+          <div style="display:flex;align-items:center;padding:0 28px;background:#111;color:#F2F0EB;font-size:17px;font-weight:800;font-stretch:80%">↻ REFRESH</div>
+        </div>
+        <nav style="border-right:2px solid #111;display:flex;flex-direction:column">
+          <sc-for list="{{ navNet }}" as="n" hint-placeholder-count="12">
+            <div style="padding:10px 20px;border-bottom:2px solid #111;background:{{ n.bg }};color:{{ n.c }};display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:800;font-stretch:80%;text-transform:uppercase"><span>{{ n.label }}</span><span style="font:400 11px 'Space Mono',monospace">{{ n.k }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;border-top:2px solid #111;padding:14px 20px;display:flex;flex-direction:column;gap:3px;font:400 12px 'Space Mono',monospace"><span style="font-weight:700">● WIFI / HOME-5G</span><span>192.168.1.42</span></div>
+        </nav>
+        <div style="display:grid;grid-template-rows:auto 1fr;min-height:0">
+          <div style="display:grid;grid-template-columns:1fr 360px;border-bottom:2px solid #111">
+            <div style="padding:20px 28px;border-right:2px solid #111;display:flex;flex-direction:column;gap:10px">
+              <span style="font:700 12px 'Space Mono',monospace">● CONNECTED · WI-FI</span>
+              <span style="font-size:120px;line-height:0.85;font-weight:900;font-stretch:62%">HOME-5G</span>
+              <div style="display:flex;gap:0;border:2px solid #111;align-self:flex-start;font:700 12px 'Space Mono',monospace">
+                <span style="padding:8px 12px">WI-FI 6</span><span style="padding:8px 12px;border-left:2px solid #111">5 GHZ</span><span style="padding:8px 12px;border-left:2px solid #111">CH 44</span><span style="padding:8px 12px;border-left:2px solid #111">WPA3</span><span style="padding:8px 12px;border-left:2px solid #111;background:#111;color:#F2F0EB">VPN OFF</span>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-rows:1fr 1fr">
+              <div style="padding:16px 20px;border-bottom:2px solid #111;display:flex;justify-content:space-between;align-items:flex-end">
+                <div style="display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">SIGNAL</span><span style="font-size:44px;font-weight:900;font-stretch:70%">−54 DBM</span></div>
+                <div style="display:flex;gap:4px;align-items:flex-end;height:44px"><span style="width:12px;height:25%;background:#111"></span><span style="width:12px;height:50%;background:#111"></span><span style="width:12px;height:75%;background:#111"></span><span style="width:12px;height:100%;border:2px solid #111;box-sizing:border-box"></span></div>
+              </div>
+              <div style="padding:16px 20px;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">LINK SPEED</span><span style="font-size:44px;font-weight:900;font-stretch:70%">866 MBPS</span></div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;min-height:0">
+            <div style="border-right:2px solid #111">
+              <div style="padding:10px 20px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB">ADDRESSING</div>
+              <sc-for list="{{ netA }}" as="n" hint-placeholder-count="6">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 20px;border-bottom:1px solid #111"><span style="font:700 11px 'Space Mono',monospace;width:120px">{{ n.k }}</span><span style="font:700 15px 'Space Mono',monospace;flex:1">{{ n.v }}</span><span style="font:700 11px 'Space Mono',monospace;border:2px solid #111;padding:3px 8px">COPY</span></div>
+              </sc-for>
+            </div>
+            <div>
+              <div style="padding:10px 20px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB">INTERNET</div>
+              <sc-for list="{{ netB }}" as="n" hint-placeholder-count="6">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 20px;border-bottom:1px solid #111"><span style="font:700 11px 'Space Mono',monospace;width:120px">{{ n.k }}</span><span style="font:700 15px 'Space Mono',monospace;flex:1">{{ n.v }}</span><span style="font:700 11px 'Space Mono',monospace;border:2px solid #111;padding:3px 8px">COPY</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-screen-label="04 Network Mobile" style="width:390px;height:844px;background:#111;border-radius:56px;padding:10px;box-sizing:border-box">
+        <div style="width:100%;height:100%;background:#F2F0EB;border-radius:46px;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:50px;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font:700 14px 'Space Mono',monospace"><span>9:41</span><span style="width:24px;height:11px;border:2px solid #111"></span></div>
+          <div style="margin:4px 16px 0;border:2px solid #111;display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;height:48px;background:#111;color:#F2F0EB"><span style="font-size:26px;font-weight:900;font-stretch:75%">NETWORK</span><span style="font:700 12px 'Space Mono',monospace;color:#E8612C">↻ REFRESH</span></div>
+            <div style="padding:14px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:6px;background:#E8612C">
+              <span style="font:700 11px 'Space Mono',monospace">● CONNECTED · WI-FI 6 · 5 GHZ</span>
+              <span style="font-size:76px;line-height:0.85;font-weight:900;font-stretch:62%">HOME-5G</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:2px solid #111">
+              <div style="padding:10px 14px;border-right:2px solid #111;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">SIGNAL</span><span style="font-size:30px;font-weight:900;font-stretch:70%">−54 DBM</span></div>
+              <div style="padding:10px 14px;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">LINK</span><span style="font-size:30px;font-weight:900;font-stretch:70%">866 MB/S</span></div>
+            </div>
+            <sc-for list="{{ netM }}" as="n" hint-placeholder-count="8">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid #111"><div style="display:flex;flex-direction:column"><span style="font:700 10px 'Space Mono',monospace;color:#4A4740">{{ n.k }}</span><span style="font:700 14px 'Space Mono',monospace">{{ n.v }}</span></div><span style="font:700 10px 'Space Mono',monospace;border:2px solid #111;padding:3px 6px">COPY</span></div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);margin:10px 16px 28px;border:2px solid #111;font:700 11px 'Space Mono',monospace;text-align:center">
+            <sc-for list="{{ tabsNet }}" as="t" hint-placeholder-count="4"><span style="padding:12px 0;background:{{ t.bg }};color:{{ t.c }};border-left:{{ t.bl }}">{{ t.l }}</span></sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 LAN SCAN -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">05 — LAN SCAN</span>
+    <div style="display:flex;gap:48px;align-items:flex-start">
+      <div data-screen-label="05 LAN Scan Desktop" style="width:1280px;height:800px;background:#F2F0EB;border:2px solid #111;box-sizing:border-box;display:grid;grid-template-columns:220px 1fr 360px;grid-template-rows:64px auto 1fr;box-shadow:12px 12px 0 #111">
+        <div style="border-right:2px solid #111;border-bottom:2px solid #111;background:#E8612C;display:flex;align-items:center;gap:10px;padding:0 20px;font-size:32px;font-weight:900;font-stretch:75%"><svg width="28" height="34" viewBox="18 2 70 100"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg>PULSE</div>
+        <div style="grid-column:span 2;border-bottom:2px solid #111;display:flex;align-items:stretch">
+          <div style="flex:1;display:flex;align-items:center;gap:16px;padding:0 20px;border-right:2px solid #111"><span style="font:700 12px 'Space Mono',monospace">SUBNET&gt;</span><span style="font:700 20px 'Space Mono',monospace">192.168.1.0/24</span><span style="font:400 13px 'Space Mono',monospace;color:#6B675E">254 hosts</span></div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:400 13px 'Space Mono',monospace">ARP + ICMP</div>
+          <div style="display:flex;align-items:center;padding:0 28px;background:#111;color:#F2F0EB;font-size:17px;font-weight:800;font-stretch:80%">↻ SCAN AGAIN</div>
+        </div>
+        <nav style="grid-row:span 2;border-right:2px solid #111;display:flex;flex-direction:column">
+          <sc-for list="{{ navLan }}" as="n" hint-placeholder-count="12">
+            <div style="padding:10px 20px;border-bottom:2px solid #111;background:{{ n.bg }};color:{{ n.c }};display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:800;font-stretch:80%;text-transform:uppercase"><span>{{ n.label }}</span><span style="font:400 11px 'Space Mono',monospace">{{ n.k }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;border-top:2px solid #111;padding:14px 20px;display:flex;flex-direction:column;gap:3px;font:400 12px 'Space Mono',monospace"><span style="font-weight:700">● WIFI / HOME-5G</span><span>192.168.1.42</span></div>
+        </nav>
+        <div style="grid-column:span 2;display:grid;grid-template-columns:auto 1fr;border-bottom:2px solid #111">
+          <div style="padding:12px 28px;border-right:2px solid #111;display:flex;align-items:baseline;gap:12px"><span style="font-size:96px;line-height:0.9;font-weight:900;font-stretch:62%">9</span><span style="font-size:28px;font-weight:900;font-stretch:70%">DEVICES<br>FOUND</span></div>
+          <div style="padding:16px 20px;display:flex;flex-direction:column;justify-content:center;gap:10px">
+            <div style="display:flex;justify-content:space-between;font:700 12px 'Space Mono',monospace"><span>SCAN COMPLETE · 254 / 254</span><span>4.8 S</span></div>
+            <div style="height:18px;border:2px solid #111;display:flex"><div style="width:100%;background:repeating-linear-gradient(90deg,#111 0 10px,#E8612C 10px 12px)"></div></div>
+          </div>
+        </div>
+        <div style="border-right:2px solid #111;overflow:hidden;min-width:0">
+          <div style="display:grid;grid-template-columns:130px 1fr 150px 80px 70px;gap:10px;padding:10px 20px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB"><span>IP</span><span>DEVICE</span><span>VENDOR</span><span>TYPE</span><span>RTT</span></div>
+          <sc-for list="{{ devices }}" as="d" hint-placeholder-count="9">
+            <div style="display:grid;grid-template-columns:130px 1fr 150px 80px 70px;gap:10px;align-items:center;padding:10px 20px;border-bottom:1px solid #111;font:400 13px 'Space Mono',monospace;background:{{ d.bg }}"><span style="font-weight:700">{{ d.ip }}</span><span style="font-weight:700">{{ d.name }} <span style="font-weight:400;color:#4A4740">{{ d.tag }}</span></span><span>{{ d.vendor }}</span><span>{{ d.type }}</span><span style="font-weight:700">{{ d.ms }}</span></div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column">
+          <div style="padding:16px 20px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:4px;background:#F6C9B3"><span style="font:700 11px 'Space Mono',monospace">SELECTED · NAS</span><span style="font-size:36px;font-weight:900;font-stretch:70%">192.168.1.24</span></div>
+          <sc-for list="{{ devDetail }}" as="n" hint-placeholder-count="5">
+            <div style="display:flex;flex-direction:column;padding:10px 20px;border-bottom:1px solid #111"><span style="font:700 10px 'Space Mono',monospace;color:#4A4740">{{ n.k }}</span><span style="font:700 14px 'Space Mono',monospace">{{ n.v }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;display:grid;grid-template-columns:1fr 1fr 1fr;border-top:2px solid #111;font-size:16px;font-weight:800;font-stretch:80%;text-align:center">
+            <span style="padding:16px 0;background:#E8612C">PING</span><span style="padding:16px 0;border-left:2px solid #111">PORTS</span><span style="padding:16px 0;border-left:2px solid #111">WAKE</span>
+          </div>
+        </div>
+      </div>
+      <div data-screen-label="05 LAN Scan Mobile" style="width:390px;height:844px;background:#111;border-radius:56px;padding:10px;box-sizing:border-box">
+        <div style="width:100%;height:100%;background:#F2F0EB;border-radius:46px;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:50px;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font:700 14px 'Space Mono',monospace"><span>9:41</span><span style="width:24px;height:11px;border:2px solid #111"></span></div>
+          <div style="margin:4px 16px 0;border:2px solid #111;display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;height:48px;background:#111;color:#F2F0EB"><span style="font-size:26px;font-weight:900;font-stretch:75%">← LAN SCAN</span><span style="font:700 12px 'Space Mono',monospace;color:#E8612C">SCANNING</span></div>
+            <div style="padding:12px 14px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:60px;line-height:0.9;font-weight:900;font-stretch:62%">7 <span style="font-size:22px;font-stretch:75%">DEVICES</span></span><span style="font:700 12px 'Space Mono',monospace">182 / 254</span></div>
+              <div style="height:14px;border:2px solid #111;display:flex"><div style="width:72%;background:#E8612C;border-right:2px solid #111"></div></div>
+              <span style="font:400 11px 'Space Mono',monospace;color:#4A4740">192.168.1.0/24 · probing .182</span>
+            </div>
+            <sc-for list="{{ devicesM }}" as="d" hint-placeholder-count="7">
+              <div style="display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 14px;border-bottom:1px solid #111;background:{{ d.bg }}">
+                <span style="font:700 14px 'Space Mono',monospace">{{ d.name }}</span><span style="font-size:22px;font-weight:900;font-stretch:70%;grid-row:span 2;align-self:center">{{ d.ms }}</span>
+                <span style="font:400 11px 'Space Mono',monospace;color:#4A4740">{{ d.ip }} · {{ d.vendor }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);margin:10px 16px 28px;border:2px solid #111;font:700 11px 'Space Mono',monospace;text-align:center">
+            <sc-for list="{{ tabsNet }}" as="t" hint-placeholder-count="4"><span style="padding:12px 0;background:{{ t.bg }};color:{{ t.c }};border-left:{{ t.bl }}">{{ t.l }}</span></sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 GEO IP -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">06 — GEO IP</span>
+    <div style="display:flex;gap:48px;align-items:flex-start">
+      <div data-screen-label="06 Geo IP Desktop" style="width:1280px;height:800px;background:#F2F0EB;border:2px solid #111;box-sizing:border-box;display:grid;grid-template-columns:220px 1fr 380px;grid-template-rows:64px 1fr;box-shadow:12px 12px 0 #111">
+        <div style="border-right:2px solid #111;border-bottom:2px solid #111;background:#E8612C;display:flex;align-items:center;gap:10px;padding:0 20px;font-size:32px;font-weight:900;font-stretch:75%"><svg width="28" height="34" viewBox="18 2 70 100"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg>PULSE</div>
+        <div style="grid-column:span 2;border-bottom:2px solid #111;display:flex;align-items:stretch">
+          <div style="flex:1;display:flex;align-items:center;gap:16px;padding:0 20px;border-right:2px solid #111"><span style="font:700 12px 'Space Mono',monospace">LOOKUP&gt;</span><span style="font:700 20px 'Space Mono',monospace">github.com</span><span style="font:400 13px 'Space Mono',monospace;color:#6B675E">→ 140.82.121.4</span></div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:700 13px 'Space Mono',monospace">MY IP</div>
+          <div style="display:flex;align-items:center;padding:0 28px;background:#111;color:#F2F0EB;font-size:17px;font-weight:800;font-stretch:80%">LOCATE</div>
+        </div>
+        <nav style="border-right:2px solid #111;display:flex;flex-direction:column">
+          <sc-for list="{{ navGeo }}" as="n" hint-placeholder-count="12">
+            <div style="padding:10px 20px;border-bottom:2px solid #111;background:{{ n.bg }};color:{{ n.c }};display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:800;font-stretch:80%;text-transform:uppercase"><span>{{ n.label }}</span><span style="font:400 11px 'Space Mono',monospace">{{ n.k }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;border-top:2px solid #111;padding:14px 20px;display:flex;flex-direction:column;gap:3px;font:400 12px 'Space Mono',monospace"><span style="font-weight:700">● WIFI / HOME-5G</span><span>192.168.1.42</span></div>
+        </nav>
+        <div style="border-right:2px solid #111;position:relative;background:repeating-linear-gradient(45deg,#E4E0D8 0 12px,#ECE9E2 12px 24px);display:flex;align-items:center;justify-content:center">
+          <span style="font:700 13px 'Space Mono',monospace;background:#F2F0EB;border:2px solid #111;padding:8px 12px">MAP TILE · SINGAPORE ↔ DHAKA</span>
+          <div style="position:absolute;left:62%;top:60%;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="width:22px;height:22px;background:#E8612C;border:2px solid #111"></span><span style="font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB;padding:3px 6px">TARGET</span></div>
+          <div style="position:absolute;left:30%;top:28%;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="width:16px;height:16px;background:#111"></span><span style="font:700 11px 'Space Mono',monospace;background:#F2F0EB;border:2px solid #111;padding:2px 6px">YOU</span></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(3,1fr);background:#F2F0EB;border-top:2px solid #111">
+            <div style="padding:12px 20px;border-right:2px solid #111;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">DISTANCE</span><span style="font-size:34px;font-weight:900;font-stretch:70%">2,897 KM</span></div>
+            <div style="padding:12px 20px;border-right:2px solid #111;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">RTT</span><span style="font-size:34px;font-weight:900;font-stretch:70%">42 MS</span></div>
+            <div style="padding:12px 20px;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">HOPS</span><span style="font-size:34px;font-weight:900;font-stretch:70%">7</span></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column">
+          <div style="padding:16px 20px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:2px;background:#E8612C"><span style="font:700 11px 'Space Mono',monospace">LOCATED IN</span><span style="font-size:54px;line-height:0.95;font-weight:900;font-stretch:65%">SINGAPORE</span><span style="font:700 12px 'Space Mono',monospace">SG · ASIA/SINGAPORE · UTC+8</span></div>
+          <sc-for list="{{ geo }}" as="n" hint-placeholder-count="7">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 20px;border-bottom:1px solid #111"><span style="font:700 11px 'Space Mono',monospace">{{ n.k }}</span><span style="font:700 14px 'Space Mono',monospace">{{ n.v }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;display:grid;grid-template-columns:1fr 1fr;border-top:2px solid #111;font-size:16px;font-weight:800;font-stretch:80%;text-align:center">
+            <span style="padding:16px 0">PING THIS</span><span style="padding:16px 0;border-left:2px solid #111">TRACE ROUTE</span>
+          </div>
+        </div>
+      </div>
+      <div data-screen-label="06 Geo IP Mobile" style="width:390px;height:844px;background:#111;border-radius:56px;padding:10px;box-sizing:border-box">
+        <div style="width:100%;height:100%;background:#F2F0EB;border-radius:46px;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:50px;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font:700 14px 'Space Mono',monospace"><span>9:41</span><span style="width:24px;height:11px;border:2px solid #111"></span></div>
+          <div style="margin:4px 16px 0;border:2px solid #111;display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;height:48px;background:#111;color:#F2F0EB"><span style="font-size:26px;font-weight:900;font-stretch:75%">← GEO IP</span><span style="font:700 12px 'Space Mono',monospace;color:#E8612C">MY IP</span></div>
+            <div style="padding:12px 14px;border-bottom:2px solid #111;display:flex;gap:10px;align-items:baseline"><span style="font:700 11px 'Space Mono',monospace">LOOKUP&gt;</span><span style="font:700 17px 'Space Mono',monospace">github.com</span></div>
+            <div style="height:220px;border-bottom:2px solid #111;position:relative;background:repeating-linear-gradient(45deg,#E4E0D8 0 10px,#ECE9E2 10px 20px);display:flex;align-items:center;justify-content:center">
+              <span style="font:700 11px 'Space Mono',monospace;background:#F2F0EB;border:2px solid #111;padding:5px 8px">MAP TILE</span>
+              <span style="position:absolute;left:64%;top:64%;width:18px;height:18px;background:#E8612C;border:2px solid #111"></span>
+            </div>
+            <div style="padding:12px 14px;border-bottom:2px solid #111;background:#E8612C;display:flex;flex-direction:column"><span style="font-size:48px;line-height:0.95;font-weight:900;font-stretch:65%">SINGAPORE</span><span style="font:700 11px 'Space Mono',monospace">2,897 KM AWAY · 42 MS</span></div>
+            <sc-for list="{{ geoM }}" as="n" hint-placeholder-count="5">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #111"><span style="font:700 11px 'Space Mono',monospace">{{ n.k }}</span><span style="font:700 13px 'Space Mono',monospace">{{ n.v }}</span></div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);margin:10px 16px 28px;border:2px solid #111;font:700 11px 'Space Mono',monospace;text-align:center">
+            <sc-for list="{{ tabsTools }}" as="t" hint-placeholder-count="4"><span style="padding:12px 0;background:{{ t.bg }};color:{{ t.c }};border-left:{{ t.bl }}">{{ t.l }}</span></sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const B = '2px solid #111';
+    const NAV = [['Ping','01'],['Traceroute','02'],['Port scan','03'],['Speed test','04'],['Packet loss','05'],['Network','06'],['LAN scan','07'],['Geo IP','08'],['Monitor','09'],['Alerts','10'],['History','11'],['Settings','12']];
+    const nav = a => NAV.map(([label, k]) => ({ label, k, bg: label === a ? '#111' : 'transparent', c: label === a ? '#F2F0EB' : '#111' }));
+    const tabs = a => ['PING','NET','TOOLS','HISTORY'].map((l, i) => ({ l, bg: l === a ? '#111' : 'transparent', c: l === a ? '#F2F0EB' : '#111', bl: i ? B : '0' }));
+    const T = 'transparent', HL = '#F6C9B3';
+    const devices = [
+      {ip:'192.168.1.1',name:'Router',tag:'GATEWAY',vendor:'TP-Link',type:'ROUTER',ms:'2',bg:T},
+      {ip:'192.168.1.42',name:'Pranta-PC',tag:'THIS DEVICE',vendor:'Intel',type:'PC',ms:'0',bg:'#E4E0D8'},
+      {ip:'192.168.1.10',name:'realme-11-Pro',tag:'',vendor:'Realme',type:'PHONE',ms:'8',bg:T},
+      {ip:'192.168.1.24',name:'NAS',tag:'',vendor:'Synology',type:'STORAGE',ms:'3',bg:HL},
+      {ip:'192.168.1.31',name:'Living-TV',tag:'',vendor:'Samsung',type:'TV',ms:'11',bg:T},
+      {ip:'192.168.1.38',name:'Galaxy-Tab',tag:'',vendor:'Samsung',type:'TABLET',ms:'14',bg:T},
+      {ip:'192.168.1.52',name:'ESP32-Plug',tag:'',vendor:'Espressif',type:'IOT',ms:'22',bg:T},
+      {ip:'192.168.1.60',name:'HP-LaserJet',tag:'',vendor:'HP',type:'PRINTER',ms:'6',bg:T},
+      {ip:'192.168.1.77',name:'Unknown',tag:'NEW',vendor:'—',type:'?',ms:'19',bg:T}
+    ];
+    return {
+      navNet: nav('Network'), navLan: nav('LAN scan'), navGeo: nav('Geo IP'),
+      tabsNet: tabs('NET'), tabsTools: tabs('TOOLS'),
+      netA: [{k:'LOCAL IPV4',v:'192.168.1.42'},{k:'SUBNET',v:'255.255.255.0'},{k:'GATEWAY',v:'192.168.1.1'},{k:'DNS 1',v:'1.1.1.1'},{k:'DNS 2',v:'8.8.8.8'},{k:'MAC',v:'EA:3D:DF:DF:75:6F'},{k:'IPV6',v:'fe80::1c2a:9ff:fe41'}],
+      netB: [{k:'PUBLIC IP',v:'103.112.54.8'},{k:'ISP',v:'Link3 Technologies'},{k:'ASN',v:'AS23688'},{k:'LOCATION',v:'Dhaka, BD'},{k:'GW PING',v:'2 ms'},{k:'DNS PING',v:'18 ms'},{k:'IPV6 NET',v:'Not available'}],
+      netM: [{k:'LOCAL IP',v:'192.168.1.42'},{k:'PUBLIC IP',v:'103.112.54.8'},{k:'GATEWAY',v:'192.168.1.1'},{k:'SUBNET',v:'255.255.255.0'},{k:'DNS',v:'1.1.1.1 · 8.8.8.8'},{k:'MAC',v:'EA:3D:DF:DF:75:6F'},{k:'ISP',v:'Link3 · Dhaka, BD'},{k:'VPN',v:'Off'}],
+      devices, devicesM: devices.slice(0, 7),
+      devDetail: [{k:'HOSTNAME',v:'ds220.local'},{k:'MAC',v:'00:11:32:A4:7E:0C'},{k:'VENDOR',v:'Synology Inc.'},{k:'OPEN PORTS',v:'22 · 80 · 443 · 5000'},{k:'FIRST SEEN',v:'Sep 12, 09:14'}],
+      geo: [{k:'IP',v:'140.82.121.4'},{k:'CITY',v:'Singapore'},{k:'ORG',v:'GitHub, Inc.'},{k:'ASN',v:'AS36459'},{k:'COORDS',v:'1.2897 N, 103.8501 E'},{k:'POSTAL',v:'018989'},{k:'HOSTING',v:'Yes · datacenter'}],
+      geoM: [{k:'IP',v:'140.82.121.4'},{k:'ORG',v:'GitHub, Inc.'},{k:'ASN',v:'AS36459'},{k:'TIMEZONE',v:'UTC+8'},{k:'COORDS',v:'1.29 N, 103.85 E'}]
+    };
+  }
+}
+</script>
+</body>
+</html>

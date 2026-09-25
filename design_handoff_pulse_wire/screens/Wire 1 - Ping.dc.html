@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#CFCBC2;font-family:'Archivo',sans-serif;-webkit-font-smoothing:antialiased}a{color:#E8612C}a:hover{color:#111}</style>
+</helmet>
+<div style="padding:64px;display:flex;flex-direction:column;gap:72px;min-width:max-content;color:#111">
+  <div style="display:flex;align-items:baseline;gap:16px">
+    <span style="font-size:56px;font-weight:900;font-stretch:70%;text-transform:uppercase">Pulse / Wire</span>
+    <span style="font:700 16px 'Space Mono',monospace;background:#E8612C;padding:4px 10px;border:2px solid #111">1 — PING</span>
+    <span style="font:400 15px 'Space Mono',monospace;color:#4A4740">Screens 01–03 · Live · Configure · History</span>
+  </div>
+
+  <!-- 01 LIVE -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">01 — PING / LIVE</span>
+    <div style="display:flex;gap:48px;align-items:flex-start">
+      <div data-screen-label="01 Ping Live Desktop" style="width:1280px;height:800px;background:#F2F0EB;border:2px solid #111;box-sizing:border-box;display:grid;grid-template-columns:220px 1fr;grid-template-rows:64px 1fr;box-shadow:12px 12px 0 #111">
+        <div style="border-right:2px solid #111;border-bottom:2px solid #111;background:#E8612C;display:flex;align-items:center;gap:10px;padding:0 20px;font-size:32px;font-weight:900;font-stretch:75%"><svg width="28" height="34" viewBox="18 2 70 100"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg>PULSE</div>
+        <div style="border-bottom:2px solid #111;display:flex;align-items:stretch">
+          <div style="flex:1;display:flex;align-items:center;gap:16px;padding:0 20px;border-right:2px solid #111"><span style="font:700 12px 'Space Mono',monospace">TARGET&gt;</span><span style="font:700 20px 'Space Mono',monospace">8.8.8.8</span><span style="font:400 13px 'Space Mono',monospace;color:#6B675E">dns.google</span></div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:400 13px 'Space Mono',monospace">COUNT ∞</div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:400 13px 'Space Mono',monospace">INT 1.0s</div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:400 13px 'Space Mono',monospace">T/O 5s</div>
+          <div style="display:flex;align-items:center;padding:0 32px;background:#111;color:#F2F0EB;font-size:18px;font-weight:800;font-stretch:80%">■ STOP</div>
+        </div>
+        <nav style="border-right:2px solid #111;display:flex;flex-direction:column">
+          <sc-for list="{{ navPing }}" as="n" hint-placeholder-count="12">
+            <div style="padding:10px 20px;border-bottom:2px solid #111;background:{{ n.bg }};color:{{ n.c }};display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:800;font-stretch:80%;text-transform:uppercase"><span>{{ n.label }}</span><span style="font:400 11px 'Space Mono',monospace">{{ n.k }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;border-top:2px solid #111;padding:14px 20px;display:flex;flex-direction:column;gap:3px;font:400 12px 'Space Mono',monospace"><span style="font-weight:700">● WIFI / HOME-5G</span><span>192.168.1.42</span></div>
+        </nav>
+        <div style="display:grid;grid-template-rows:auto 1fr;min-height:0">
+          <div style="display:grid;grid-template-columns:auto 1fr;border-bottom:2px solid #111">
+            <div style="padding:20px 32px 12px;border-right:2px solid #111;display:flex;flex-direction:column">
+              <span style="font:700 12px 'Space Mono',monospace">RTT / NOW</span>
+              <span style="font-size:210px;line-height:0.85;font-weight:900;font-stretch:62%">25<span style="font-size:60px;color:#E8612C">MS</span></span>
+            </div>
+            <div style="display:flex;flex-direction:column">
+              <div style="display:grid;grid-template-columns:repeat(5,1fr);border-bottom:2px solid #111">
+                <sc-for list="{{ stats }}" as="s" hint-placeholder-count="5">
+                  <div style="padding:14px 16px;border-right:2px solid #111;display:flex;flex-direction:column;gap:2px"><span style="font:700 11px 'Space Mono',monospace">{{ s.k }}</span><span style="font-size:34px;font-weight:900;font-stretch:70%">{{ s.v }}</span></div>
+                </sc-for>
+              </div>
+              <div style="flex:1;display:flex;align-items:flex-end;gap:3px;padding:16px 16px 0;background-image:repeating-linear-gradient(0deg,transparent 0 39px,#D9D5CC 39px 40px)">
+                <sc-for list="{{ bars }}" as="b" hint-placeholder-count="30"><div style="flex:1;height:{{ b.h }};background:{{ b.c }}"></div></sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 1fr;min-height:0">
+            <div style="border-right:2px solid #111;overflow:hidden">
+              <div style="display:grid;grid-template-columns:70px 1fr 110px 80px 90px;padding:10px 20px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB"><span>SEQ</span><span>TIMESTAMP</span><span>RTT</span><span>TTL</span><span>STATE</span></div>
+              <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+                <div style="display:grid;grid-template-columns:70px 1fr 110px 80px 90px;padding:10px 20px;font:400 14px 'Space Mono',monospace;border-bottom:1px solid #111;background:{{ r.bg }}"><span>{{ r.seq }}</span><span>{{ r.t }}</span><span style="font-weight:700">{{ r.ms }}</span><span>{{ r.ttl }}</span><span style="font-weight:700">{{ r.s }}</span></div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column">
+              <div style="padding:10px 20px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB">RECENT TARGETS</div>
+              <sc-for list="{{ hosts }}" as="h" hint-placeholder-count="4">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-bottom:1px solid #111"><span style="font:700 14px 'Space Mono',monospace">{{ h.host }}</span><span style="font-size:24px;font-weight:900;font-stretch:70%">{{ h.ms }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-screen-label="01 Ping Live Mobile" style="width:390px;height:844px;background:#111;border-radius:56px;padding:10px;box-sizing:border-box">
+        <div style="width:100%;height:100%;background:#F2F0EB;border-radius:46px;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:50px;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font:700 14px 'Space Mono',monospace"><span>9:41</span><span style="width:24px;height:11px;border:2px solid #111"></span></div>
+          <div style="margin:4px 16px 0;border:2px solid #111;display:flex;flex-direction:column;flex:1">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;height:48px;background:#E8612C;border-bottom:2px solid #111"><span style="font-size:26px;font-weight:900;font-stretch:75%">PING</span><span style="font:700 12px 'Space Mono',monospace">● LIVE</span></div>
+            <div style="padding:12px 14px;border-bottom:2px solid #111;display:flex;gap:10px;align-items:baseline"><span style="font:700 11px 'Space Mono',monospace">TARGET&gt;</span><span style="font:700 18px 'Space Mono',monospace">8.8.8.8</span><span style="margin-left:auto;font:700 11px 'Space Mono',monospace">CONFIG</span></div>
+            <div style="padding:10px 14px 0;border-bottom:2px solid #111"><span style="font-size:190px;line-height:0.85;font-weight:900;font-stretch:62%">25<span style="font-size:52px;color:#E8612C">MS</span></span></div>
+            <div style="height:100px;display:flex;align-items:flex-end;gap:3px;padding:10px 14px 0;border-bottom:2px solid #111;background-image:repeating-linear-gradient(0deg,transparent 0 24px,#D9D5CC 24px 25px)">
+              <sc-for list="{{ barsShort }}" as="b" hint-placeholder-count="20"><div style="flex:1;height:{{ b.h }};background:{{ b.c }}"></div></sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr">
+              <sc-for list="{{ statsM }}" as="s" hint-placeholder-count="4">
+                <div style="padding:10px 14px;border-bottom:2px solid #111;border-right:{{ s.br }};display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">{{ s.k }}</span><span style="font-size:32px;font-weight:900;font-stretch:70%">{{ s.v }}</span></div>
+              </sc-for>
+            </div>
+            <div style="margin-top:auto;height:56px;background:#111;color:#F2F0EB;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;font-stretch:80%">■ STOP</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);margin:10px 16px 28px;border:2px solid #111;font:700 11px 'Space Mono',monospace;text-align:center">
+            <sc-for list="{{ tabsPing }}" as="t" hint-placeholder-count="4"><span style="padding:12px 0;background:{{ t.bg }};color:{{ t.c }};border-left:{{ t.bl }}">{{ t.l }}</span></sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 CONFIGURE -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">02 — PING / CONFIGURE</span>
+    <div style="display:flex;gap:48px;align-items:flex-start">
+      <div data-screen-label="02 Ping Configure Desktop" style="width:1280px;height:800px;background:#F2F0EB;border:2px solid #111;box-sizing:border-box;display:grid;grid-template-columns:220px 1fr 380px;grid-template-rows:64px 1fr;box-shadow:12px 12px 0 #111">
+        <div style="border-right:2px solid #111;border-bottom:2px solid #111;background:#E8612C;display:flex;align-items:center;gap:10px;padding:0 20px;font-size:32px;font-weight:900;font-stretch:75%"><svg width="28" height="34" viewBox="18 2 70 100"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg>PULSE</div>
+        <div style="grid-column:span 2;border-bottom:2px solid #111;display:flex;align-items:stretch">
+          <div style="flex:1;display:flex;align-items:center;gap:16px;padding:0 20px;border-right:2px solid #111;background:#fff"><span style="font:700 12px 'Space Mono',monospace">TARGET&gt;</span><span style="font:700 20px 'Space Mono',monospace">cloudfl</span><span style="width:2px;height:24px;background:#E8612C;margin-left:-14px"></span></div>
+          <div style="display:flex;align-items:center;padding:0 32px;background:#E8612C;font-size:18px;font-weight:800;font-stretch:80%">▶ START</div>
+        </div>
+        <nav style="border-right:2px solid #111;display:flex;flex-direction:column">
+          <sc-for list="{{ navPing }}" as="n" hint-placeholder-count="12">
+            <div style="padding:10px 20px;border-bottom:2px solid #111;background:{{ n.bg }};color:{{ n.c }};display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:800;font-stretch:80%;text-transform:uppercase"><span>{{ n.label }}</span><span style="font:400 11px 'Space Mono',monospace">{{ n.k }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;border-top:2px solid #111;padding:14px 20px;display:flex;flex-direction:column;gap:3px;font:400 12px 'Space Mono',monospace"><span style="font-weight:700">● WIFI / HOME-5G</span><span>192.168.1.42</span></div>
+        </nav>
+        <div style="border-right:2px solid #111;display:flex;flex-direction:column;min-width:0">
+          <div style="border-bottom:2px solid #111">
+            <div style="padding:10px 20px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB">SUGGESTIONS</div>
+            <sc-for list="{{ suggest }}" as="s" hint-placeholder-count="4">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid #111;background:{{ s.bg }}"><div style="display:flex;flex-direction:column;gap:2px"><span style="font:700 16px 'Space Mono',monospace">{{ s.host }}</span><span style="font:400 12px 'Space Mono',monospace;color:#6B675E">{{ s.desc }}</span></div><span style="font:700 11px 'Space Mono',monospace">{{ s.tag }}</span></div>
+            </sc-for>
+          </div>
+          <div style="padding:24px 20px;display:flex;flex-direction:column;gap:14px">
+            <span style="font:700 11px 'Space Mono',monospace">QUICK TARGETS</span>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:2px solid #111">
+              <sc-for list="{{ presets }}" as="p" hint-placeholder-count="6">
+                <div style="padding:16px;border-right:{{ p.br }};border-bottom:{{ p.bb }};display:flex;flex-direction:column;gap:4px"><span style="font-size:22px;font-weight:900;font-stretch:75%;text-transform:uppercase">{{ p.name }}</span><span style="font:400 12px 'Space Mono',monospace;color:#6B675E">{{ p.host }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;background:#F2F0EB">
+          <div style="padding:16px 20px;border-bottom:2px solid #111;font-size:26px;font-weight:900;font-stretch:75%">PARAMETERS</div>
+          <sc-for list="{{ params }}" as="p" hint-placeholder-count="6">
+            <div style="padding:14px 20px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;justify-content:space-between"><span style="font:700 11px 'Space Mono',monospace">{{ p.k }}</span><span style="font:400 11px 'Space Mono',monospace;color:#6B675E">{{ p.hint }}</span></div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);border:2px solid #111">
+                <sc-for list="{{ p.opts }}" as="o" hint-placeholder-count="4"><span style="padding:8px 0;text-align:center;font:700 13px 'Space Mono',monospace;background:{{ o.bg }};color:{{ o.c }};border-left:{{ o.bl }}">{{ o.l }}</span></sc-for>
+              </div>
+            </div>
+          </sc-for>
+          <div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:2px solid #111;font:700 12px 'Space Mono',monospace"><span>SAVE AS DEFAULT</span><span style="width:44px;height:24px;border:2px solid #111;background:#111;display:flex;justify-content:flex-end;padding:2px;box-sizing:border-box"><span style="width:16px;height:16px;background:#E8612C"></span></span></div>
+        </div>
+      </div>
+      <div data-screen-label="02 Ping Configure Mobile" style="width:390px;height:844px;background:#111;border-radius:56px;padding:10px;box-sizing:border-box">
+        <div style="width:100%;height:100%;background:#8E8A82;border-radius:46px;overflow:hidden;display:flex;flex-direction:column;position:relative">
+          <div style="height:50px;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font:700 14px 'Space Mono',monospace"><span>9:41</span><span style="width:24px;height:11px;border:2px solid #111"></span></div>
+          <div style="margin:4px 16px 0;border:2px solid #111;height:120px;background:#E8612C;opacity:.5"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;background:#F2F0EB;border-top:2px solid #111;display:flex;flex-direction:column">
+            <div style="display:flex;justify-content:center;padding:10px 0"><span style="width:44px;height:4px;background:#111"></span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0 18px 12px;border-bottom:2px solid #111"><span style="font-size:28px;font-weight:900;font-stretch:75%">CONFIGURE</span><span style="font:700 12px 'Space Mono',monospace">RESET</span></div>
+            <div style="padding:14px 18px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:6px"><span style="font:700 11px 'Space Mono',monospace">TARGET</span><div style="border:2px solid #111;background:#fff;padding:12px;font:700 17px 'Space Mono',monospace">1.1.1.1</div></div>
+            <sc-for list="{{ paramsM }}" as="p" hint-placeholder-count="4">
+              <div style="padding:12px 18px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:8px">
+                <span style="font:700 11px 'Space Mono',monospace">{{ p.k }}</span>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);border:2px solid #111">
+                  <sc-for list="{{ p.opts }}" as="o" hint-placeholder-count="4"><span style="padding:10px 0;text-align:center;font:700 13px 'Space Mono',monospace;background:{{ o.bg }};color:{{ o.c }};border-left:{{ o.bl }}">{{ o.l }}</span></sc-for>
+                </div>
+              </div>
+            </sc-for>
+            <div style="margin:14px 18px 34px;height:56px;background:#E8612C;border:2px solid #111;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;font-stretch:80%">▶ START PING</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 HISTORY -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">03 — HISTORY</span>
+    <div style="display:flex;gap:48px;align-items:flex-start">
+      <div data-screen-label="03 History Desktop" style="width:1280px;height:800px;background:#F2F0EB;border:2px solid #111;box-sizing:border-box;display:grid;grid-template-columns:220px 1fr 380px;grid-template-rows:64px 1fr;box-shadow:12px 12px 0 #111">
+        <div style="border-right:2px solid #111;border-bottom:2px solid #111;background:#E8612C;display:flex;align-items:center;gap:10px;padding:0 20px;font-size:32px;font-weight:900;font-stretch:75%"><svg width="28" height="34" viewBox="18 2 70 100"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg>PULSE</div>
+        <div style="grid-column:span 2;border-bottom:2px solid #111;display:flex;align-items:stretch">
+          <div style="flex:1;display:flex;align-items:center;padding:0 20px;border-right:2px solid #111;font-size:28px;font-weight:900;font-stretch:75%">HISTORY <span style="font:400 13px 'Space Mono',monospace;margin-left:14px">48 SESSIONS · 7 DAYS</span></div>
+          <div style="display:flex;align-items:center;gap:10px;padding:0 20px;border-right:2px solid #111;font:400 13px 'Space Mono',monospace;width:260px"><span style="font-weight:700">FILTER&gt;</span><span style="color:#6B675E">host, date…</span></div>
+          <div style="display:flex;align-items:center;padding:0 20px;border-right:2px solid #111;font:700 13px 'Space Mono',monospace">ALL TOOLS ▾</div>
+          <div style="display:flex;align-items:center;padding:0 24px;background:#111;color:#F2F0EB;font-size:17px;font-weight:800;font-stretch:80%">EXPORT CSV</div>
+        </div>
+        <nav style="border-right:2px solid #111;display:flex;flex-direction:column">
+          <sc-for list="{{ navHist }}" as="n" hint-placeholder-count="12">
+            <div style="padding:10px 20px;border-bottom:2px solid #111;background:{{ n.bg }};color:{{ n.c }};display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:800;font-stretch:80%;text-transform:uppercase"><span>{{ n.label }}</span><span style="font:400 11px 'Space Mono',monospace">{{ n.k }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;border-top:2px solid #111;padding:14px 20px;display:flex;flex-direction:column;gap:3px;font:400 12px 'Space Mono',monospace"><span style="font-weight:700">● WIFI / HOME-5G</span><span>192.168.1.42</span></div>
+        </nav>
+        <div style="border-right:2px solid #111;overflow:hidden;min-width:0">
+          <div style="display:grid;grid-template-columns:110px 1fr 70px 80px 60px 110px;padding:10px 20px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB;gap:10px"><span>WHEN</span><span>TARGET</span><span>TOOL</span><span>AVG</span><span>LOSS</span><span>TREND</span></div>
+          <sc-for list="{{ sessions }}" as="s" hint-placeholder-count="10">
+            <div style="display:grid;grid-template-columns:110px 1fr 70px 80px 60px 110px;gap:10px;align-items:center;padding:11px 20px;border-bottom:1px solid #111;font:400 13px 'Space Mono',monospace;background:{{ s.bg }}">
+              <span style="color:#4A4740">{{ s.when }}</span><span style="font-weight:700">{{ s.host }}</span><span>{{ s.tool }}</span><span style="font-weight:700">{{ s.avg }}</span><span>{{ s.loss }}</span>
+              <div style="display:flex;align-items:flex-end;gap:2px;height:22px"><sc-for list="{{ s.spark }}" as="b" hint-placeholder-count="12"><div style="flex:1;height:{{ b.h }};background:{{ b.c }}"></div></sc-for></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column">
+          <div style="padding:16px 20px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:4px"><span style="font:700 11px 'Space Mono',monospace">SESSION · TODAY 13:58</span><span style="font-size:30px;font-weight:900;font-stretch:75%">8.8.8.8</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr">
+            <sc-for list="{{ detail }}" as="d" hint-placeholder-count="6">
+              <div style="padding:12px 20px;border-bottom:2px solid #111;border-right:{{ d.br }};display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">{{ d.k }}</span><span style="font-size:30px;font-weight:900;font-stretch:70%">{{ d.v }}</span></div>
+            </sc-for>
+          </div>
+          <div style="height:120px;display:flex;align-items:flex-end;gap:2px;padding:12px 20px 0;border-bottom:2px solid #111;background-image:repeating-linear-gradient(0deg,transparent 0 29px,#D9D5CC 29px 30px)">
+            <sc-for list="{{ bars }}" as="b" hint-placeholder-count="30"><div style="flex:1;height:{{ b.h }};background:{{ b.c }}"></div></sc-for>
+          </div>
+          <div style="margin-top:auto;display:grid;grid-template-columns:1fr 1fr 1fr;border-top:2px solid #111;font-size:16px;font-weight:800;font-stretch:80%;text-align:center">
+            <span style="padding:16px 0;background:#E8612C">RE-RUN</span><span style="padding:16px 0;border-left:2px solid #111">.TXT</span><span style="padding:16px 0;border-left:2px solid #111">DELETE</span>
+          </div>
+        </div>
+      </div>
+      <div data-screen-label="03 History Mobile" style="width:390px;height:844px;background:#111;border-radius:56px;padding:10px;box-sizing:border-box">
+        <div style="width:100%;height:100%;background:#F2F0EB;border-radius:46px;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:50px;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font:700 14px 'Space Mono',monospace"><span>9:41</span><span style="width:24px;height:11px;border:2px solid #111"></span></div>
+          <div style="margin:4px 16px 0;border:2px solid #111;display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;height:48px;background:#111;color:#F2F0EB"><span style="font-size:26px;font-weight:900;font-stretch:75%">HISTORY</span><span style="font:700 12px 'Space Mono',monospace;color:#E8612C">EXPORT</span></div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid #111;font:700 11px 'Space Mono',monospace;text-align:center">
+              <span style="padding:10px 0;background:#E8612C">ALL</span><span style="padding:10px 0;border-left:2px solid #111">PING</span><span style="padding:10px 0;border-left:2px solid #111">TRACE</span><span style="padding:10px 0;border-left:2px solid #111">SPEED</span>
+            </div>
+            <sc-for list="{{ sessionsM }}" as="s" hint-placeholder-count="7">
+              <div style="display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:11px 14px;border-bottom:1px solid #111;background:{{ s.bg }}">
+                <span style="font:700 14px 'Space Mono',monospace">{{ s.host }}</span><span style="font-size:24px;font-weight:900;font-stretch:70%;grid-row:span 2;align-self:center">{{ s.avg }}</span>
+                <span style="font:400 11px 'Space Mono',monospace;color:#4A4740">{{ s.when }} · {{ s.tool }} · LOSS {{ s.loss }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);margin:10px 16px 28px;border:2px solid #111;font:700 11px 'Space Mono',monospace;text-align:center">
+            <sc-for list="{{ tabsHist }}" as="t" hint-placeholder-count="4"><span style="padding:12px 0;background:{{ t.bg }};color:{{ t.c }};border-left:{{ t.bl }}">{{ t.l }}</span></sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const B = '2px solid #111';
+    const NAV = [['Ping','01'],['Traceroute','02'],['Port scan','03'],['Speed test','04'],['Packet loss','05'],['Network','06'],['LAN scan','07'],['Geo IP','08'],['Monitor','09'],['Alerts','10'],['History','11'],['Settings','12']];
+    const nav = a => NAV.map(([label, k]) => ({ label, k, bg: label === a ? '#111' : 'transparent', c: label === a ? '#F2F0EB' : '#111' }));
+    const tabs = a => ['PING','NET','TOOLS','HISTORY'].map((l, i) => ({ l, bg: l === a ? '#111' : 'transparent', c: l === a ? '#F2F0EB' : '#111', bl: i ? B : '0' }));
+    const seg = (opts, on) => opts.map((l, i) => ({ l, bg: i === on ? '#111' : 'transparent', c: i === on ? '#F2F0EB' : '#111', bl: i ? B : '0' }));
+    const bar = (v, max = 120) => ({ h: Math.max(4, v / max * 100) + '%', c: v > 60 ? '#E8612C' : '#111' });
+    const ms = [24,22,27,31,23,21,48,26,24,22,25,29,23,112,27,24,22,26,23,25,28,24,21,23,35,26,24,22,27,25];
+    const bars = ms.map(v => bar(v));
+    const spark = arr => arr.map(v => bar(v, Math.max(...arr) * 1.1));
+    const sess = [
+      {when:'TODAY 13:58',host:'8.8.8.8',tool:'PING',avg:'28.9',loss:'0%',spark:spark([24,22,27,31,23,112,26,24,22,25,29,23]),bg:'#F6C9B3'},
+      {when:'TODAY 11:20',host:'github.com',tool:'TRACE',avg:'42',loss:'0%',spark:spark([2,6,8,30,38,40,42,42,41,43,42,42]),bg:'transparent'},
+      {when:'TODAY 09:02',host:'speed.pulse',tool:'SPEED',avg:'212↓',loss:'—',spark:spark([180,200,210,215,212,220,205,212,214,210,211,212]),bg:'transparent'},
+      {when:'YEST 22:41',host:'1.1.1.1',tool:'PING',avg:'18.2',loss:'0%',spark:spark([18,17,19,18,20,17,18,19,18,17,18,19]),bg:'transparent'},
+      {when:'YEST 20:15',host:'192.168.1.1',tool:'PING',avg:'2.1',loss:'0%',spark:spark([2,2,3,2,2,1,2,3,2,2,2,2]),bg:'transparent'},
+      {when:'YEST 18:03',host:'aws.amazon.com',tool:'PING',avg:'61',loss:'4%',spark:spark([58,60,90,62,59,61,120,60,58,61,60,62]),bg:'transparent'},
+      {when:'SEP 23 16:44',host:'192.168.1.24',tool:'PORTS',avg:'3 open',loss:'—',spark:spark([1,1,1,1,1,1,1,1,1,1,1,1]),bg:'transparent'},
+      {when:'SEP 23 10:10',host:'8.8.4.4',tool:'PING',avg:'31',loss:'0%',spark:spark([30,31,32,29,33,30,31,30,29,32,31,30]),bg:'transparent'},
+      {when:'SEP 22 21:37',host:'discord.gg',tool:'PING',avg:'87',loss:'12%',spark:spark([80,85,140,90,82,160,88,84,86,150,85,87]),bg:'transparent'},
+      {when:'SEP 22 08:00',host:'google.com',tool:'LOSS',avg:'0.2%',loss:'0.2%',spark:spark([0,0,1,0,0,0,0,0,1,0,0,0]),bg:'transparent'},
+      {when:'SEP 21 19:26',host:'cloudflare.com',tool:'TRACE',avg:'19',loss:'0%',spark:spark([2,6,9,14,18,19,19,19,19,19,19,19]),bg:'transparent'}
+    ];
+    return {
+      bars, barsShort: bars.slice(-20),
+      navPing: nav('Ping'), navHist: nav('History'), tabsPing: tabs('PING'), tabsHist: tabs('HISTORY'),
+      stats: [{k:'SENT',v:'30'},{k:'LOSS',v:'0%'},{k:'MIN',v:'21'},{k:'AVG',v:'28.9'},{k:'MAX',v:'112'}],
+      statsM: [{k:'AVG',v:'28.9',br:B},{k:'LOSS',v:'0%',br:'0'},{k:'MAX',v:'112',br:B},{k:'JITTER',v:'6.2',br:'0'}],
+      rows: [
+        {seq:'030',t:'14:02:31.204',ms:'25ms',ttl:'117',s:'OK',bg:'transparent'},
+        {seq:'029',t:'14:02:30.198',ms:'27ms',ttl:'117',s:'OK',bg:'transparent'},
+        {seq:'028',t:'14:02:29.191',ms:'22ms',ttl:'117',s:'OK',bg:'transparent'},
+        {seq:'017',t:'14:02:18.140',ms:'112ms',ttl:'117',s:'SLOW',bg:'#F6C9B3'},
+        {seq:'016',t:'14:02:17.133',ms:'23ms',ttl:'117',s:'OK',bg:'transparent'},
+        {seq:'015',t:'14:02:16.129',ms:'29ms',ttl:'117',s:'OK',bg:'transparent'}
+      ],
+      hosts: [{host:'1.1.1.1',ms:'18'},{host:'github.com',ms:'42'},{host:'192.168.1.1',ms:'2'},{host:'aws.amazon.com',ms:'61'}],
+      suggest: [
+        {host:'cloudflare.com',desc:'104.16.132.229 · last 19 ms',tag:'RECENT',bg:'#F6C9B3'},
+        {host:'cloudflare-dns.com',desc:'1.1.1.1 · DNS resolver',tag:'PRESET',bg:'transparent'},
+        {host:'cloudflarestatus.com',desc:'resolve on start',tag:'DOMAIN',bg:'transparent'},
+        {host:'cloudfront.net',desc:'AWS CDN edge',tag:'DOMAIN',bg:'transparent'}
+      ],
+      presets: [
+        {name:'Google DNS',host:'8.8.8.8',br:B,bb:B},{name:'Cloudflare',host:'1.1.1.1',br:B,bb:B},{name:'Router',host:'192.168.1.1',br:'0',bb:B},
+        {name:'AWS Mumbai',host:'ap-south-1',br:B,bb:'0'},{name:'GitHub',host:'github.com',br:B,bb:'0'},{name:'+ Add',host:'custom target',br:'0',bb:'0'}
+      ],
+      params: [
+        {k:'COUNT',hint:'packets',opts:seg(['4','10','50','∞'],3)},
+        {k:'INTERVAL',hint:'seconds',opts:seg(['0.2','0.5','1','2'],2)},
+        {k:'TIMEOUT',hint:'seconds',opts:seg(['1','2','5','10'],2)},
+        {k:'PACKET SIZE',hint:'bytes',opts:seg(['32','56','512','1472'],1)},
+        {k:'IP VERSION',hint:'protocol',opts:seg(['AUTO','IPv4','IPv6','BOTH'],0)}
+      ],
+      paramsM: [
+        {k:'COUNT',opts:seg(['4','10','50','∞'],3)},
+        {k:'INTERVAL · SEC',opts:seg(['0.2','0.5','1','2'],2)},
+        {k:'TIMEOUT · SEC',opts:seg(['1','2','5','10'],2)},
+        {k:'PACKET SIZE · BYTES',opts:seg(['32','56','512','1472'],1)}
+      ],
+      sessions: sess,
+      sessionsM: sess.slice(0, 9),
+      detail: [{k:'SENT',v:'30',br:B},{k:'LOST',v:'0',br:'0'},{k:'AVG',v:'28.9',br:B},{k:'JITTER',v:'6.2',br:'0'},{k:'MIN',v:'21',br:B},{k:'MAX',v:'112',br:'0'}]
+    };
+  }
+}
+</script>
+</body>
+</html>

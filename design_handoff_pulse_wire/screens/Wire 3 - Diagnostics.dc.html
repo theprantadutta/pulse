@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#CFCBC2;font-family:'Archivo',sans-serif;-webkit-font-smoothing:antialiased}a{color:#E8612C}a:hover{color:#111}</style>
+</helmet>
+<div style="padding:64px;display:flex;flex-direction:column;gap:72px;min-width:max-content;color:#111">
+  <div style="display:flex;align-items:baseline;gap:16px">
+    <span style="font-size:56px;font-weight:900;font-stretch:70%;text-transform:uppercase">Pulse / Wire</span>
+    <span style="font:700 16px 'Space Mono',monospace;background:#E8612C;padding:4px 10px;border:2px solid #111">3 — DIAGNOSTICS</span>
+    <span style="font:400 15px 'Space Mono',monospace;color:#4A4740">Screens 07–11 · Tools hub · Traceroute · Port scan · Speed test · Packet loss</span>
+  </div>
+
+  <!-- 07 TOOLS HUB -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">07 — TOOLS HUB <span style="font:400 14px 'Space Mono',monospace">mobile only · desktop uses the sidebar</span></span>
+    <div data-screen-label="07 Tools Mobile" style="width:390px;height:844px;background:#111;border-radius:56px;padding:10px;box-sizing:border-box">
+      <div style="width:100%;height:100%;background:#F2F0EB;border-radius:46px;overflow:hidden;display:flex;flex-direction:column">
+        <div style="height:50px;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font:700 14px 'Space Mono',monospace"><span>9:41</span><span style="width:24px;height:11px;border:2px solid #111"></span></div>
+        <div style="margin:4px 16px 0;border:2px solid #111;display:flex;flex-direction:column;flex:1;min-height:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;height:48px;background:#111;color:#F2F0EB"><span style="font-size:26px;font-weight:900;font-stretch:75%">TOOLS</span><span style="font:700 12px 'Space Mono',monospace;color:#E8612C">SETTINGS</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;flex:1">
+            <sc-for list="{{ tools }}" as="t" hint-placeholder-count="8">
+              <div style="padding:12px 14px;border-bottom:2px solid #111;border-right:{{ t.br }};background:{{ t.bg }};display:flex;flex-direction:column;justify-content:space-between">
+                <span style="font:700 11px 'Space Mono',monospace">{{ t.k }}</span>
+                <div style="display:flex;flex-direction:column"><span style="font-size:26px;line-height:0.95;font-weight:900;font-stretch:70%;text-transform:uppercase">{{ t.name }}</span><span style="font:400 11px 'Space Mono',monospace;color:#4A4740">{{ t.last }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);margin:10px 16px 28px;border:2px solid #111;font:700 11px 'Space Mono',monospace;text-align:center">
+          <sc-for list="{{ tabsTools }}" as="t" hint-placeholder-count="4"><span style="padding:12px 0;background:{{ t.bg }};color:{{ t.c }};border-left:{{ t.bl }}">{{ t.l }}</span></sc-for>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 TRACEROUTE -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">08 — TRACEROUTE</span>
+    <div style="display:flex;gap:48px;align-items:flex-start">
+      <div data-screen-label="08 Traceroute Desktop" style="width:1280px;height:800px;background:#F2F0EB;border:2px solid #111;box-sizing:border-box;display:grid;grid-template-columns:220px 1fr 340px;grid-template-rows:64px 1fr;box-shadow:12px 12px 0 #111">
+        <div style="border-right:2px solid #111;border-bottom:2px solid #111;background:#E8612C;display:flex;align-items:center;gap:10px;padding:0 20px;font-size:32px;font-weight:900;font-stretch:75%"><svg width="28" height="34" viewBox="18 2 70 100"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg>PULSE</div>
+        <div style="grid-column:span 2;border-bottom:2px solid #111;display:flex;align-items:stretch">
+          <div style="flex:1;display:flex;align-items:center;gap:16px;padding:0 20px;border-right:2px solid #111"><span style="font:700 12px 'Space Mono',monospace">TARGET&gt;</span><span style="font:700 20px 'Space Mono',monospace">github.com</span><span style="font:400 13px 'Space Mono',monospace;color:#6B675E">140.82.121.4</span></div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:400 13px 'Space Mono',monospace">MAX 30 HOPS</div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:400 13px 'Space Mono',monospace">3 PROBES</div>
+          <div style="display:flex;align-items:center;padding:0 28px;background:#111;color:#F2F0EB;font-size:17px;font-weight:800;font-stretch:80%">↻ RUN AGAIN</div>
+        </div>
+        <nav style="border-right:2px solid #111;display:flex;flex-direction:column">
+          <sc-for list="{{ navTrace }}" as="n" hint-placeholder-count="12">
+            <div style="padding:10px 20px;border-bottom:2px solid #111;background:{{ n.bg }};color:{{ n.c }};display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:800;font-stretch:80%;text-transform:uppercase"><span>{{ n.label }}</span><span style="font:400 11px 'Space Mono',monospace">{{ n.k }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;border-top:2px solid #111;padding:14px 20px;display:flex;flex-direction:column;gap:3px;font:400 12px 'Space Mono',monospace"><span style="font-weight:700">● WIFI / HOME-5G</span><span>192.168.1.42</span></div>
+        </nav>
+        <div style="border-right:2px solid #111;overflow:hidden;min-width:0">
+          <div style="display:grid;grid-template-columns:44px 1fr 200px 60px;gap:12px;padding:10px 20px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB"><span>HOP</span><span>HOST / IP</span><span>RTT</span><span>LOC</span></div>
+          <sc-for list="{{ hops }}" as="h" hint-placeholder-count="7">
+            <div style="display:grid;grid-template-columns:44px 1fr 200px 60px;gap:12px;align-items:center;padding:12px 20px;border-bottom:1px solid #111;background:{{ h.bg }}">
+              <span style="font-size:30px;font-weight:900;font-stretch:65%">{{ h.n }}</span>
+              <div style="display:flex;flex-direction:column;min-width:0"><span style="font:700 14px 'Space Mono',monospace">{{ h.host }}</span><span style="font:400 12px 'Space Mono',monospace;color:#4A4740">{{ h.ip }} · {{ h.probes }}</span></div>
+              <div style="display:flex;align-items:center;gap:10px"><div style="flex:1;height:14px;border:2px solid #111"><div style="width:{{ h.w }};height:100%;background:{{ h.c }}"></div></div><span style="font-size:22px;font-weight:900;font-stretch:70%;width:44px;text-align:right">{{ h.ms }}</span></div>
+              <span style="font:700 12px 'Space Mono',monospace">{{ h.loc }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column">
+          <div style="padding:16px 20px;border-bottom:2px solid #111;background:#E8612C;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">DESTINATION REACHED</span><span style="font-size:96px;line-height:0.85;font-weight:900;font-stretch:62%">7 <span style="font-size:32px">HOPS</span></span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:2px solid #111">
+            <div style="padding:12px 20px;border-right:2px solid #111;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">TOTAL RTT</span><span style="font-size:32px;font-weight:900;font-stretch:70%">42 MS</span></div>
+            <div style="padding:12px 20px;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">TIMEOUTS</span><span style="font-size:32px;font-weight:900;font-stretch:70%">1</span></div>
+          </div>
+          <div style="padding:14px 20px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:10px">
+            <span style="font:700 11px 'Space Mono',monospace">ROUTE</span>
+            <div style="display:flex;align-items:center;gap:8px;font-size:26px;font-weight:900;font-stretch:70%"><span style="border:2px solid #111;padding:2px 8px">BD</span><span style="flex:1;height:2px;background:#111"></span><span style="font:700 11px 'Space Mono',monospace">+30 MS</span><span style="flex:1;height:2px;background:#111"></span><span style="border:2px solid #111;padding:2px 8px;background:#111;color:#F2F0EB">SG</span></div>
+          </div>
+          <div style="padding:14px 20px;display:flex;flex-direction:column;gap:6px"><span style="font:700 11px 'Space Mono',monospace">BIGGEST JUMP</span><span style="font:400 14px/1.5 'Space Mono',monospace">Hop 04 → 05 adds <b>30 ms</b> — the undersea link from Dhaka to Singapore.</span></div>
+          <div style="margin-top:auto;display:grid;grid-template-columns:1fr 1fr;border-top:2px solid #111;font-size:16px;font-weight:800;font-stretch:80%;text-align:center"><span style="padding:16px 0">COPY</span><span style="padding:16px 0;border-left:2px solid #111">SAVE</span></div>
+        </div>
+      </div>
+      <div data-screen-label="08 Traceroute Mobile" style="width:390px;height:844px;background:#111;border-radius:56px;padding:10px;box-sizing:border-box">
+        <div style="width:100%;height:100%;background:#F2F0EB;border-radius:46px;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:50px;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font:700 14px 'Space Mono',monospace"><span>9:41</span><span style="width:24px;height:11px;border:2px solid #111"></span></div>
+          <div style="margin:4px 16px 0;border:2px solid #111;display:flex;flex-direction:column;flex:1;min-height:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;height:48px;background:#111;color:#F2F0EB"><span style="font-size:26px;font-weight:900;font-stretch:75%">← TRACEROUTE</span><span style="font:700 12px 'Space Mono',monospace;color:#E8612C">7 HOPS</span></div>
+            <div style="padding:12px 14px;border-bottom:2px solid #111;display:flex;gap:10px;align-items:baseline"><span style="font:700 11px 'Space Mono',monospace">TARGET&gt;</span><span style="font:700 18px 'Space Mono',monospace">github.com</span></div>
+            <sc-for list="{{ hops }}" as="h" hint-placeholder-count="7">
+              <div style="display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #111;background:{{ h.bg }}">
+                <span style="font-size:22px;font-weight:900;font-stretch:70%">{{ h.n }}</span>
+                <div style="display:flex;flex-direction:column;min-width:0;gap:4px"><span style="font:700 12px 'Space Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ h.host }}</span><div style="height:6px;background:#E4E0D8"><div style="width:{{ h.w }};height:100%;background:{{ h.c }}"></div></div></div>
+                <span style="font-size:22px;font-weight:900;font-stretch:70%">{{ h.ms }}</span>
+              </div>
+            </sc-for>
+            <div style="margin-top:auto;display:grid;grid-template-columns:1fr 1fr;border-top:2px solid #111">
+              <div style="padding:10px 14px;border-right:2px solid #111;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">TOTAL</span><span style="font-size:30px;font-weight:900;font-stretch:70%">42 MS</span></div>
+              <div style="padding:10px 14px;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">ROUTE</span><span style="font-size:30px;font-weight:900;font-stretch:70%">BD → SG</span></div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);margin:10px 16px 28px;border:2px solid #111;font:700 11px 'Space Mono',monospace;text-align:center">
+            <sc-for list="{{ tabsTools }}" as="t" hint-placeholder-count="4"><span style="padding:12px 0;background:{{ t.bg }};color:{{ t.c }};border-left:{{ t.bl }}">{{ t.l }}</span></sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 09 PORT SCAN -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">09 — PORT SCAN</span>
+    <div style="display:flex;gap:48px;align-items:flex-start">
+      <div data-screen-label="09 Port Scan Desktop" style="width:1280px;height:800px;background:#F2F0EB;border:2px solid #111;box-sizing:border-box;display:grid;grid-template-columns:220px 1fr;grid-template-rows:64px 1fr;box-shadow:12px 12px 0 #111">
+        <div style="border-right:2px solid #111;border-bottom:2px solid #111;background:#E8612C;display:flex;align-items:center;gap:10px;padding:0 20px;font-size:32px;font-weight:900;font-stretch:75%"><svg width="28" height="34" viewBox="18 2 70 100"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg>PULSE</div>
+        <div style="border-bottom:2px solid #111;display:flex;align-items:stretch">
+          <div style="flex:1;display:flex;align-items:center;gap:16px;padding:0 20px;border-right:2px solid #111"><span style="font:700 12px 'Space Mono',monospace">TARGET&gt;</span><span style="font:700 20px 'Space Mono',monospace">192.168.1.24</span><span style="font:400 13px 'Space Mono',monospace;color:#6B675E">NAS</span></div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:700 13px 'Space Mono',monospace;background:#111;color:#F2F0EB">COMMON</div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:400 13px 'Space Mono',monospace">1–1024</div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:400 13px 'Space Mono',monospace">CUSTOM</div>
+          <div style="display:flex;align-items:center;padding:0 28px;background:#E8612C;font-size:17px;font-weight:800;font-stretch:80%">▶ SCAN</div>
+        </div>
+        <nav style="border-right:2px solid #111;display:flex;flex-direction:column">
+          <sc-for list="{{ navPorts }}" as="n" hint-placeholder-count="12">
+            <div style="padding:10px 20px;border-bottom:2px solid #111;background:{{ n.bg }};color:{{ n.c }};display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:800;font-stretch:80%;text-transform:uppercase"><span>{{ n.label }}</span><span style="font:400 11px 'Space Mono',monospace">{{ n.k }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;border-top:2px solid #111;padding:14px 20px;display:flex;flex-direction:column;gap:3px;font:400 12px 'Space Mono',monospace"><span style="font-weight:700">● WIFI / HOME-5G</span><span>192.168.1.42</span></div>
+        </nav>
+        <div style="display:grid;grid-template-rows:auto 1fr;min-height:0">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid #111">
+            <sc-for list="{{ portStats }}" as="s" hint-placeholder-count="4">
+              <div style="padding:14px 20px;border-right:{{ s.br }};background:{{ s.bg }};display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">{{ s.k }}</span><span style="font-size:64px;line-height:0.95;font-weight:900;font-stretch:65%">{{ s.v }}</span></div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;min-height:0">
+            <div style="border-right:2px solid #111;padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;justify-content:space-between;font:700 11px 'Space Mono',monospace"><span>PORT MAP · 1–1024</span><span style="display:flex;gap:12px"><span>■ OPEN</span><span style="color:#8E8A82">■ FILTERED</span><span>□ CLOSED</span></span></div>
+              <div style="display:grid;grid-template-columns:repeat(32,1fr);gap:2px">
+                <sc-for list="{{ portMap }}" as="p" hint-placeholder-count="256"><span style="aspect-ratio:1;background:{{ p.c }};border:1px solid #111"></span></sc-for>
+              </div>
+              <span style="font:400 12px 'Space Mono',monospace;color:#4A4740">Each cell = 4 ports. Scanned in 3.1 s with 128 threads.</span>
+            </div>
+            <div style="overflow:hidden">
+              <div style="display:grid;grid-template-columns:70px 1fr 90px;gap:10px;padding:10px 20px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB"><span>PORT</span><span>SERVICE</span><span>STATE</span></div>
+              <sc-for list="{{ ports }}" as="p" hint-placeholder-count="6">
+                <div style="display:grid;grid-template-columns:70px 1fr 90px;gap:10px;align-items:center;padding:12px 20px;border-bottom:1px solid #111;background:{{ p.bg }}"><span style="font-size:28px;font-weight:900;font-stretch:65%">{{ p.port }}</span><div style="display:flex;flex-direction:column"><span style="font:700 14px 'Space Mono',monospace">{{ p.svc }}</span><span style="font:400 12px 'Space Mono',monospace;color:#4A4740">{{ p.banner }}</span></div><span style="font:700 12px 'Space Mono',monospace">{{ p.state }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-screen-label="09 Port Scan Mobile" style="width:390px;height:844px;background:#111;border-radius:56px;padding:10px;box-sizing:border-box">
+        <div style="width:100%;height:100%;background:#F2F0EB;border-radius:46px;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:50px;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font:700 14px 'Space Mono',monospace"><span>9:41</span><span style="width:24px;height:11px;border:2px solid #111"></span></div>
+          <div style="margin:4px 16px 0;border:2px solid #111;display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;height:48px;background:#111;color:#F2F0EB"><span style="font-size:26px;font-weight:900;font-stretch:75%">← PORT SCAN</span><span style="font:700 12px 'Space Mono',monospace;color:#E8612C">DONE</span></div>
+            <div style="padding:12px 14px;border-bottom:2px solid #111;display:flex;gap:10px;align-items:baseline"><span style="font:700 11px 'Space Mono',monospace">TARGET&gt;</span><span style="font:700 18px 'Space Mono',monospace">192.168.1.24</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:2px solid #111">
+              <div style="padding:10px 14px;border-right:2px solid #111;background:#E8612C;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">OPEN</span><span style="font-size:40px;line-height:1;font-weight:900;font-stretch:65%">4</span></div>
+              <div style="padding:10px 14px;border-right:2px solid #111;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">FILTER</span><span style="font-size:40px;line-height:1;font-weight:900;font-stretch:65%">2</span></div>
+              <div style="padding:10px 14px;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">TIME</span><span style="font-size:40px;line-height:1;font-weight:900;font-stretch:65%">3.1S</span></div>
+            </div>
+            <div style="padding:12px 14px;border-bottom:2px solid #111;display:grid;grid-template-columns:repeat(32,1fr);gap:1px">
+              <sc-for list="{{ portMap }}" as="p" hint-placeholder-count="256"><span style="aspect-ratio:1;background:{{ p.c }};outline:1px solid #111"></span></sc-for>
+            </div>
+            <sc-for list="{{ ports }}" as="p" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:62px 1fr auto;gap:8px;align-items:center;padding:9px 14px;border-bottom:1px solid #111;background:{{ p.bg }}"><span style="font-size:24px;font-weight:900;font-stretch:65%">{{ p.port }}</span><span style="font:700 13px 'Space Mono',monospace">{{ p.svc }}</span><span style="font:700 11px 'Space Mono',monospace">{{ p.state }}</span></div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);margin:10px 16px 28px;border:2px solid #111;font:700 11px 'Space Mono',monospace;text-align:center">
+            <sc-for list="{{ tabsTools }}" as="t" hint-placeholder-count="4"><span style="padding:12px 0;background:{{ t.bg }};color:{{ t.c }};border-left:{{ t.bl }}">{{ t.l }}</span></sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 SPEED TEST -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">10 — SPEED TEST</span>
+    <div style="display:flex;gap:48px;align-items:flex-start">
+      <div data-screen-label="10 Speed Test Desktop" style="width:1280px;height:800px;background:#F2F0EB;border:2px solid #111;box-sizing:border-box;display:grid;grid-template-columns:220px 1fr 340px;grid-template-rows:64px 1fr;box-shadow:12px 12px 0 #111">
+        <div style="border-right:2px solid #111;border-bottom:2px solid #111;background:#E8612C;display:flex;align-items:center;gap:10px;padding:0 20px;font-size:32px;font-weight:900;font-stretch:75%"><svg width="28" height="34" viewBox="18 2 70 100"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg>PULSE</div>
+        <div style="grid-column:span 2;border-bottom:2px solid #111;display:flex;align-items:stretch">
+          <div style="flex:1;display:flex;align-items:center;gap:16px;padding:0 20px;border-right:2px solid #111"><span style="font:700 12px 'Space Mono',monospace">SERVER&gt;</span><span style="font:700 20px 'Space Mono',monospace">Link3 · Dhaka</span><span style="font:400 13px 'Space Mono',monospace;color:#6B675E">12 km · auto-selected</span></div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:700 13px 'Space Mono',monospace">CHANGE</div>
+          <div style="display:flex;align-items:center;padding:0 28px;background:#111;color:#F2F0EB;font-size:17px;font-weight:800;font-stretch:80%">■ CANCEL</div>
+        </div>
+        <nav style="border-right:2px solid #111;display:flex;flex-direction:column">
+          <sc-for list="{{ navSpeed }}" as="n" hint-placeholder-count="12">
+            <div style="padding:10px 20px;border-bottom:2px solid #111;background:{{ n.bg }};color:{{ n.c }};display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:800;font-stretch:80%;text-transform:uppercase"><span>{{ n.label }}</span><span style="font:400 11px 'Space Mono',monospace">{{ n.k }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;border-top:2px solid #111;padding:14px 20px;display:flex;flex-direction:column;gap:3px;font:400 12px 'Space Mono',monospace"><span style="font-weight:700">● WIFI / HOME-5G</span><span>192.168.1.42</span></div>
+        </nav>
+        <div style="border-right:2px solid #111;display:grid;grid-template-rows:auto auto 1fr;min-width:0">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid #111;font:700 12px 'Space Mono',monospace;text-align:center">
+            <span style="padding:10px 0;background:#111;color:#F2F0EB">1 PING ✓</span><span style="padding:10px 0;border-left:2px solid #111;background:#111;color:#F2F0EB">2 DOWNLOAD ✓</span><span style="padding:10px 0;border-left:2px solid #111;background:#E8612C">3 UPLOAD…</span><span style="padding:10px 0;border-left:2px solid #111">4 RESULT</span>
+          </div>
+          <div style="padding:20px 28px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:14px">
+            <span style="font:700 12px 'Space Mono',monospace">UPLOAD · LIVE</span>
+            <span style="font-size:190px;line-height:0.82;font-weight:900;font-stretch:62%">48.6<span style="font-size:48px;color:#E8612C">MBPS</span></span>
+            <div style="display:grid;grid-template-columns:repeat(40,1fr);gap:3px;height:28px">
+              <sc-for list="{{ gauge }}" as="g" hint-placeholder-count="40"><span style="background:{{ g.c }};border:1px solid #111"></span></sc-for>
+            </div>
+            <div style="display:flex;justify-content:space-between;font:400 11px 'Space Mono',monospace;color:#4A4740"><span>0</span><span>50</span><span>100</span><span>250</span><span>500+</span></div>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:3px;padding:16px 20px 0;background-image:repeating-linear-gradient(0deg,transparent 0 29px,#D9D5CC 29px 30px)">
+            <sc-for list="{{ tput }}" as="b" hint-placeholder-count="48"><div style="flex:1;height:{{ b.h }};background:{{ b.c }}"></div></sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column">
+          <div style="padding:14px 20px;border-bottom:2px solid #111;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">DOWNLOAD</span><span style="font-size:60px;line-height:0.95;font-weight:900;font-stretch:65%">212.4</span><span style="font:700 11px 'Space Mono',monospace">MBPS</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:2px solid #111">
+            <div style="padding:12px 20px;border-right:2px solid #111;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">PING</span><span style="font-size:32px;font-weight:900;font-stretch:70%">18 MS</span></div>
+            <div style="padding:12px 20px;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">JITTER</span><span style="font-size:32px;font-weight:900;font-stretch:70%">3 MS</span></div>
+          </div>
+          <div style="padding:10px 20px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB">PAST RESULTS</div>
+          <sc-for list="{{ speedHist }}" as="s" hint-placeholder-count="5">
+            <div style="display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;padding:10px 20px;border-bottom:1px solid #111"><span style="font:400 12px 'Space Mono',monospace">{{ s.when }}</span><span style="font:700 13px 'Space Mono',monospace">↓{{ s.d }}</span><span style="font:700 13px 'Space Mono',monospace">↑{{ s.u }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div data-screen-label="10 Speed Test Mobile" style="width:390px;height:844px;background:#111;border-radius:56px;padding:10px;box-sizing:border-box">
+        <div style="width:100%;height:100%;background:#F2F0EB;border-radius:46px;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:50px;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font:700 14px 'Space Mono',monospace"><span>9:41</span><span style="width:24px;height:11px;border:2px solid #111"></span></div>
+          <div style="margin:4px 16px 0;border:2px solid #111;display:flex;flex-direction:column;flex:1;min-height:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;height:48px;background:#111;color:#F2F0EB"><span style="font-size:26px;font-weight:900;font-stretch:75%">← SPEED TEST</span><span style="font:700 12px 'Space Mono',monospace;color:#E8612C">UPLOAD</span></div>
+            <div style="padding:10px 14px;border-bottom:2px solid #111;font:400 12px 'Space Mono',monospace"><b>Link3 · Dhaka</b> · 12 km</div>
+            <div style="padding:14px 14px 10px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:10px;background:#E8612C">
+              <span style="font:700 11px 'Space Mono',monospace">UPLOAD · LIVE</span>
+              <span style="font-size:150px;line-height:0.82;font-weight:900;font-stretch:62%">48.6</span>
+              <span style="font:700 14px 'Space Mono',monospace">MBPS</span>
+            </div>
+            <div style="padding:12px 14px;border-bottom:2px solid #111;display:grid;grid-template-columns:repeat(20,1fr);gap:2px;height:22px">
+              <sc-for list="{{ gaugeM }}" as="g" hint-placeholder-count="20"><span style="background:{{ g.c }};border:1px solid #111"></span></sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr">
+              <div style="padding:10px 14px;border-right:2px solid #111;border-bottom:2px solid #111;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">DOWNLOAD</span><span style="font-size:32px;font-weight:900;font-stretch:70%">212.4</span></div>
+              <div style="padding:10px 14px;border-bottom:2px solid #111;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">PING</span><span style="font-size:32px;font-weight:900;font-stretch:70%">18 MS</span></div>
+            </div>
+            <div style="flex:1;display:flex;align-items:flex-end;gap:2px;padding:12px 14px 0">
+              <sc-for list="{{ tputM }}" as="b" hint-placeholder-count="30"><div style="flex:1;height:{{ b.h }};background:{{ b.c }}"></div></sc-for>
+            </div>
+            <div style="height:56px;border-top:2px solid #111;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;font-stretch:80%">■ CANCEL</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);margin:10px 16px 28px;border:2px solid #111;font:700 11px 'Space Mono',monospace;text-align:center">
+            <sc-for list="{{ tabsTools }}" as="t" hint-placeholder-count="4"><span style="padding:12px 0;background:{{ t.bg }};color:{{ t.c }};border-left:{{ t.bl }}">{{ t.l }}</span></sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 PACKET LOSS -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">11 — PACKET LOSS TEST</span>
+    <div style="display:flex;gap:48px;align-items:flex-start">
+      <div data-screen-label="11 Packet Loss Desktop" style="width:1280px;height:800px;background:#F2F0EB;border:2px solid #111;box-sizing:border-box;display:grid;grid-template-columns:220px 1fr;grid-template-rows:64px 1fr;box-shadow:12px 12px 0 #111">
+        <div style="border-right:2px solid #111;border-bottom:2px solid #111;background:#E8612C;display:flex;align-items:center;gap:10px;padding:0 20px;font-size:32px;font-weight:900;font-stretch:75%"><svg width="28" height="34" viewBox="18 2 70 100"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg>PULSE</div>
+        <div style="border-bottom:2px solid #111;display:flex;align-items:stretch">
+          <div style="flex:1;display:flex;align-items:center;gap:16px;padding:0 20px;border-right:2px solid #111"><span style="font:700 12px 'Space Mono',monospace">TARGET&gt;</span><span style="font:700 20px 'Space Mono',monospace">discord.gg</span><span style="font:400 13px 'Space Mono',monospace;color:#6B675E">162.159.135.232</span></div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:400 13px 'Space Mono',monospace">DURATION 5 MIN</div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:400 13px 'Space Mono',monospace">RATE 1/S</div>
+          <div style="display:flex;align-items:center;padding:0 28px;background:#111;color:#F2F0EB;font-size:17px;font-weight:800;font-stretch:80%">■ STOP</div>
+        </div>
+        <nav style="border-right:2px solid #111;display:flex;flex-direction:column">
+          <sc-for list="{{ navLoss }}" as="n" hint-placeholder-count="12">
+            <div style="padding:10px 20px;border-bottom:2px solid #111;background:{{ n.bg }};color:{{ n.c }};display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:800;font-stretch:80%;text-transform:uppercase"><span>{{ n.label }}</span><span style="font:400 11px 'Space Mono',monospace">{{ n.k }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;border-top:2px solid #111;padding:14px 20px;display:flex;flex-direction:column;gap:3px;font:400 12px 'Space Mono',monospace"><span style="font-weight:700">● WIFI / HOME-5G</span><span>192.168.1.42</span></div>
+        </nav>
+        <div style="display:grid;grid-template-rows:auto 1fr auto;min-height:0">
+          <div style="display:grid;grid-template-columns:auto 1fr;border-bottom:2px solid #111">
+            <div style="padding:20px 32px 12px;border-right:2px solid #111;background:#E8612C;display:flex;flex-direction:column"><span style="font:700 12px 'Space Mono',monospace">PACKET LOSS</span><span style="font-size:200px;line-height:0.85;font-weight:900;font-stretch:62%">3.1%</span></div>
+            <div style="display:flex;flex-direction:column">
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid #111">
+                <sc-for list="{{ lossStats }}" as="s" hint-placeholder-count="4">
+                  <div style="padding:14px 16px;border-right:2px solid #111;display:flex;flex-direction:column;gap:2px"><span style="font:700 11px 'Space Mono',monospace">{{ s.k }}</span><span style="font-size:40px;font-weight:900;font-stretch:70%">{{ s.v }}</span></div>
+                </sc-for>
+              </div>
+              <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;justify-content:center;flex:1">
+                <div style="display:flex;justify-content:space-between;font:700 12px 'Space Mono',monospace"><span>ELAPSED 3:12 / 5:00</span><span>64%</span></div>
+                <div style="height:18px;border:2px solid #111"><div style="width:64%;height:100%;background:#111"></div></div>
+                <span style="font:400 13px/1.5 'Space Mono',monospace">Verdict so far: <b>unstable.</b> Loss comes in bursts every ~40 s — typical of Wi-Fi interference, not the server.</span>
+              </div>
+            </div>
+          </div>
+          <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;min-height:0">
+            <div style="display:flex;justify-content:space-between;font:700 11px 'Space Mono',monospace"><span>TIMELINE · 1 CELL = 1 PACKET</span><span style="display:flex;gap:14px"><span>■ OK</span><span style="color:#C98A2E">■ LATE &gt;150MS</span><span style="color:#E8612C">■ LOST</span></span></div>
+            <div style="display:grid;grid-template-columns:repeat(40,1fr);gap:3px">
+              <sc-for list="{{ timeline }}" as="c" hint-placeholder-count="300"><span style="height:16px;background:{{ c.c }}"></span></sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);border-top:2px solid #111;font-size:16px;font-weight:800;font-stretch:80%;text-align:center"><span style="padding:14px 0">EXPORT CSV</span><span style="padding:14px 0;border-left:2px solid #111">SET ALERT ON LOSS</span><span style="padding:14px 0;border-left:2px solid #111">COMPARE TO 1.1.1.1</span></div>
+        </div>
+      </div>
+      <div data-screen-label="11 Packet Loss Mobile" style="width:390px;height:844px;background:#111;border-radius:56px;padding:10px;box-sizing:border-box">
+        <div style="width:100%;height:100%;background:#F2F0EB;border-radius:46px;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:50px;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font:700 14px 'Space Mono',monospace"><span>9:41</span><span style="width:24px;height:11px;border:2px solid #111"></span></div>
+          <div style="margin:4px 16px 0;border:2px solid #111;display:flex;flex-direction:column;flex:1;min-height:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;height:48px;background:#111;color:#F2F0EB"><span style="font-size:26px;font-weight:900;font-stretch:75%">← PACKET LOSS</span><span style="font:700 12px 'Space Mono',monospace;color:#E8612C">3:12</span></div>
+            <div style="padding:12px 14px;border-bottom:2px solid #111;display:flex;gap:10px;align-items:baseline"><span style="font:700 11px 'Space Mono',monospace">TARGET&gt;</span><span style="font:700 18px 'Space Mono',monospace">discord.gg</span></div>
+            <div style="padding:12px 14px 8px;border-bottom:2px solid #111;background:#E8612C;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">LOSS · UNSTABLE</span><span style="font-size:150px;line-height:0.85;font-weight:900;font-stretch:62%">3.1%</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr">
+              <sc-for list="{{ lossStatsM }}" as="s" hint-placeholder-count="4">
+                <div style="padding:10px 14px;border-bottom:2px solid #111;border-right:{{ s.br }};display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">{{ s.k }}</span><span style="font-size:30px;font-weight:900;font-stretch:70%">{{ s.v }}</span></div>
+              </sc-for>
+            </div>
+            <div style="padding:12px 14px;display:grid;grid-template-columns:repeat(24,1fr);gap:2px">
+              <sc-for list="{{ timelineM }}" as="c" hint-placeholder-count="192"><span style="height:10px;background:{{ c.c }}"></span></sc-for>
+            </div>
+            <div style="margin-top:auto;height:56px;background:#111;color:#F2F0EB;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;font-stretch:80%">■ STOP</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);margin:10px 16px 28px;border:2px solid #111;font:700 11px 'Space Mono',monospace;text-align:center">
+            <sc-for list="{{ tabsTools }}" as="t" hint-placeholder-count="4"><span style="padding:12px 0;background:{{ t.bg }};color:{{ t.c }};border-left:{{ t.bl }}">{{ t.l }}</span></sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const B = '2px solid #111', T = 'transparent', O = '#E8612C', HL = '#F6C9B3';
+    const NAV = [['Ping','01'],['Traceroute','02'],['Port scan','03'],['Speed test','04'],['Packet loss','05'],['Network','06'],['LAN scan','07'],['Geo IP','08'],['Monitor','09'],['Alerts','10'],['History','11'],['Settings','12']];
+    const nav = a => NAV.map(([label, k]) => ({ label, k, bg: label === a ? '#111' : T, c: label === a ? '#F2F0EB' : '#111' }));
+    const tabs = a => ['PING','NET','TOOLS','HISTORY'].map((l, i) => ({ l, bg: l === a ? '#111' : T, c: l === a ? '#F2F0EB' : '#111', bl: i ? B : '0' }));
+    const rnd = s => () => (s = (s * 9301 + 49297) % 233280) / 233280;
+    const r1 = rnd(7), r2 = rnd(3);
+    const hopsRaw = [
+      ['01','router.local','192.168.1.1','2 · 2 · 3',2,'BD'],['02','isp-gw.link3.net','103.112.54.1','6 · 5 · 7',6,'BD'],
+      ['03','core1.dhk.link3.net','103.15.40.9','8 · 9 · 8',8,'BD'],['04','*  *  *','request timed out','— · — · —',0,'—'],
+      ['05','ae3.sin.telia.net','62.115.43.17','38 · 37 · 39',38,'SG'],['06','github-ic.sin.telia.net','62.115.178.2','40 · 41 · 40',40,'SG'],
+      ['07','lb-140-82-121-4','140.82.121.4','42 · 42 · 43',42,'SG']
+    ];
+    const tools = [
+      ['01','Ping','8.8.8.8 · 25 ms'],['02','Traceroute','github.com · 7 hops'],['03','Port scan','NAS · 4 open'],['04','Speed test','212 ↓ · 48 ↑'],
+      ['05','Packet loss','discord.gg · 3.1%'],['06','LAN scan','9 devices'],['07','Geo IP','Singapore'],['08','Monitor','3 targets · live']
+    ].map(([k, name, last], i) => ({ k, name, last, br: i % 2 ? '0' : B, bg: i === 7 ? O : T }));
+    const openAt = { 5: 1, 20: 1, 110: 1, 250: 1 }, filtAt = { 34: 1, 111: 1 };
+    const portMap = Array.from({ length: 256 }, (_, i) => ({ c: openAt[i] ? O : filtAt[i] ? '#8E8A82' : T }));
+    const gaugeAt = (n, v) => Array.from({ length: n }, (_, i) => ({ c: i < v ? '#111' : T }));
+    const tputVals = Array.from({ length: 48 }, (_, i) => i < 24 ? 150 + r1() * 90 : i < 40 ? 30 + r1() * 30 : 0);
+    const tb = arr => arr.map((v, i) => ({ h: Math.max(v ? 4 : 0, v / 260 * 100) + '%', c: i < arr.length / 2 ? '#111' : O }));
+    const tl = n => Array.from({ length: n }, (_, i) => {
+      if (i >= Math.floor(n * 0.64)) return { c: '#E4E0D8' };
+      const burst = i % 40 > 35, x = r2();
+      return { c: burst && x > 0.3 ? O : x > 0.93 ? '#C98A2E' : '#111' };
+    });
+    return {
+      navTrace: nav('Traceroute'), navPorts: nav('Port scan'), navSpeed: nav('Speed test'), navLoss: nav('Packet loss'), tabsTools: tabs('TOOLS'),
+      tools,
+      hops: hopsRaw.map(([n, host, ip, probes, ms, loc]) => ({ n, host, ip, probes, loc, ms: ms ? String(ms) : '—', w: (ms / 45 * 100) + '%', c: n === '07' ? O : '#111', bg: n === '04' ? '#E4E0D8' : n === '07' ? HL : T })),
+      portStats: [{k:'SCANNED',v:'1024',br:B,bg:T},{k:'OPEN',v:'4',br:B,bg:O},{k:'FILTERED',v:'2',br:B,bg:T},{k:'TIME',v:'3.1S',br:'0',bg:T}],
+      portMap,
+      ports: [
+        {port:'22',svc:'SSH',banner:'OpenSSH 8.2p1',state:'OPEN',bg:HL},{port:'80',svc:'HTTP',banner:'nginx · redirects to 443',state:'OPEN',bg:T},
+        {port:'443',svc:'HTTPS',banner:'TLS 1.3 · self-signed',state:'OPEN',bg:T},{port:'5000',svc:'DSM',banner:'Synology web UI',state:'OPEN',bg:T},
+        {port:'139',svc:'NETBIOS',banner:'no response',state:'FILTERED',bg:'#E4E0D8'},{port:'445',svc:'SMB',banner:'no response',state:'FILTERED',bg:'#E4E0D8'}
+      ],
+      gauge: gaugeAt(40, 9), gaugeM: gaugeAt(20, 5),
+      tput: tb(tputVals), tputM: tb(tputVals.slice(10, 40)),
+      speedHist: [{when:'TODAY 09:02',d:'208.1',u:'47.9'},{when:'YEST 21:14',d:'96.4',u:'41.0'},{when:'SEP 23 18:30',d:'215.7',u:'49.2'},{when:'SEP 22 07:55',d:'201.3',u:'48.1'},{when:'SEP 20 23:40',d:'64.8',u:'22.5'}],
+      lossStats: [{k:'SENT',v:'192'},{k:'LOST',v:'6'},{k:'LATE',v:'11'},{k:'LONGEST BURST',v:'3'}],
+      lossStatsM: [{k:'SENT',v:'192',br:B},{k:'LOST',v:'6',br:'0'},{k:'LATE',v:'11',br:B},{k:'AVG RTT',v:'87 MS',br:'0'}],
+      timeline: tl(300), timelineM: tl(192)
+    };
+  }
+}
+</script>
+</body>
+</html>

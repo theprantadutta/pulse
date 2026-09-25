@@ -1,0 +1,40 @@
+{
+  "light": {
+    "background": "#F2F0EB",
+    "ink": "#111111",
+    "signal": "#E8612C",
+    "onSignal": "#111111",
+    "signalTint": "#F6C9B3",
+    "surfaceInput": "#FFFFFF",
+    "mutedRow": "#E4E0D8",
+    "gridLine": "#D9D5CC",
+    "filtered": "#8E8A82",
+    "text2": "#4A4740",
+    "text3": "#6B675E",
+    "degraded": "#C98A2E",
+    "chartBar": "#111111",
+    "desktopBackdrop": "#CFCBC2"
+  },
+  "dark": {
+    "background": "#111111",
+    "ink": "#F2F0EB",
+    "signal": "#E8612C",
+    "onSignal": "#111111",
+    "signalTint": "#4A2616",
+    "surfaceInput": "#1C1C1C",
+    "mutedRow": "#262523",
+    "gridLine": "#2E2D2A",
+    "filtered": "#6E6A63",
+    "text2": "#B5B0A6",
+    "text3": "#8C877D",
+    "degraded": "#E0A445",
+    "chartBar": "#F2F0EB",
+    "desktopBackdrop": "#000000"
+  },
+  "accentOptions": {
+    "signalOrange": "#E8612C",
+    "blue": "#3B6FE0",
+    "green": "#1E9E62",
+    "yellow": "#D6B400"
+  }
+}

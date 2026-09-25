@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#CFCBC2;font-family:'Archivo',sans-serif;-webkit-font-smoothing:antialiased}a{color:#E8612C}a:hover{color:#111}</style>
+</helmet>
+<div style="padding:64px;display:flex;flex-direction:column;gap:72px;min-width:max-content;color:#111">
+  <div style="display:flex;align-items:baseline;gap:16px">
+    <span style="font-size:56px;font-weight:900;font-stretch:70%;text-transform:uppercase">Pulse / Wire</span>
+    <span style="font:700 16px 'Space Mono',monospace;background:#E8612C;padding:4px 10px;border:2px solid #111">4 — WATCH &amp; SETTINGS</span>
+    <span style="font:400 15px 'Space Mono',monospace;color:#4A4740">Screens 12–14 · Monitor · Alerts · Settings (+ dark mode)</span>
+  </div>
+
+  <!-- 12 MONITOR -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">12 — MONITOR</span>
+    <div style="display:flex;gap:48px;align-items:flex-start">
+      <div data-screen-label="12 Monitor Desktop" style="width:1280px;height:800px;background:#F2F0EB;border:2px solid #111;box-sizing:border-box;display:grid;grid-template-columns:220px 1fr 320px;grid-template-rows:64px auto 1fr;box-shadow:12px 12px 0 #111">
+        <div style="border-right:2px solid #111;border-bottom:2px solid #111;background:#E8612C;display:flex;align-items:center;gap:10px;padding:0 20px;font-size:32px;font-weight:900;font-stretch:75%"><svg width="28" height="34" viewBox="18 2 70 100"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg>PULSE</div>
+        <div style="grid-column:span 2;border-bottom:2px solid #111;display:flex;align-items:stretch">
+          <div style="flex:1;display:flex;align-items:center;padding:0 20px;border-right:2px solid #111;font-size:28px;font-weight:900;font-stretch:75%">MONITOR <span style="font:400 13px 'Space Mono',monospace;margin-left:14px">● RUNNING IN TRAY · 5 TARGETS</span></div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:700 13px 'Space Mono',monospace;background:#111;color:#F2F0EB">24H</div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:400 13px 'Space Mono',monospace">7D</div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:400 13px 'Space Mono',monospace">30D</div>
+          <div style="display:flex;align-items:center;padding:0 28px;background:#E8612C;font-size:17px;font-weight:800;font-stretch:80%">+ ADD TARGET</div>
+        </div>
+        <nav style="grid-row:span 2;border-right:2px solid #111;display:flex;flex-direction:column">
+          <sc-for list="{{ navMon }}" as="n" hint-placeholder-count="12">
+            <div style="padding:10px 20px;border-bottom:2px solid #111;background:{{ n.bg }};color:{{ n.c }};display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:800;font-stretch:80%;text-transform:uppercase"><span>{{ n.label }}</span><span style="font:400 11px 'Space Mono',monospace">{{ n.k }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;border-top:2px solid #111;padding:14px 20px;display:flex;flex-direction:column;gap:3px;font:400 12px 'Space Mono',monospace"><span style="font-weight:700">● WIFI / HOME-5G</span><span>192.168.1.42</span></div>
+        </nav>
+        <div style="grid-column:span 2;display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid #111">
+          <sc-for list="{{ monStats }}" as="s" hint-placeholder-count="4">
+            <div style="padding:14px 20px;border-right:{{ s.br }};background:{{ s.bg }};display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">{{ s.k }}</span><span style="font-size:64px;line-height:0.95;font-weight:900;font-stretch:65%">{{ s.v }}</span></div>
+          </sc-for>
+        </div>
+        <div style="border-right:2px solid #111;min-width:0;overflow:hidden">
+          <div style="display:grid;grid-template-columns:170px 1fr 70px 80px;gap:14px;padding:10px 20px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB"><span>TARGET</span><span>LAST 24H · 30 MIN BLOCKS</span><span>UPTIME</span><span>NOW</span></div>
+          <sc-for list="{{ targets }}" as="t" hint-placeholder-count="5">
+            <div style="display:grid;grid-template-columns:170px 1fr 70px 80px;gap:14px;align-items:center;padding:14px 20px;border-bottom:1px solid #111;background:{{ t.bg }}">
+              <div style="display:flex;flex-direction:column"><span style="font:700 14px 'Space Mono',monospace">{{ t.host }}</span><span style="font:400 11px 'Space Mono',monospace;color:#4A4740">{{ t.name }}</span></div>
+              <div style="display:grid;grid-template-columns:repeat(48,1fr);gap:2px"><sc-for list="{{ t.strip }}" as="c" hint-placeholder-count="48"><span style="height:26px;background:{{ c.c }}"></span></sc-for></div>
+              <span style="font:700 13px 'Space Mono',monospace">{{ t.up }}</span>
+              <span style="font-size:26px;font-weight:900;font-stretch:70%;text-align:right">{{ t.now }}</span>
+            </div>
+          </sc-for>
+          <div style="display:flex;gap:18px;padding:12px 20px;font:700 11px 'Space Mono',monospace"><span>■ HEALTHY</span><span style="color:#C98A2E">■ DEGRADED</span><span style="color:#E8612C">■ DOWN</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column">
+          <div style="padding:10px 20px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB">INCIDENTS</div>
+          <sc-for list="{{ incidents }}" as="i" hint-placeholder-count="4">
+            <div style="padding:12px 20px;border-bottom:1px solid #111;display:flex;flex-direction:column;gap:3px;background:{{ i.bg }}">
+              <div style="display:flex;justify-content:space-between"><span style="font:700 11px 'Space Mono',monospace">{{ i.when }}</span><span style="font:700 11px 'Space Mono',monospace">{{ i.dur }}</span></div>
+              <span style="font-size:20px;font-weight:900;font-stretch:75%;text-transform:uppercase">{{ i.title }}</span>
+              <span style="font:400 12px 'Space Mono',monospace;color:#4A4740">{{ i.desc }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div data-screen-label="12 Monitor Mobile" style="width:390px;height:844px;background:#111;border-radius:56px;padding:10px;box-sizing:border-box">
+        <div style="width:100%;height:100%;background:#F2F0EB;border-radius:46px;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:50px;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font:700 14px 'Space Mono',monospace"><span>9:41</span><span style="width:24px;height:11px;border:2px solid #111"></span></div>
+          <div style="margin:4px 16px 0;border:2px solid #111;display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;height:48px;background:#111;color:#F2F0EB"><span style="font-size:26px;font-weight:900;font-stretch:75%">← MONITOR</span><span style="font:700 12px 'Space Mono',monospace;color:#E8612C">+ ADD</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:2px solid #111">
+              <div style="padding:10px 14px;border-right:2px solid #111;background:#E8612C;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">UPTIME 24H</span><span style="font-size:46px;line-height:1;font-weight:900;font-stretch:65%">99.7%</span></div>
+              <div style="padding:10px 14px;display:flex;flex-direction:column"><span style="font:700 11px 'Space Mono',monospace">INCIDENTS</span><span style="font-size:46px;line-height:1;font-weight:900;font-stretch:65%">2</span></div>
+            </div>
+            <sc-for list="{{ targets }}" as="t" hint-placeholder-count="5">
+              <div style="padding:10px 14px;border-bottom:1px solid #111;display:flex;flex-direction:column;gap:8px;background:{{ t.bg }}">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><div style="display:flex;flex-direction:column"><span style="font:700 13px 'Space Mono',monospace">{{ t.host }}</span><span style="font:400 11px 'Space Mono',monospace;color:#4A4740">{{ t.name }} · {{ t.up }}</span></div><span style="font-size:24px;font-weight:900;font-stretch:70%">{{ t.now }}</span></div>
+                <div style="display:grid;grid-template-columns:repeat(48,1fr);gap:1px"><sc-for list="{{ t.strip }}" as="c" hint-placeholder-count="48"><span style="height:14px;background:{{ c.c }}"></span></sc-for></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);margin:10px 16px 28px;border:2px solid #111;font:700 11px 'Space Mono',monospace;text-align:center">
+            <sc-for list="{{ tabsTools }}" as="t" hint-placeholder-count="4"><span style="padding:12px 0;background:{{ t.bg }};color:{{ t.c }};border-left:{{ t.bl }}">{{ t.l }}</span></sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 ALERTS -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">13 — ALERTS</span>
+    <div style="display:flex;gap:48px;align-items:flex-start">
+      <div data-screen-label="13 Alerts Desktop" style="width:1280px;height:800px;background:#F2F0EB;border:2px solid #111;box-sizing:border-box;display:grid;grid-template-columns:220px 1fr 420px;grid-template-rows:64px 1fr;box-shadow:12px 12px 0 #111">
+        <div style="border-right:2px solid #111;border-bottom:2px solid #111;background:#E8612C;display:flex;align-items:center;gap:10px;padding:0 20px;font-size:32px;font-weight:900;font-stretch:75%"><svg width="28" height="34" viewBox="18 2 70 100"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg>PULSE</div>
+        <div style="grid-column:span 2;border-bottom:2px solid #111;display:flex;align-items:stretch">
+          <div style="flex:1;display:flex;align-items:center;padding:0 20px;border-right:2px solid #111;font-size:28px;font-weight:900;font-stretch:75%">ALERTS <span style="font:400 13px 'Space Mono',monospace;margin-left:14px">4 RULES · 3 ACTIVE</span></div>
+          <div style="display:flex;align-items:center;padding:0 18px;border-right:2px solid #111;font:700 13px 'Space Mono',monospace">MUTE 1H</div>
+          <div style="display:flex;align-items:center;padding:0 28px;background:#E8612C;font-size:17px;font-weight:800;font-stretch:80%">+ NEW RULE</div>
+        </div>
+        <nav style="border-right:2px solid #111;display:flex;flex-direction:column">
+          <sc-for list="{{ navAlerts }}" as="n" hint-placeholder-count="12">
+            <div style="padding:10px 20px;border-bottom:2px solid #111;background:{{ n.bg }};color:{{ n.c }};display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:800;font-stretch:80%;text-transform:uppercase"><span>{{ n.label }}</span><span style="font:400 11px 'Space Mono',monospace">{{ n.k }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;border-top:2px solid #111;padding:14px 20px;display:flex;flex-direction:column;gap:3px;font:400 12px 'Space Mono',monospace"><span style="font-weight:700">● WIFI / HOME-5G</span><span>192.168.1.42</span></div>
+        </nav>
+        <div style="border-right:2px solid #111;display:flex;flex-direction:column;min-width:0">
+          <div style="padding:10px 20px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB">RULES</div>
+          <sc-for list="{{ rules }}" as="r" hint-placeholder-count="4">
+            <div style="display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;padding:16px 20px;border-bottom:2px solid #111;background:{{ r.bg }}">
+              <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:24px;font-weight:900;font-stretch:72%;text-transform:uppercase">{{ r.title }}</span><span style="font:400 12px 'Space Mono',monospace">{{ r.cond }}</span><span style="font:700 11px 'Space Mono',monospace;color:#4A4740">{{ r.meta }}</span></div>
+              <span style="width:48px;height:26px;border:2px solid #111;background:{{ r.tb }};display:flex;justify-content:{{ r.tj }};padding:2px;box-sizing:border-box"><span style="width:18px;height:18px;background:{{ r.tk }}"></span></span>
+            </div>
+          </sc-for>
+          <div style="padding:10px 20px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB;margin-top:auto">RECENTLY FIRED</div>
+          <sc-for list="{{ fired }}" as="f" hint-placeholder-count="3">
+            <div style="display:grid;grid-template-columns:120px 1fr;gap:10px;padding:10px 20px;border-bottom:1px solid #111;font:400 12px 'Space Mono',monospace"><span style="font-weight:700">{{ f.when }}</span><span>{{ f.msg }}</span></div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column">
+          <div style="padding:16px 20px;border-bottom:2px solid #111;background:#F6C9B3;display:flex;flex-direction:column;gap:2px"><span style="font:700 11px 'Space Mono',monospace">EDIT RULE</span><span style="font-size:32px;font-weight:900;font-stretch:72%">HIGH LATENCY</span></div>
+          <div style="padding:14px 20px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:8px"><span style="font:700 11px 'Space Mono',monospace">WATCH</span><div style="border:2px solid #111;background:#fff;padding:10px 12px;font:700 15px 'Space Mono',monospace">8.8.8.8 · Google DNS</div></div>
+          <div style="padding:14px 20px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:8px"><span style="font:700 11px 'Space Mono',monospace">WHEN</span>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);border:2px solid #111;font:700 12px 'Space Mono',monospace;text-align:center"><span style="padding:8px 0;background:#111;color:#F2F0EB">LATENCY</span><span style="padding:8px 0;border-left:2px solid #111">LOSS</span><span style="padding:8px 0;border-left:2px solid #111">DOWN</span></div>
+          </div>
+          <div style="padding:14px 20px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 11px 'Space Mono',monospace">IS ABOVE</span><span style="font-size:40px;line-height:1;font-weight:900;font-stretch:65%">100 MS</span></div>
+            <div style="display:grid;grid-template-columns:repeat(20,1fr);gap:3px;height:22px"><sc-for list="{{ thresh }}" as="g" hint-placeholder-count="20"><span style="background:{{ g.c }};border:1px solid #111"></span></sc-for></div>
+            <div style="display:flex;justify-content:space-between;font:400 11px 'Space Mono',monospace;color:#4A4740"><span>0</span><span>100</span><span>200 MS</span></div>
+          </div>
+          <div style="padding:14px 20px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:8px"><span style="font:700 11px 'Space Mono',monospace">FOR AT LEAST</span>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);border:2px solid #111;font:700 12px 'Space Mono',monospace;text-align:center"><span style="padding:8px 0">10S</span><span style="padding:8px 0;border-left:2px solid #111;background:#111;color:#F2F0EB">30S</span><span style="padding:8px 0;border-left:2px solid #111">1M</span><span style="padding:8px 0;border-left:2px solid #111">5M</span></div>
+          </div>
+          <div style="padding:14px 20px;display:flex;flex-direction:column;gap:8px"><span style="font:700 11px 'Space Mono',monospace">NOTIFY VIA</span>
+            <div style="display:flex;gap:8px;font:700 12px 'Space Mono',monospace"><span style="padding:8px 12px;border:2px solid #111;background:#111;color:#F2F0EB">✓ PUSH</span><span style="padding:8px 12px;border:2px solid #111;background:#111;color:#F2F0EB">✓ TRAY</span><span style="padding:8px 12px;border:2px solid #111">SOUND</span></div>
+          </div>
+          <div style="margin-top:auto;display:grid;grid-template-columns:1fr 1fr;border-top:2px solid #111;font-size:16px;font-weight:800;font-stretch:80%;text-align:center"><span style="padding:16px 0">DELETE</span><span style="padding:16px 0;border-left:2px solid #111;background:#E8612C">SAVE RULE</span></div>
+        </div>
+      </div>
+      <div data-screen-label="13 Alerts Mobile" style="width:390px;height:844px;background:#111;border-radius:56px;padding:10px;box-sizing:border-box">
+        <div style="width:100%;height:100%;background:#F2F0EB;border-radius:46px;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:50px;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font:700 14px 'Space Mono',monospace"><span>9:41</span><span style="width:24px;height:11px;border:2px solid #111"></span></div>
+          <div style="margin:4px 16px 0;border:2px solid #111;display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;height:48px;background:#111;color:#F2F0EB"><span style="font-size:26px;font-weight:900;font-stretch:75%">← ALERTS</span><span style="font:700 12px 'Space Mono',monospace;color:#E8612C">+ NEW</span></div>
+            <div style="padding:12px 14px;border-bottom:2px solid #111;background:#E8612C;display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;justify-content:space-between;font:700 11px 'Space Mono',monospace"><span>▲ FIRED 13:41</span><span>DISMISS</span></div>
+              <span style="font-size:30px;line-height:1;font-weight:900;font-stretch:70%">DISCORD.GG LOSS 12%</span>
+              <span style="font:400 12px 'Space Mono',monospace">Above 5% for 1 min · still ongoing</span>
+            </div>
+            <sc-for list="{{ rules }}" as="r" hint-placeholder-count="4">
+              <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid #111">
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:20px;font-weight:900;font-stretch:72%;text-transform:uppercase">{{ r.title }}</span><span style="font:400 11px 'Space Mono',monospace">{{ r.cond }}</span></div>
+                <span style="width:48px;height:26px;border:2px solid #111;background:{{ r.tb }};display:flex;justify-content:{{ r.tj }};padding:2px;box-sizing:border-box"><span style="width:18px;height:18px;background:{{ r.tk }}"></span></span>
+              </div>
+            </sc-for>
+            <div style="padding:10px 14px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB;margin-top:auto">RECENTLY FIRED</div>
+            <sc-for list="{{ fired }}" as="f" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;padding:8px 14px;border-bottom:1px solid #111;font:400 11px 'Space Mono',monospace"><span style="font-weight:700">{{ f.when }}</span><span>{{ f.msg }}</span></div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);margin:10px 16px 28px;border:2px solid #111;font:700 11px 'Space Mono',monospace;text-align:center">
+            <sc-for list="{{ tabsTools }}" as="t" hint-placeholder-count="4"><span style="padding:12px 0;background:{{ t.bg }};color:{{ t.c }};border-left:{{ t.bl }}">{{ t.l }}</span></sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 SETTINGS -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">14 — SETTINGS <span style="font:400 14px 'Space Mono',monospace">mobile shown in dark theme</span></span>
+    <div style="display:flex;gap:48px;align-items:flex-start">
+      <div data-screen-label="14 Settings Desktop" style="width:1280px;height:800px;background:#F2F0EB;border:2px solid #111;box-sizing:border-box;display:grid;grid-template-columns:220px 240px 1fr;grid-template-rows:64px 1fr;box-shadow:12px 12px 0 #111">
+        <div style="border-right:2px solid #111;border-bottom:2px solid #111;background:#E8612C;display:flex;align-items:center;gap:10px;padding:0 20px;font-size:32px;font-weight:900;font-stretch:75%"><svg width="28" height="34" viewBox="18 2 70 100"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg>PULSE</div>
+        <div style="grid-column:span 2;border-bottom:2px solid #111;display:flex;align-items:center;padding:0 20px;font-size:28px;font-weight:900;font-stretch:75%">SETTINGS</div>
+        <nav style="border-right:2px solid #111;display:flex;flex-direction:column">
+          <sc-for list="{{ navSet }}" as="n" hint-placeholder-count="12">
+            <div style="padding:10px 20px;border-bottom:2px solid #111;background:{{ n.bg }};color:{{ n.c }};display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:800;font-stretch:80%;text-transform:uppercase"><span>{{ n.label }}</span><span style="font:400 11px 'Space Mono',monospace">{{ n.k }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;border-top:2px solid #111;padding:14px 20px;display:flex;flex-direction:column;gap:3px;font:400 12px 'Space Mono',monospace"><span style="font-weight:700">● WIFI / HOME-5G</span><span>192.168.1.42</span></div>
+        </nav>
+        <div style="border-right:2px solid #111;display:flex;flex-direction:column">
+          <sc-for list="{{ setSections }}" as="s" hint-placeholder-count="6">
+            <div style="padding:14px 20px;border-bottom:1px solid #111;background:{{ s.bg }};color:{{ s.c }};font:700 13px 'Space Mono',monospace">{{ s.l }}</div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;min-width:0">
+          <div style="padding:10px 24px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB">APPEARANCE</div>
+          <div style="padding:18px 24px;border-bottom:2px solid #111;display:flex;flex-direction:column;gap:12px"><span style="font-size:22px;font-weight:900;font-stretch:75%">THEME</span>
+            <div style="display:grid;grid-template-columns:repeat(3,200px);gap:16px">
+              <div style="border:2px solid #111;display:flex;flex-direction:column;box-shadow:5px 5px 0 #E8612C"><div style="height:90px;background:#F2F0EB;border-bottom:2px solid #111;display:grid;grid-template-columns:40px 1fr"><span style="border-right:2px solid #111;background:#E8612C"></span><span style="font-size:40px;font-weight:900;font-stretch:62%;padding:6px 10px">25</span></div><span style="padding:8px 10px;font:700 12px 'Space Mono',monospace">✓ PAPER</span></div>
+              <div style="border:2px solid #111;display:flex;flex-direction:column"><div style="height:90px;background:#111;border-bottom:2px solid #111;display:grid;grid-template-columns:40px 1fr"><span style="border-right:2px solid #F2F0EB;background:#E8612C"></span><span style="font-size:40px;font-weight:900;font-stretch:62%;padding:6px 10px;color:#F2F0EB">25</span></div><span style="padding:8px 10px;font:700 12px 'Space Mono',monospace">INK</span></div>
+              <div style="border:2px solid #111;display:flex;flex-direction:column"><div style="height:90px;border-bottom:2px solid #111;display:grid;grid-template-columns:1fr 1fr"><span style="background:#F2F0EB;border-right:2px solid #111"></span><span style="background:#111"></span></div><span style="padding:8px 10px;font:700 12px 'Space Mono',monospace">SYSTEM</span></div>
+            </div>
+          </div>
+          <div style="padding:18px 24px;border-bottom:2px solid #111;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:22px;font-weight:900;font-stretch:75%">ACCENT</span><span style="font:400 12px 'Space Mono',monospace;color:#4A4740">Used for live values, spikes and primary actions</span></div>
+            <div style="display:flex;gap:10px"><span style="width:40px;height:40px;background:#E8612C;border:2px solid #111;box-shadow:4px 4px 0 #111"></span><span style="width:40px;height:40px;background:#3B6FE0;border:2px solid #111"></span><span style="width:40px;height:40px;background:#1E9E62;border:2px solid #111"></span><span style="width:40px;height:40px;background:#D6B400;border:2px solid #111"></span></div>
+          </div>
+          <div style="padding:10px 24px;font:700 11px 'Space Mono',monospace;background:#111;color:#F2F0EB">DATA</div>
+          <sc-for list="{{ setRows }}" as="r" hint-placeholder-count="4">
+            <div style="padding:14px 24px;border-bottom:1px solid #111;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:20px;font-weight:900;font-stretch:75%;text-transform:uppercase">{{ r.k }}</span><span style="font:400 12px 'Space Mono',monospace;color:#4A4740">{{ r.d }}</span></div><span style="font:700 13px 'Space Mono',monospace;border:2px solid #111;padding:6px 10px">{{ r.v }}</span></div>
+          </sc-for>
+          <div style="margin-top:auto;padding:14px 24px;border-top:2px solid #111;display:flex;justify-content:space-between;font:400 12px 'Space Mono',monospace"><span><b>PULSE 2.0.0</b> · Apache-2.0 · made with Flutter</span><span style="font-weight:700">CHECK FOR UPDATES</span></div>
+        </div>
+      </div>
+      <div data-screen-label="14 Settings Mobile Dark" style="width:390px;height:844px;background:#000;border-radius:56px;padding:10px;box-sizing:border-box;border:1px solid #333">
+        <div style="width:100%;height:100%;background:#111;color:#F2F0EB;border-radius:46px;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:50px;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font:700 14px 'Space Mono',monospace"><span>9:41</span><span style="width:24px;height:11px;border:2px solid #F2F0EB"></span></div>
+          <div style="margin:4px 16px 0;border:2px solid #F2F0EB;display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0 14px;height:48px;background:#E8612C;color:#111;border-bottom:2px solid #F2F0EB"><span style="font-size:26px;font-weight:900;font-stretch:75%">← SETTINGS</span></div>
+            <div style="padding:12px 14px;border-bottom:2px solid #F2F0EB;display:flex;flex-direction:column;gap:8px"><span style="font:700 11px 'Space Mono',monospace">THEME</span>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);border:2px solid #F2F0EB;font:700 12px 'Space Mono',monospace;text-align:center"><span style="padding:10px 0">PAPER</span><span style="padding:10px 0;border-left:2px solid #F2F0EB;background:#F2F0EB;color:#111">INK</span><span style="padding:10px 0;border-left:2px solid #F2F0EB">SYSTEM</span></div>
+            </div>
+            <div style="padding:12px 14px;border-bottom:2px solid #F2F0EB;display:flex;justify-content:space-between;align-items:center"><span style="font:700 11px 'Space Mono',monospace">ACCENT</span><div style="display:flex;gap:8px"><span style="width:28px;height:28px;background:#E8612C;border:2px solid #F2F0EB"></span><span style="width:28px;height:28px;background:#3B6FE0"></span><span style="width:28px;height:28px;background:#1E9E62"></span><span style="width:28px;height:28px;background:#D6B400"></span></div></div>
+            <sc-for list="{{ setRowsM }}" as="r" hint-placeholder-count="7">
+              <div style="padding:11px 14px;border-bottom:1px solid #F2F0EB;display:flex;justify-content:space-between;align-items:center"><span style="font-size:19px;font-weight:900;font-stretch:75%;text-transform:uppercase">{{ r.k }}</span><span style="font:700 12px 'Space Mono',monospace;color:#E8612C">{{ r.v }}</span></div>
+            </sc-for>
+            <div style="margin-top:auto;padding:12px 14px;border-top:2px solid #F2F0EB;font:400 11px 'Space Mono',monospace;color:#B5B0A6">PULSE 2.0.0 · APACHE-2.0</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);margin:10px 16px 28px;border:2px solid #F2F0EB;font:700 11px 'Space Mono',monospace;text-align:center">
+            <span style="padding:12px 0">PING</span><span style="padding:12px 0;border-left:2px solid #F2F0EB">NET</span><span style="padding:12px 0;border-left:2px solid #F2F0EB;background:#F2F0EB;color:#111">TOOLS</span><span style="padding:12px 0;border-left:2px solid #F2F0EB">HISTORY</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const B = '2px solid #111', T = 'transparent', O = '#E8612C', HL = '#F6C9B3', AMB = '#C98A2E';
+    const NAV = [['Ping','01'],['Traceroute','02'],['Port scan','03'],['Speed test','04'],['Packet loss','05'],['Network','06'],['LAN scan','07'],['Geo IP','08'],['Monitor','09'],['Alerts','10'],['History','11'],['Settings','12']];
+    const nav = a => NAV.map(([label, k]) => ({ label, k, bg: label === a ? '#111' : T, c: label === a ? '#F2F0EB' : '#111' }));
+    const tabs = a => ['PING','NET','TOOLS','HISTORY'].map((l, i) => ({ l, bg: l === a ? '#111' : T, c: l === a ? '#F2F0EB' : '#111', bl: i ? B : '0' }));
+    const strip = (down = [], deg = []) => Array.from({ length: 48 }, (_, i) => ({ c: down.includes(i) ? O : deg.includes(i) ? AMB : '#111' }));
+    const toggle = on => ({ tb: on ? '#111' : T, tj: on ? 'flex-end' : 'flex-start', tk: on ? O : '#111' });
+    return {
+      navMon: nav('Monitor'), navAlerts: nav('Alerts'), navSet: nav('Settings'), tabsTools: tabs('TOOLS'),
+      monStats: [{k:'UPTIME 24H',v:'99.7%',br:B,bg:O},{k:'AVG LATENCY',v:'31 MS',br:B,bg:T},{k:'INCIDENTS',v:'2',br:B,bg:T},{k:'CHECKS',v:'86.4K',br:'0',bg:T}],
+      targets: [
+        {host:'192.168.1.1',name:'Router',strip:strip(),up:'100%',now:'2',bg:T},
+        {host:'8.8.8.8',name:'Google DNS',strip:strip([],[27]),up:'100%',now:'25',bg:T},
+        {host:'1.1.1.1',name:'Cloudflare',strip:strip(),up:'100%',now:'18',bg:T},
+        {host:'github.com',name:'GitHub',strip:strip([],[12,13]),up:'99.9%',now:'42',bg:T},
+        {host:'discord.gg',name:'Discord',strip:strip([45,46],[20,21,44,47]),up:'98.4%',now:'87',bg:HL}
+      ],
+      incidents: [
+        {when:'TODAY 13:41',dur:'ONGOING',title:'Discord packet loss',desc:'12% loss for 18 min',bg:HL},
+        {when:'TODAY 02:10',dur:'4 MIN',title:'Discord unreachable',desc:'Timeout on 240 checks',bg:T},
+        {when:'TODAY 06:30',dur:'1 HR',title:'GitHub latency high',desc:'Avg 148 ms, peak 310 ms',bg:T},
+        {when:'YEST 14:02',dur:'30 MIN',title:'Google DNS degraded',desc:'Jitter above 40 ms',bg:T}
+      ],
+      rules: [
+        {title:'High latency',cond:'8.8.8.8 · RTT > 100 ms for 30 s',meta:'PUSH + TRAY · FIRED 3× THIS WEEK',bg:HL,...toggle(true)},
+        {title:'Packet loss',cond:'Any target · loss > 5% for 1 min',meta:'PUSH · FIRED 13:41',bg:T,...toggle(true)},
+        {title:'Gateway down',cond:'192.168.1.1 · unreachable for 10 s',meta:'PUSH + SOUND',bg:T,...toggle(true)},
+        {title:'New LAN device',cond:'Unknown MAC joins 192.168.1.0/24',meta:'TRAY',bg:T,...toggle(false)}
+      ],
+      fired: [{when:'TODAY 13:41',msg:'discord.gg loss 12% (> 5%)'},{when:'TODAY 06:31',msg:'github.com RTT 148 ms (> 100)'},{when:'YEST 22:05',msg:'8.8.8.8 RTT 131 ms (> 100)'}],
+      thresh: Array.from({ length: 20 }, (_, i) => ({ c: i < 10 ? '#111' : T })),
+      setSections: ['APPEARANCE','PING DEFAULTS','MONITOR','NOTIFICATIONS','DATA & EXPORT','PRIVACY','ABOUT'].map((l, i) => ({ l, bg: i === 0 ? '#111' : T, c: i === 0 ? '#F2F0EB' : '#111' })),
+      setRows: [
+        {k:'Keep history',d:'Older sessions are removed automatically',v:'90 DAYS'},
+        {k:'Export format',d:'Used by every Export button',v:'CSV'},
+        {k:'Export folder',d:'Where logs are saved on this device',v:'~/Documents/Pulse'},
+        {k:'Clear all data',d:'Deletes history, rules and targets',v:'CLEAR'}
+      ],
+      setRowsM: [{k:'Default count',v:'∞'},{k:'Interval',v:'1 S'},{k:'Timeout',v:'5 S'},{k:'Packet size',v:'56 B'},{k:'Notifications',v:'ON'},{k:'Keep history',v:'90 DAYS'},{k:'Export format',v:'CSV'}]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#CFCBC2;font-family:'Archivo',sans-serif;-webkit-font-smoothing:antialiased}a{color:#E8612C}a:hover{color:#111}</style>
+</helmet>
+<div style="padding:64px;display:flex;flex-direction:column;gap:72px;min-width:max-content;color:#111">
+  <div style="display:flex;align-items:baseline;gap:16px">
+    <span style="font-size:56px;font-weight:900;font-stretch:70%">PULSE / WIRE</span>
+    <span style="font:700 16px 'Space Mono',monospace;background:#E8612C;padding:4px 10px;border:2px solid #111">5 — BRAND</span>
+    <span style="font:400 15px 'Space Mono',monospace;color:#4A4740">Bolt mark · lockups · app icons · splash screens</span>
+  </div>
+
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">A — THE MARK</span>
+    <div style="display:flex;gap:32px;align-items:flex-end">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div id="mark-primary" style="width:360px;height:360px;background:#E8612C;border:2px solid #111;box-sizing:border-box;display:flex;align-items:center;justify-content:center"><svg width="230" height="230" viewBox="0 0 104 104"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg></div>
+        <span style="font:700 12px 'Space Mono',monospace">PRIMARY · SIGNAL</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div id="mark-dark" style="width:360px;height:360px;background:#111111;border:2px solid #111;box-sizing:border-box;display:flex;align-items:center;justify-content:center"><svg width="230" height="230" viewBox="0 0 104 104"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#E8612C"></polygon></svg></div>
+        <span style="font:700 12px 'Space Mono',monospace">DARK · INK</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="width:220px;height:220px;background:#F2F0EB;border:2px solid #111;box-sizing:border-box;display:flex;align-items:center;justify-content:center"><svg width="140" height="140" viewBox="0 0 104 104"><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg></div>
+        <span style="font:700 12px 'Space Mono',monospace">MONO · 1 COLOR</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;max-width:360px;padding-bottom:30px">
+        <span style="font-size:26px;font-weight:900;font-stretch:75%">CONSTRUCTION</span>
+        <span style="font:400 13px/1.6 'Space Mono',monospace">A six-point bolt — the spark from the original Pulse logo — cut with straight edges only, to match the Wire grid. A hard paper offset (5% right, 5% down) sits behind it like the Wire window shadow. The bolt fills 62% of the square. Minimum size: 16px (drop the offset below 32px).</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">B — LOCKUPS</span>
+    <div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">
+      <div id="lockup-h-light" style="width:960px;height:240px;display:grid;grid-template-columns:240px 1fr;border:4px solid #111;box-sizing:border-box;background:#F2F0EB">
+        <div style="background:#E8612C;border-right:4px solid #111;display:flex;align-items:center;justify-content:center"><svg width="150" height="150" viewBox="0 0 104 104"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg></div>
+        <div style="display:flex;align-items:center;padding:0 36px"><span style="font-size:230px;line-height:0.8;font-weight:900;font-stretch:66%;letter-spacing:-0.01em;padding-top:18px">PULSE</span></div>
+      </div>
+      <div id="lockup-h-dark" style="width:960px;height:240px;display:grid;grid-template-columns:240px 1fr;border:4px solid #F2F0EB;box-sizing:border-box;background:#111111;color:#F2F0EB">
+        <div style="background:#E8612C;border-right:4px solid #F2F0EB;display:flex;align-items:center;justify-content:center"><svg width="150" height="150" viewBox="0 0 104 104"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg></div>
+        <div style="display:flex;align-items:center;padding:0 36px"><span style="font-size:230px;line-height:0.8;font-weight:900;font-stretch:66%;letter-spacing:-0.01em;padding-top:18px">PULSE</span></div>
+      </div>
+      <div id="lockup-stacked" style="width:480px;height:600px;display:grid;grid-template-rows:1fr 180px;border:4px solid #111;box-sizing:border-box;background:#F2F0EB">
+        <div style="background:#E8612C;border-bottom:4px solid #111;display:flex;align-items:center;justify-content:center"><svg width="260" height="260" viewBox="0 0 104 104"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg></div>
+        <div style="display:flex;align-items:center;justify-content:center"><span style="font-size:190px;line-height:0.8;font-weight:900;font-stretch:66%;padding-top:14px">PULSE</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:24px">
+        <div id="wordmark-light" style="width:720px;height:200px;display:flex;align-items:center;gap:22px;padding:0 28px;box-sizing:border-box;background:#F2F0EB">
+          <svg width="130" height="150" viewBox="18 2 70 100"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#E8612C"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg>
+          <span style="font-size:200px;line-height:0.8;font-weight:900;font-stretch:66%;padding-top:16px">PULSE</span>
+        </div>
+        <div id="wordmark-dark" style="width:720px;height:200px;display:flex;align-items:center;gap:22px;padding:0 28px;box-sizing:border-box;background:#111111;color:#F2F0EB">
+          <svg width="130" height="150" viewBox="18 2 70 100"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#E8612C"></polygon></svg>
+          <span style="font-size:200px;line-height:0.8;font-weight:900;font-stretch:66%;padding-top:16px">PULSE</span>
+        </div>
+        <span style="font:400 13px/1.6 'Space Mono',monospace;max-width:720px">Boxed lockups: app headers, store listings, README. Open wordmark: splash branding, about screen, docs. The bolt always comes before the word, never after it.</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">C — APP ICON ON EVERY PLATFORM</span>
+    <div style="display:flex;gap:40px;align-items:flex-end;flex-wrap:wrap">
+      <sc-for list="{{ platforms }}" as="p" hint-placeholder-count="7">
+        <div style="display:flex;flex-direction:column;gap:12px;align-items:center">
+          <div style="width:{{ p.s }};height:{{ p.s }};border-radius:{{ p.r }};background:{{ p.bg }};overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:{{ p.sh }}"><svg width="{{ p.b }}" height="{{ p.b }}" viewBox="0 0 104 104"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="{{ p.fg }}"></polygon></svg></div>
+          <div style="display:flex;flex-direction:column;align-items:center"><span style="font:700 12px 'Space Mono',monospace">{{ p.name }}</span><span style="font:400 11px 'Space Mono',monospace;color:#4A4740">{{ p.spec }}</span></div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <span style="font-size:30px;font-weight:900;font-stretch:75%">D — SPLASH SCREENS</span>
+    <div style="display:flex;gap:48px;align-items:flex-start">
+      <div id="splash-mobile-light" data-screen-label="Splash Mobile Light" style="width:390px;height:844px;background:#E8612C;border-radius:48px;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:0 0 56px;box-sizing:border-box;border:10px solid #111">
+        <span></span>
+        <svg width="190" height="190" viewBox="0 0 104 104"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="font-size:64px;line-height:0.85;font-weight:900;font-stretch:66%">PULSE</span><span style="font:700 11px 'Space Mono',monospace;letter-spacing:.1em">NETWORK DIAGNOSTICS</span></div>
+      </div>
+      <div id="splash-mobile-dark" data-screen-label="Splash Mobile Dark" style="width:390px;height:844px;background:#111111;color:#F2F0EB;border-radius:48px;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:0 0 56px;box-sizing:border-box;border:10px solid #000">
+        <span></span>
+        <svg width="190" height="190" viewBox="0 0 104 104"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#E8612C"></polygon></svg>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="font-size:64px;line-height:0.85;font-weight:900;font-stretch:66%">PULSE</span><span style="font:700 11px 'Space Mono',monospace;letter-spacing:.1em;color:#B5B0A6">NETWORK DIAGNOSTICS</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:40px">
+        <div id="splash-desktop" data-screen-label="Splash Desktop" style="width:720px;height:440px;background:#F2F0EB;border:2px solid #111;box-sizing:border-box;display:grid;grid-template-columns:300px 1fr;box-shadow:12px 12px 0 #111">
+          <div style="background:#E8612C;border-right:2px solid #111;display:flex;align-items:center;justify-content:center"><svg width="180" height="180" viewBox="0 0 104 104"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg></div>
+          <div style="display:flex;flex-direction:column;justify-content:space-between;padding:28px">
+            <span style="font:700 11px 'Space Mono',monospace">v2.0.0</span>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:120px;line-height:0.8;font-weight:900;font-stretch:66%">PULSE</span><span style="font:700 12px 'Space Mono',monospace;letter-spacing:.1em">NETWORK DIAGNOSTICS</span></div>
+            <div style="display:flex;flex-direction:column;gap:8px"><div style="height:14px;border:2px solid #111"><div style="width:62%;height:100%;background:#111"></div></div><span style="font:400 11px 'Space Mono',monospace">Reading network interfaces…</span></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:32px;align-items:center">
+          <div id="android12-splash" style="width:288px;height:288px;background:#E8612C;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;border:2px dashed #111;box-sizing:border-box"><svg width="150" height="150" viewBox="0 0 104 104"><polygon points="69,9 25,63 51,63 41,101 85,45 59,45" fill="#F2F0EB"></polygon><polygon points="64,4 20,58 46,58 36,96 80,40 54,40" fill="#111111"></polygon></svg></div>
+          <span style="font:400 13px/1.6 'Space Mono',monospace;max-width:360px"><b>Android 12+ splash.</b> The system shows the icon inside a 192dp circle on the window background. Use <b>splash_android12_*.png</b> (1152×1152, bolt inside the central 768px). The dashed line marks the circular mask.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const O = '#E8612C', I = '#111111';
+    return {
+      platforms: [
+        {name:'iOS',spec:'1024 · squircle mask',s:'180px',r:'40px',bg:O,fg:I,b:'112',sh:'0 0 0 2px #111'},
+        {name:'ANDROID',spec:'adaptive · circle',s:'160px',r:'50%',bg:O,fg:I,b:'96',sh:'0 0 0 2px #111'},
+        {name:'ANDROID 13',spec:'themed / monochrome',s:'160px',r:'50%',bg:'#DCE3D6',fg:'#2E3A28',b:'96',sh:'none'},
+        {name:'MACOS',spec:'1024 · rounded rect',s:'180px',r:'36px',bg:I,fg:O,b:'112',sh:'0 8px 0 #000'},
+        {name:'WINDOWS',spec:'256 · square tile',s:'160px',r:'0',bg:O,fg:I,b:'100',sh:'0 0 0 2px #111'},
+        {name:'WEB 192',spec:'PWA · maskable',s:'120px',r:'20px',bg:O,fg:I,b:'70',sh:'0 0 0 2px #111'},
+        {name:'FAVICON',spec:'32 · no offset',s:'48px',r:'0',bg:O,fg:I,b:'32',sh:'0 0 0 2px #111'}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

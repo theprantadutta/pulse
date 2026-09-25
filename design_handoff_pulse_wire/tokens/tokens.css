@@ -1,0 +1,20 @@
+/* Pulse / Wire design tokens — reference only (the app is Flutter; see wire_theme.dart) */
+:root, [data-theme="light"] {
+  --bg: #F2F0EB; --ink: #111111; --signal: #E8612C; --on-signal: #111111;
+  --signal-tint: #F6C9B3; --surface-input: #FFFFFF; --muted-row: #E4E0D8;
+  --grid-line: #D9D5CC; --filtered: #8E8A82; --text-2: #4A4740; --text-3: #6B675E;
+  --degraded: #C98A2E; --chart-bar: #111111;
+}
+[data-theme="dark"] {
+  --bg: #111111; --ink: #F2F0EB; --signal: #E8612C; --on-signal: #111111;
+  --signal-tint: #4A2616; --surface-input: #1C1C1C; --muted-row: #262523;
+  --grid-line: #2E2D2A; --filtered: #6E6A63; --text-2: #B5B0A6; --text-3: #8C877D;
+  --degraded: #E0A445; --chart-bar: #F2F0EB;
+}
+:root {
+  --border: 2px; --hairline: 1px; --radius: 0;
+  --shadow-window: 12px 12px 0 var(--ink);
+  --space: 2px 4px 8px 10px 12px 14px 16px 20px 24px 28px 32px;
+  --font-display: 'Archivo', sans-serif; /* variable: wdth 62–125, wght 400–900 */
+  --font-mono: 'Space Mono', monospace;  /* 400, 700 */
+}
