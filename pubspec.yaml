@@ -91,6 +91,9 @@ flutter:
           weight: 400
         - asset: assets/fonts/SpaceMono-Bold.ttf
           weight: 700
+    - family: WireGlyphs
+      fonts:
+        - asset: assets/fonts/WireGlyphs.ttf
 
 msix_config:
   display_name: Pulse

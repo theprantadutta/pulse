@@ -161,6 +161,9 @@ class WireColors extends ThemeExtension<WireColors> {
 class WireType {
   WireType._();
 
+  /// Geometric glyphs (■ ▶ ↻ ● ✓ ▲) missing from Archivo and Space Mono.
+  static const fallback = ['WireGlyphs'];
+
   static TextStyle display(
     double size, {
     double width = 62,
@@ -168,6 +171,7 @@ class WireType {
     double height = 0.85,
   }) => TextStyle(
     fontFamily: 'Archivo',
+    fontFamilyFallback: fallback,
     fontSize: size,
     height: height,
     fontWeight: weight,
@@ -193,16 +197,22 @@ class WireType {
 
   static TextStyle data(double size) => TextStyle(
     fontFamily: 'SpaceMono',
+    fontFamilyFallback: fallback,
     fontSize: size,
     fontWeight: FontWeight.w700,
     height: 1.3,
   );
 
-  static TextStyle body(double size) =>
-      TextStyle(fontFamily: 'SpaceMono', fontSize: size, height: 1.5);
+  static TextStyle body(double size) => TextStyle(
+    fontFamily: 'SpaceMono',
+    fontFamilyFallback: fallback,
+    fontSize: size,
+    height: 1.5,
+  );
 
   static TextStyle label([double size = 11]) => TextStyle(
     fontFamily: 'SpaceMono',
+    fontFamilyFallback: fallback,
     fontSize: size,
     fontWeight: FontWeight.w700,
     height: 1.3,
@@ -264,6 +274,7 @@ ThemeData buildWireTheme(Brightness b, {Color? accent}) {
     scaffoldBackgroundColor: w.background,
     canvasColor: w.background,
     fontFamily: 'SpaceMono',
+    fontFamilyFallback: WireType.fallback,
     splashFactory: NoSplash.splashFactory,
     highlightColor: Colors.transparent,
     hoverColor: w.signalTint,
