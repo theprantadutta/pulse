@@ -11,6 +11,7 @@ import '../screens/launch/launch_screen.dart';
 import '../screens/network/network_screen.dart';
 import '../screens/ping/ping_screen.dart';
 import '../screens/ports/ports_screen.dart';
+import '../screens/speed/speed_screen.dart';
 import '../screens/tools/tools_hub_screen.dart';
 import '../screens/trace/trace_screen.dart';
 import '../screens/tools_screen.dart';
@@ -65,7 +66,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           _route(Routes.ping, (s) => const PingScreen()),
           _route(Routes.traceroute, (s) => TraceScreen(initialTarget: s.uri.queryParameters['target'])),
           _route(Routes.ports, (s) => PortsScreen(initialTarget: s.uri.queryParameters['target'])),
-          _route(Routes.speed, (s) => const DiagnosticsScreen()),
+          _route(Routes.speed, (s) => const SpeedScreen()),
           _route(Routes.loss, (s) => const DiagnosticsScreen()),
           _route(Routes.network, (s) => const NetworkScreen()),
           _route(Routes.lan, (s) => const LanScreen()),
