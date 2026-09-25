@@ -3,10 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/theme/wire_theme.dart';
-import '../screens/diagnostics_screen.dart';
 import '../screens/geo/geo_screen.dart';
 import '../screens/history/history_screen.dart';
 import '../screens/lan/lan_screen.dart';
+import '../screens/loss/loss_screen.dart';
 import '../screens/launch/launch_screen.dart';
 import '../screens/network/network_screen.dart';
 import '../screens/ping/ping_screen.dart';
@@ -67,7 +67,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           _route(Routes.traceroute, (s) => TraceScreen(initialTarget: s.uri.queryParameters['target'])),
           _route(Routes.ports, (s) => PortsScreen(initialTarget: s.uri.queryParameters['target'])),
           _route(Routes.speed, (s) => const SpeedScreen()),
-          _route(Routes.loss, (s) => const DiagnosticsScreen()),
+          _route(Routes.loss, (s) => LossScreen(initialTarget: s.uri.queryParameters['target'])),
           _route(Routes.network, (s) => const NetworkScreen()),
           _route(Routes.lan, (s) => const LanScreen()),
           _route(Routes.geo, (s) => GeoScreen(initialTarget: s.uri.queryParameters['target'])),
