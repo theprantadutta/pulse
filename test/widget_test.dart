@@ -1,30 +1,29 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:pulse/main.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:pulse/core/theme/wire_theme.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('Wire themes expose the colour extension and keep text on signal ink', () {
+    for (final b in Brightness.values) {
+      final theme = buildWireTheme(b);
+      final w = theme.extension<WireColors>()!;
+      expect(w.onSignal, WireColors.inkBlack);
+      expect(w.signal, WireColors.signalOrange);
+      expect(theme.scaffoldBackgroundColor, w.background);
+    }
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  test('Dark theme is a strict paper/ink inversion', () {
+    expect(WireColors.dark.background, WireColors.light.ink);
+    expect(WireColors.dark.ink, WireColors.light.background);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('Custom accent replaces only signal and its tint', () {
+    final blue = WireColors.accents['BLUE']!;
+    final w = buildWireTheme(Brightness.light, accent: blue)
+        .extension<WireColors>()!;
+    expect(w.signal, blue);
+    expect(w.ink, WireColors.light.ink);
+    expect(w.signalTint, isNot(WireColors.light.signalTint));
   });
 }

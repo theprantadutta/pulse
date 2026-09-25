@@ -1,19 +1,21 @@
 import 'package:material_ui/material_ui.dart';
 
-import '../../main.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class FloatingThemeChangeButton extends StatelessWidget {
+import '../../providers/settings_provider.dart';
+
+class FloatingThemeChangeButton extends ConsumerWidget {
   const FloatingThemeChangeButton({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     var isDarkTheme = Theme.of(context).brightness == Brightness.dark;
     final kPrimaryColor = Theme.of(context).primaryColor;
     void handleThemeToggle() {
       if (isDarkTheme) {
-        MyApp.of(context).changeTheme(ThemeMode.light);
+        ref.read(settingsProvider.notifier).setThemeMode(ThemeMode.light);
       } else {
-        MyApp.of(context).changeTheme(ThemeMode.dark);
+        ref.read(settingsProvider.notifier).setThemeMode(ThemeMode.dark);
       }
     }
 
