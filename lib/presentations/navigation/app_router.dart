@@ -6,7 +6,7 @@ import '../../core/theme/wire_theme.dart';
 import '../screens/diagnostics_screen.dart';
 import '../screens/history/history_screen.dart';
 import '../screens/launch/launch_screen.dart';
-import '../screens/network_screen.dart';
+import '../screens/network/network_screen.dart';
 import '../screens/ping/ping_screen.dart';
 import '../screens/tools/tools_hub_screen.dart';
 import '../screens/tools_screen.dart';

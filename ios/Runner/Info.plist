@@ -45,9 +45,32 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Pulse needs location access to read the name of the Wi-Fi network you are connected to.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Pulse scans and pings devices on your local network.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_http._tcp</string>
+		<string>_workstation._tcp</string>
+		<string>_smb._tcp</string>
+		<string>_airplay._tcp</string>
+		<string>_ipp._tcp</string>
+	</array>
 	<key>LSApplicationQueriesSchemes</key>
     <array>
         <string>prefs</string>
     </array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>ip-api.com</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
 </dict>
 </plist>
