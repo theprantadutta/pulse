@@ -1,11 +1,11 @@
 {
-    "name": "pulse",
-    "short_name": "pulse",
+    "name": "Pulse",
+    "short_name": "Pulse",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#hexcode",
-    "theme_color": "#hexcode",
-    "description": "A new Flutter project.",
+    "background_color": "#F2F0EB",
+    "theme_color": "#E8612C",
+    "description": "Network diagnostics: ping, traceroute, port scan, speed test, LAN scan and monitoring.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

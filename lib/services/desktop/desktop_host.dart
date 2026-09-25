@@ -49,6 +49,11 @@ class DesktopHost with WindowListener {
       ),
       () async {
         await windowManager.setResizable(false);
+        if (Platform.isLinux) {
+          // Windows and macOS take the icon from the runner resources.
+          final dir = File(Platform.resolvedExecutable).parent.path;
+          await windowManager.setIcon('$dir/data/flutter_assets/assets/brand/icon/windows/app_icon_48.png');
+        }
         if (hidden) {
           _hidden = true;
           return;

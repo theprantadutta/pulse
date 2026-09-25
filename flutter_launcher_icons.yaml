@@ -1,32 +1,15 @@
-# flutter pub run flutter_launcher_icons
+# dart run flutter_launcher_icons
 flutter_launcher_icons:
-  image_path: "assets/pulse_500x500_logo.png"
+  image_path: "assets/brand/icon/master/pulse_icon_light_1024.png"
 
-  android: "launcher_icon"
-  image_path_android: "assets/pulse_500x500_logo.png"
-  min_sdk_android: 21 # android min sdk min:16, default 21
-  # adaptive_icon_background: "assets/icon/background.png"
-  # adaptive_icon_foreground: "assets/icon/foreground.png"
-  # adaptive_icon_monochrome: "assets/icon/monochrome.png"
+  android: "ic_launcher"
+  min_sdk_android: 21
+  adaptive_icon_background: "#E8612C"
+  adaptive_icon_foreground: "assets/brand/icon/android/adaptive/ic_launcher_foreground_1024.png"
+  adaptive_icon_monochrome: "assets/brand/icon/android/adaptive/ic_launcher_monochrome_1024.png"
 
   ios: true
-  # image_path_ios: "assets/icon/icon.png"
-  remove_alpha_channel_ios: true
-  # image_path_ios_dark_transparent: "assets/icon/icon_dark.png"
-  # image_path_ios_tinted_grayscale: "assets/icon/icon_tinted.png"
-  # desaturate_tinted_to_grayscale_ios: true
+  remove_alpha_ios: true
+  image_path_ios_dark_transparent: "assets/brand/icon/master/pulse_mark_transparent_1024.png"
 
-  web:
-    generate: true
-    image_path: "assets/pulse_500x500_logo.png"
-    background_color: "#hexcode"
-    theme_color: "#hexcode"
-
-  windows:
-    generate: true
-    image_path: "assets/pulse_500x500_logo.png"
-    icon_size: 48 # min:48, max:256, default: 48
-
-  macos:
-    generate: true
-    image_path: "assets/pulse_500x500_logo.png"
+# Web, Windows and macOS icons come pixel-exact from assets/brand/icon (see CLAUDE.md).
