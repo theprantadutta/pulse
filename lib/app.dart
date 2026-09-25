@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'core/theme/wire_theme.dart';
-import 'presentations/navigation/app_navigation.dart';
+import 'presentations/navigation/app_router.dart';
 import 'providers/settings_provider.dart';
 
 class PulseApp extends ConsumerWidget {
@@ -14,7 +14,7 @@ class PulseApp extends ConsumerWidget {
     final accent = ref.watch(accentColorProvider);
     return MaterialApp.router(
       title: 'Pulse',
-      routerConfig: AppNavigation.router,
+      routerConfig: ref.watch(routerProvider),
       theme: buildWireTheme(Brightness.light, accent: accent),
       darkTheme: buildWireTheme(Brightness.dark, accent: accent),
       themeMode: themeMode,
