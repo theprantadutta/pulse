@@ -81,6 +81,7 @@ flutter:
     - assets/brand/in_app/
     - assets/brand/splash/
     - assets/brand/icon/windows/
+    - assets/data/
     - .env
 
   fonts:
