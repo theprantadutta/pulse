@@ -1,9 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../services/background/notifications.dart';
+import '../services/desktop/desktop_host.dart';
+import '../services/desktop/launch_at_login.dart';
 import 'connection_provider.dart';
 import 'database_provider.dart';
+import 'monitor_provider.dart';
 import 'settings_provider.dart';
+
+/// Set from main() when the OS launched Pulse at login (`--autostart`).
+bool launchedAtLogin = false;
 
 class BootState {
   const BootState({
@@ -58,10 +65,33 @@ class BootNotifier extends Notifier<BootState> {
         status: 'Reading network interfaces…',
         run: (ref) async {
           await ref.read(connectionProvider.future).timeout(
-            const Duration(seconds: 4),
+            const Duration(seconds: 2),
             onTimeout: () => ConnectionSummary.offline,
           );
         },
+      ),
+      (
+        status: 'Starting notifications…',
+        run: (ref) async => PulseNotifications.init(),
+      ),
+      if (DesktopHost.supported)
+        (
+          status: 'Adding tray icon…',
+          run: (ref) async {
+            final host = DesktopHost.instance;
+            final runner = ref.read(monitorRunnerProvider.notifier);
+            host
+              ..onTogglePause = runner.togglePaused
+              ..onHint = (message) => PulseNotifications.show(id: 1, title: 'Pulse', body: message, sound: false);
+            await host.initTray();
+            await host.setCloseToTray(ref.read(settingsProvider).closeToTray);
+            final wantLogin = ref.read(settingsProvider).launchAtStartup;
+            if (await LaunchAtLogin.isEnabled() != wantLogin) await LaunchAtLogin.setEnabled(wantLogin);
+          },
+        ),
+      (
+        status: 'Starting monitor…',
+        run: (ref) async => ref.read(monitorRunnerProvider.notifier).start(),
       ),
       ...ref.read(bootTasksProvider),
     ];

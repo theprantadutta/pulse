@@ -1,6 +1,9 @@
 @Tags(['render'])
 library;
 
+import 'dart:io';
+
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -30,7 +33,15 @@ class _Fake extends GeoNotifier {
 }
 
 void main() {
-  setUpAll(loadWireFonts);
+  setUpAll(() async {
+    await loadWireFonts();
+    // flutter_map's tile cache asks path_provider for a cache directory.
+    final dir = Directory.systemTemp.createTempSync('pulse_tiles');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (call) async => dir.path,
+    );
+  });
   Widget app(Brightness b) => ProviderScope(
     overrides: [geoProvider.overrideWith(_Fake.new)],
     child: MaterialApp(debugShowCheckedModeBanner: false, theme: buildWireTheme(b), home: const Scaffold(body: GeoScreen())),

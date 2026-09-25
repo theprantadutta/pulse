@@ -1,15 +1,14 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../data/db/app_database.dart';
 import '../data/models/session_tool.dart';
 import '../services/net/dns.dart';
 import '../services/net/ping_prober.dart';
-import 'database_provider.dart';
+import '../services/background/monitor_engine.dart';
+import 'alerts_provider.dart';
 import 'ping_provider.dart';
 
 enum PacketState { pending, ok, late, lost }
@@ -297,16 +296,14 @@ class LossNotifier extends Notifier<LossState> {
   /// SET ALERT ON LOSS: a rule that fires when loss stays above the level
   /// seen here (at least 1%) for a minute.
   Future<int> createLossAlert() async {
-    final db = ref.read(databaseProvider);
     final threshold = math.max(1.0, (state.run.lossPct).floorToDouble());
-    return db.into(db.alertRules).insert(
-      AlertRulesCompanion.insert(
+    return ref.read(alertRulesRepositoryProvider).save(
+      RuleDraft(
         title: 'Packet loss · ${state.target}',
         target: state.target,
-        metric: 'loss',
-        threshold: Value(threshold),
-        forSeconds: const Value(60),
-        createdAt: DateTime.now(),
+        metric: AlertMetric.loss,
+        threshold: threshold,
+        forSeconds: 60,
       ),
     );
   }

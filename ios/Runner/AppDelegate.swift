@@ -1,5 +1,7 @@
 import Flutter
 import Foundation
+import flutter_foreground_task
+import UserNotifications
 import NetworkExtension
 import SystemConfiguration
 import UIKit
@@ -14,6 +16,11 @@ import UIKit
     if let registrar = self.registrar(forPlugin: "PulseNetworkInfo") {
       PulseNetworkInfo.register(with: registrar)
     }
+    // Plugins for the background monitor's engine.
+    SwiftFlutterForegroundTaskPlugin.setPluginRegistrantCallback { registry in
+      GeneratedPluginRegistrant.register(with: registry)
+    }
+    UNUserNotificationCenter.current().delegate = self
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

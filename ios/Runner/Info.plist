@@ -57,6 +57,14 @@
 		<string>_airplay._tcp</string>
 		<string>_ipp._tcp</string>
 	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.pravera.flutter_foreground_task.refresh</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+	</array>
 	<key>LSApplicationQueriesSchemes</key>
     <array>
         <string>prefs</string>

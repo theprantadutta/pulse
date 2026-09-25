@@ -6,6 +6,7 @@ import '../../../core/brand/pulse_mark.dart';
 import '../../../core/widgets/wire/wire.dart';
 import '../../../core/widgets/wire/wire_page.dart';
 import '../../../providers/boot_provider.dart';
+import '../../../services/desktop/desktop_host.dart';
 import '../../navigation/destinations.dart';
 
 /// Launch route shown while providers initialise. Desktop matches the
@@ -29,8 +30,10 @@ class _LaunchScreenState extends ConsumerState<LaunchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(bootProvider, (prev, next) {
-      if (next.done && !(prev?.done ?? false)) context.go(widget.next);
+    ref.listen(bootProvider, (prev, next) async {
+      if (!next.done || (prev?.done ?? false)) return;
+      if (DesktopHost.supported) await DesktopHost.instance.openAppWindow();
+      if (context.mounted) context.go(widget.next);
     });
     final boot = ref.watch(bootProvider);
     return context.isMobileLayout ? _MobileLaunch(boot: boot) : _DesktopLaunch(boot: boot);

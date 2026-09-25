@@ -18,6 +18,8 @@ const kExportFormatKey = 'wire.data.export_format';
 const kExportFolderKey = 'wire.data.export_folder';
 const kPublicIpLookupsKey = 'wire.privacy.public_ip';
 const kLanDeviceWatchKey = 'wire.monitor.lan_watch';
+const kMonitorPausedKey = 'wire.monitor.paused';
+const kAlertsMutedUntilKey = 'wire.alerts.muted_until';
 const kRecentTargetsKey = 'wire.ping.recent_targets';
 const kQuickTargetsKey = 'wire.ping.quick_targets';
 

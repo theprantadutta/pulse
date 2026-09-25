@@ -53,7 +53,9 @@ WireStateColors wireStateColors(
 ) {
   final rest = wireRestColors(w, tone);
   if (states.contains(WidgetState.disabled)) {
-    return WireStateColors(rest.bg, w.text3);
+    // Signal means "actionable", so a disabled primary drops its fill.
+    final bg = tone == WireTone.signal || tone == WireTone.ink ? w.mutedRow : rest.bg;
+    return WireStateColors(bg, w.text3);
   }
   if (states.contains(WidgetState.pressed)) {
     return tone == WireTone.ink
