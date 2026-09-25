@@ -58,6 +58,7 @@ dependencies:
   material_symbols_icons: ^4.2810.1
   syncfusion_flutter_charts: ^34.2.9
   open_settings_plus: ^0.5.1
+  ffi: ^2.2.0
 
 dev_dependencies:
   flutter_test:
