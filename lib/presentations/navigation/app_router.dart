@@ -13,10 +13,10 @@ import '../screens/launch/launch_screen.dart';
 import '../screens/network/network_screen.dart';
 import '../screens/ping/ping_screen.dart';
 import '../screens/ports/ports_screen.dart';
+import '../screens/settings/settings_screen.dart';
 import '../screens/speed/speed_screen.dart';
 import '../screens/tools/tools_hub_screen.dart';
 import '../screens/trace/trace_screen.dart';
-import '../screens/tools_screen.dart';
 import 'destinations.dart';
 import 'wire_shell.dart';
 
@@ -77,7 +77,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           _route(Routes.alerts, (s) => const AlertsScreen()),
           _route(Routes.alertRule, (s) => RuleEditorScreen(ruleId: int.tryParse(s.uri.queryParameters['id'] ?? ''))),
           _route(Routes.history, (s) => const HistoryScreen()),
-          _route(Routes.settings, (s) => const ToolsScreen()),
+          _route(Routes.settings, (s) => const SettingsScreen()),
           _route(Routes.tools, (s) => const ToolsHubScreen()),
         ],
       ),
