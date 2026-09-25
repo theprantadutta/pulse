@@ -20,8 +20,7 @@ void main() {
 
   test('Custom accent replaces only signal and its tint', () {
     final blue = WireColors.accents['BLUE']!;
-    final w = buildWireTheme(Brightness.light, accent: blue)
-        .extension<WireColors>()!;
+    final w = buildWireTheme(Brightness.light, accent: blue).extension<WireColors>()!;
     expect(w.signal, blue);
     expect(w.ink, WireColors.light.ink);
     expect(w.signalTint, isNot(WireColors.light.signalTint));

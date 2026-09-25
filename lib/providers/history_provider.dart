@@ -12,9 +12,7 @@ class HistoryFilter {
   final String search;
 }
 
-final historyFilterProvider = NotifierProvider<HistoryFilterNotifier, HistoryFilter>(
-  HistoryFilterNotifier.new,
-);
+final historyFilterProvider = NotifierProvider<HistoryFilterNotifier, HistoryFilter>(HistoryFilterNotifier.new);
 
 class HistoryFilterNotifier extends Notifier<HistoryFilter> {
   @override

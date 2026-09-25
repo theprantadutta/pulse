@@ -31,13 +31,7 @@ enum ProbeStatus {
 }
 
 class ProbeResult {
-  const ProbeResult({
-    required this.status,
-    this.rttMs,
-    this.ttl,
-    this.from,
-    this.message,
-  });
+  const ProbeResult({required this.status, this.rttMs, this.ttl, this.from, this.message});
 
   final ProbeStatus status;
 
@@ -77,10 +71,7 @@ class PingProber {
     ProbeFamily family = ProbeFamily.auto,
   }) async {
     if (!_hostPattern.hasMatch(host)) {
-      return const ProbeResult(
-        status: ProbeStatus.error,
-        message: 'Invalid host name',
-      );
+      return const ProbeResult(status: ProbeStatus.error, message: 'Invalid host name');
     }
     if (Platform.isIOS) return _probeIos(host, timeout, ttl, family);
     if (Platform.isWindows && family != ProbeFamily.ipv6) {
@@ -100,12 +91,7 @@ class PingProber {
 
   static final _hostPattern = RegExp(r'^[A-Za-z0-9.\-:%_\[\]]+$');
 
-  Future<ProbeResult> _probeIos(
-    String host,
-    Duration timeout,
-    int ttl,
-    ProbeFamily family,
-  ) async {
+  Future<ProbeResult> _probeIos(String host, Duration timeout, int ttl, ProbeFamily family) async {
     final ping = Ping(
       host,
       count: 1,
@@ -120,31 +106,14 @@ class PingProber {
             if (time == null) {
               return const ProbeResult(status: ProbeStatus.timeout);
             }
-            return ProbeResult(
-              status: ProbeStatus.ok,
-              rttMs: time.inMicroseconds / 1000,
-              ttl: ttl,
-              from: ip,
-            );
+            return ProbeResult(status: ProbeStatus.ok, rttMs: time.inMicroseconds / 1000, ttl: ttl, from: ip);
           case PingError(:final error, :final ip, :final message):
             return switch (error) {
-              ErrorType.timeToLiveExceeded =>
-                ProbeResult(status: ProbeStatus.ttlExceeded, from: ip),
-              ErrorType.unknownHost => const ProbeResult(
-                status: ProbeStatus.unknownHost,
-                message: 'DNS lookup failed',
-              ),
-              ErrorType.noRoute => ProbeResult(
-                status: ProbeStatus.unreachable,
-                from: ip,
-                message: 'No route to host',
-              ),
-              ErrorType.requestTimedOut ||
-              ErrorType.noReply => const ProbeResult(status: ProbeStatus.timeout),
-              ErrorType.unknown => ProbeResult(
-                status: ProbeStatus.error,
-                message: message ?? error.message,
-              ),
+              ErrorType.timeToLiveExceeded => ProbeResult(status: ProbeStatus.ttlExceeded, from: ip),
+              ErrorType.unknownHost => const ProbeResult(status: ProbeStatus.unknownHost, message: 'DNS lookup failed'),
+              ErrorType.noRoute => ProbeResult(status: ProbeStatus.unreachable, from: ip, message: 'No route to host'),
+              ErrorType.requestTimedOut || ErrorType.noReply => const ProbeResult(status: ProbeStatus.timeout),
+              ErrorType.unknown => ProbeResult(status: ProbeStatus.error, message: message ?? error.message),
             };
           case PingSummary():
             return const ProbeResult(status: ProbeStatus.timeout);
@@ -159,13 +128,7 @@ class PingProber {
     return const ProbeResult(status: ProbeStatus.timeout);
   }
 
-  Future<ProbeResult> _probeProcess(
-    String host,
-    Duration timeout,
-    int packetSize,
-    int ttl,
-    ProbeFamily family,
-  ) async {
+  Future<ProbeResult> _probeProcess(String host, Duration timeout, int packetSize, int ttl, ProbeFamily family) async {
     final (exe, args) = _command(host, timeout, packetSize, ttl, family);
     ProcessResult result;
     try {
@@ -183,22 +146,20 @@ class PingProber {
     return parsePingOutput('${result.stdout}\n${result.stderr}');
   }
 
-  (String, List<String>) _command(
-    String host,
-    Duration timeout,
-    int size,
-    int ttl,
-    ProbeFamily family,
-  ) {
+  (String, List<String>) _command(String host, Duration timeout, int size, int ttl, ProbeFamily family) {
     final secs = (timeout.inMilliseconds / 1000).ceil().clamp(1, 60);
     if (Platform.isWindows) {
       return (
         'ping',
         [
-          '-n', '1',
-          '-w', '${timeout.inMilliseconds}',
-          '-l', '$size',
-          '-i', '$ttl',
+          '-n',
+          '1',
+          '-w',
+          '${timeout.inMilliseconds}',
+          '-l',
+          '$size',
+          '-i',
+          '$ttl',
           if (family == ProbeFamily.ipv4) '-4',
           if (family == ProbeFamily.ipv6) '-6',
           host,
@@ -209,10 +170,7 @@ class PingProber {
       if (family == ProbeFamily.ipv6 || (family == ProbeFamily.auto && host.contains(':'))) {
         return ('ping6', ['-c', '1', '-s', '$size', '-h', '$ttl', host]);
       }
-      return (
-        'ping',
-        ['-c', '1', '-W', '${timeout.inMilliseconds}', '-s', '$size', '-m', '$ttl', host],
-      );
+      return ('ping', ['-c', '1', '-W', '${timeout.inMilliseconds}', '-s', '$size', '-m', '$ttl', host]);
     }
     if (Platform.isAndroid) {
       // Toybox and legacy AOSP ping both accept these flags; IPv6 goes
@@ -227,10 +185,14 @@ class PingProber {
     return (
       'ping',
       [
-        '-c', '1',
-        '-W', '$secs',
-        '-s', '$size',
-        '-t', '$ttl',
+        '-c',
+        '1',
+        '-W',
+        '$secs',
+        '-s',
+        '$size',
+        '-t',
+        '$ttl',
         if (family == ProbeFamily.ipv4) '-4',
         if (family == ProbeFamily.ipv6) '-6',
         host,
@@ -239,9 +201,7 @@ class PingProber {
   }
 }
 
-final _ipPattern = RegExp(
-  r'((?:\d{1,3}\.){3}\d{1,3}|[0-9a-fA-F]{0,4}(?::[0-9a-fA-F]{0,4}){2,7}(?:%\w+)?)',
-);
+final _ipPattern = RegExp(r'((?:\d{1,3}\.){3}\d{1,3}|[0-9a-fA-F]{0,4}(?::[0-9a-fA-F]{0,4}){2,7}(?:%\w+)?)');
 final _timePattern = RegExp(r'[=<]\s?(\d+(?:[.,]\d+)?)\s?ms', caseSensitive: false);
 final _ttlPattern = RegExp(r'\b(?:ttl|hlim)[=:]\s?(\d+)', caseSensitive: false);
 
@@ -264,10 +224,7 @@ ProbeResult parsePingOutput(String output) {
       lower.contains('temporary failure in name resolution') ||
       lower.contains('bad address') ||
       lower.contains('no address associated')) {
-    return const ProbeResult(
-      status: ProbeStatus.unknownHost,
-      message: 'DNS lookup failed',
-    );
+    return const ProbeResult(status: ProbeStatus.unknownHost, message: 'DNS lookup failed');
   }
 
   for (final raw in lines) {
@@ -287,11 +244,7 @@ ProbeResult parsePingOutput(String output) {
 
     if (l.contains('unreachable') && !l.contains('0% packet loss')) {
       final from = _ipPattern.firstMatch(line);
-      return ProbeResult(
-        status: ProbeStatus.unreachable,
-        from: _addr(from),
-        message: 'Destination unreachable',
-      );
+      return ProbeResult(status: ProbeStatus.unreachable, from: _addr(from), message: 'Destination unreachable');
     }
 
     final time = _timePattern.firstMatch(line);
@@ -300,9 +253,7 @@ ProbeResult parsePingOutput(String output) {
         (l.contains('ttl') || l.contains('hlim') || l.contains('bytes from') || l.contains('reply from'));
     if (isReply) {
       final ttl = _ttlPattern.firstMatch(line);
-      final from = _ipPattern.firstMatch(
-        line.replaceFirst(RegExp(r'^\d+ bytes', caseSensitive: false), ''),
-      );
+      final from = _ipPattern.firstMatch(line.replaceFirst(RegExp(r'^\d+ bytes', caseSensitive: false), ''));
       final ms = double.parse(time.group(1)!.replaceAll(',', '.'));
       // Windows prints "time<1ms" for sub-millisecond replies.
       final rtt = line.contains('<1') ? 0.5 : ms;

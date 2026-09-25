@@ -188,8 +188,7 @@ $vpn = Get-CimInstance Win32_NetworkAdapter -Filter 'NetEnabled=True' | Where-Ob
     } on Object {
       j = {};
     }
-    List<String> list(Object? v) =>
-        v == null ? const [] : (v is List ? v.map((e) => '$e').toList() : ['$v']);
+    List<String> list(Object? v) => v == null ? const [] : (v is List ? v.map((e) => '$e').toList() : ['$v']);
     final ips = list(j['ips']);
     final masks = list(j['masks']);
     String? v4;
@@ -219,7 +218,8 @@ $vpn = Get-CimInstance Win32_NetworkAdapter -Filter 'NetEnabled=True' | Where-Ob
           bssid = value;
         } else if (key.startsWith('radio type') || RegExp(r'^802\.11\w+$').hasMatch(value)) {
           radio = value;
-        } else if (key.startsWith('authentication') || RegExp(r'^(WPA|Open|WEP)', caseSensitive: false).hasMatch(value)) {
+        } else if (key.startsWith('authentication') ||
+            RegExp(r'^(WPA|Open|WEP)', caseSensitive: false).hasMatch(value)) {
           auth ??= value;
         } else if (key == 'channel') {
           channel = int.tryParse(value);
@@ -380,7 +380,12 @@ $vpn = Get-CimInstance Win32_NetworkAdapter -Filter 'NetEnabled=True' | Where-Ob
     final ifaces = await NetworkInterface.list(includeLoopback: false);
     return ifaces.any((i) {
       final n = i.name.toLowerCase();
-      return n.startsWith('tun') || n.startsWith('wg') || n.startsWith('ppp') || n.startsWith('tailscale') || n.startsWith('utun') || n.startsWith('ipsec');
+      return n.startsWith('tun') ||
+          n.startsWith('wg') ||
+          n.startsWith('ppp') ||
+          n.startsWith('tailscale') ||
+          n.startsWith('utun') ||
+          n.startsWith('ipsec');
     });
   }
 
@@ -435,8 +440,12 @@ $vpn = Get-CimInstance Win32_NetworkAdapter -Filter 'NetEnabled=True' | Where-Ob
               ? '2.4 GHZ'
               : null;
           standard = standardFromPhy('${cur['spairport_network_phymode'] ?? ''}');
-          security = securityLabel('${cur['spairport_security_mode'] ?? ''}'.replaceAll('spairport_security_mode_', ''));
-          rssi = int.tryParse(RegExp(r'(-\d+) dBm').firstMatch('${cur['spairport_signal_noise'] ?? ''}')?.group(1) ?? '');
+          security = securityLabel(
+            '${cur['spairport_security_mode'] ?? ''}'.replaceAll('spairport_security_mode_', ''),
+          );
+          rssi = int.tryParse(
+            RegExp(r'(-\d+) dBm').firstMatch('${cur['spairport_signal_noise'] ?? ''}')?.group(1) ?? '',
+          );
           rate = (cur['spairport_network_rate'] as num?)?.round();
         }
       } on Object {

@@ -23,12 +23,13 @@ class FiredAlert {
 
 final alertEventsProvider = StreamProvider<List<FiredAlert>>((ref) {
   final db = ref.watch(databaseProvider);
-  final q = db.select(db.alertEvents).join([
-    innerJoin(db.alertRules, db.alertRules.id.equalsExp(db.alertEvents.ruleId)),
-  ])
-    ..orderBy([OrderingTerm.desc(db.alertEvents.at)])
-    ..limit(30);
-  return q.watch().map((rows) => [for (final r in rows) FiredAlert(r.readTable(db.alertEvents), r.readTable(db.alertRules))]);
+  final q =
+      db.select(db.alertEvents).join([innerJoin(db.alertRules, db.alertRules.id.equalsExp(db.alertEvents.ruleId))])
+        ..orderBy([OrderingTerm.desc(db.alertEvents.at)])
+        ..limit(30);
+  return q.watch().map(
+    (rows) => [for (final r in rows) FiredAlert(r.readTable(db.alertEvents), r.readTable(db.alertRules))],
+  );
 });
 
 /// The newest undismissed event of a rule that is still firing (banner).
@@ -96,17 +97,23 @@ class RuleDraft {
   final int channels;
   final bool enabled;
 
-  RuleDraft copyWith({String? title, String? target, String? metric, double? threshold, int? forSeconds, int? channels}) =>
-      RuleDraft(
-        id: id,
-        title: title ?? this.title,
-        target: target ?? this.target,
-        metric: metric ?? this.metric,
-        threshold: threshold ?? this.threshold,
-        forSeconds: forSeconds ?? this.forSeconds,
-        channels: channels ?? this.channels,
-        enabled: enabled,
-      );
+  RuleDraft copyWith({
+    String? title,
+    String? target,
+    String? metric,
+    double? threshold,
+    int? forSeconds,
+    int? channels,
+  }) => RuleDraft(
+    id: id,
+    title: title ?? this.title,
+    target: target ?? this.target,
+    metric: metric ?? this.metric,
+    threshold: threshold ?? this.threshold,
+    forSeconds: forSeconds ?? this.forSeconds,
+    channels: channels ?? this.channels,
+    enabled: enabled,
+  );
 
   /// Slider range and unit for the metric.
   (double max, String unit) get scale => switch (metric) {
@@ -177,8 +184,9 @@ class AlertRulesRepository {
 
   Future<void> delete(int id) => (db.delete(db.alertRules)..where((r) => r.id.equals(id))).go();
 
-  Future<void> dismiss(int eventId) => (db.update(db.alertEvents)..where((e) => e.id.equals(eventId)))
-      .write(const AlertEventsCompanion(dismissed: Value(true)));
+  Future<void> dismiss(int eventId) => (db.update(
+    db.alertEvents,
+  )..where((e) => e.id.equals(eventId))).write(const AlertEventsCompanion(dismissed: Value(true)));
 }
 
 final alertRulesRepositoryProvider = Provider<AlertRulesRepository>(

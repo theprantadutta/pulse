@@ -75,9 +75,7 @@ PING dns.google (8.8.8.8) 56(84) bytes of data.
     });
 
     test('IPv6 reply', () {
-      final r = parsePingOutput(
-        '64 bytes from 2606:4700:4700::1111: icmp_seq=1 ttl=58 time=12.1 ms',
-      );
+      final r = parsePingOutput('64 bytes from 2606:4700:4700::1111: icmp_seq=1 ttl=58 time=12.1 ms');
       expect(r.status, ProbeStatus.ok);
       expect(r.from, '2606:4700:4700::1111');
     });

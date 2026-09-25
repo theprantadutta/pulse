@@ -24,26 +24,27 @@ class HistoryRepository {
     List<double> trend = const [],
     Map<String, Object?> payload = const {},
   }) {
-    return db.into(db.sessions).insert(
-      SessionsCompanion.insert(
-        tool: tool.name,
-        target: target,
-        label: Value(label == null || label.trim().isEmpty ? null : label.trim()),
-        startedAt: startedAt,
-        endedAt: endedAt,
-        avgMs: Value(avgMs),
-        lossPct: Value(lossPct),
-        summary: Value(summary),
-        trend: Value(jsonEncode(trend)),
-        payload: Value(jsonEncode(payload)),
-      ),
-    );
+    return db
+        .into(db.sessions)
+        .insert(
+          SessionsCompanion.insert(
+            tool: tool.name,
+            target: target,
+            label: Value(label == null || label.trim().isEmpty ? null : label.trim()),
+            startedAt: startedAt,
+            endedAt: endedAt,
+            avgMs: Value(avgMs),
+            lossPct: Value(lossPct),
+            summary: Value(summary),
+            trend: Value(jsonEncode(trend)),
+            payload: Value(jsonEncode(payload)),
+          ),
+        );
   }
 
   /// Newest first. [search] matches the name, host, tool or summary.
   Stream<List<Session>> watch({SessionTool? tool, String search = ''}) {
-    final q = db.select(db.sessions)
-      ..orderBy([(s) => OrderingTerm.desc(s.startedAt)]);
+    final q = db.select(db.sessions)..orderBy([(s) => OrderingTerm.desc(s.startedAt)]);
     if (tool != null) q.where((s) => s.tool.equals(tool.name));
     final term = search.trim().toLowerCase();
     if (term.isNotEmpty) {
@@ -59,11 +60,9 @@ class HistoryRepository {
     return q.watch();
   }
 
-  Future<Session?> byId(int id) =>
-      (db.select(db.sessions)..where((s) => s.id.equals(id))).getSingleOrNull();
+  Future<Session?> byId(int id) => (db.select(db.sessions)..where((s) => s.id.equals(id))).getSingleOrNull();
 
-  Future<void> delete(int id) =>
-      (db.delete(db.sessions)..where((s) => s.id.equals(id))).go();
+  Future<void> delete(int id) => (db.delete(db.sessions)..where((s) => s.id.equals(id))).go();
 
   static List<double> trendOf(Session s) {
     try {
@@ -87,20 +86,21 @@ class HistoryRepository {
   static String export(List<Session> sessions, ExportFormat format) {
     String fmt(double? v) => v == null ? '' : v.toStringAsFixed(1);
     if (format == ExportFormat.csv) {
-      String cell(String v) =>
-          v.contains(RegExp('[",\n]')) ? '"${v.replaceAll('"', '""')}"' : v;
+      String cell(String v) => v.contains(RegExp('[",\n]')) ? '"${v.replaceAll('"', '""')}"' : v;
       final b = StringBuffer('started,ended,name,target,tool,avg_ms,loss_pct,summary\n');
       for (final s in sessions) {
-        b.writeln([
-          _stamp.format(s.startedAt),
-          _stamp.format(s.endedAt),
-          cell(s.label ?? ''),
-          cell(s.target),
-          s.tool.toUpperCase(),
-          fmt(s.avgMs),
-          fmt(s.lossPct),
-          cell(s.summary),
-        ].join(','));
+        b.writeln(
+          [
+            _stamp.format(s.startedAt),
+            _stamp.format(s.endedAt),
+            cell(s.label ?? ''),
+            cell(s.target),
+            s.tool.toUpperCase(),
+            fmt(s.avgMs),
+            fmt(s.lossPct),
+            cell(s.summary),
+          ].join(','),
+        );
       }
       return b.toString();
     }

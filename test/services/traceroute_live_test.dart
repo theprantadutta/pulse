@@ -15,8 +15,10 @@ void main() {
     print('${sw.elapsed.inMilliseconds} ms reached=${last!.reached}');
     for (final h in last.hops) {
       // ignore: avoid_print
-      print('  ${h.n.toString().padLeft(2)} ${(h.ip ?? '*').padRight(16)} ${(h.host ?? '').padRight(40)} '
-          '${h.probes.map((p) => p?.toStringAsFixed(0) ?? '*').join(' / ').padRight(14)} ${h.countryCode ?? ''} ${h.city ?? ''}');
+      print(
+        '  ${h.n.toString().padLeft(2)} ${(h.ip ?? '*').padRight(16)} ${(h.host ?? '').padRight(40)} '
+        '${h.probes.map((p) => p?.toStringAsFixed(0) ?? '*').join(' / ').padRight(14)} ${h.countryCode ?? ''} ${h.city ?? ''}',
+      );
     }
     final jump = biggestJump(last.hops);
     // ignore: avoid_print

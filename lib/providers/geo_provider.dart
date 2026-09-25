@@ -70,15 +70,19 @@ double haversineKm(double lat1, double lon1, double lat2, double lon2) {
   double rad(double d) => d * math.pi / 180;
   final dLat = rad(lat2 - lat1);
   final dLon = rad(lon2 - lon1);
-  final a = math.pow(math.sin(dLat / 2), 2) +
-      math.cos(rad(lat1)) * math.cos(rad(lat2)) * math.pow(math.sin(dLon / 2), 2);
+  final a =
+      math.pow(math.sin(dLat / 2), 2) + math.cos(rad(lat1)) * math.cos(rad(lat2)) * math.pow(math.sin(dLon / 2), 2);
   return 2 * r * math.asin(math.sqrt(a));
 }
 
 /// Routers along the path, from the reply TTL and the usual initial TTLs.
 int? hopsFromTtl(int? ttl) {
   if (ttl == null || ttl <= 0) return null;
-  final initial = ttl > 128 ? 255 : ttl > 64 ? 128 : 64;
+  final initial = ttl > 128
+      ? 255
+      : ttl > 64
+      ? 128
+      : 64;
   return initial - ttl + 1;
 }
 
@@ -182,15 +186,17 @@ class GeoNotifier extends Notifier<GeoState> {
         hops: probe.ok ? hopsFromTtl(probe.ttl) : null,
         loading: false,
       );
-      await ref.read(historyRepositoryProvider).save(
-        tool: SessionTool.geo,
-        target: query,
-        startedAt: started,
-        endedAt: DateTime.now(),
-        avgMs: state.rttMs,
-        summary: target.city ?? target.country ?? target.ip,
-        payload: {'geo': target.toJson(), 'distanceKm': state.distanceKm, 'hops': state.hops},
-      );
+      await ref
+          .read(historyRepositoryProvider)
+          .save(
+            tool: SessionTool.geo,
+            target: query,
+            startedAt: started,
+            endedAt: DateTime.now(),
+            avgMs: state.rttMs,
+            summary: target.city ?? target.country ?? target.ip,
+            payload: {'geo': target.toJson(), 'distanceKm': state.distanceKm, 'hops': state.hops},
+          );
     } on Object catch (e) {
       state = state.copyWith(loading: false, error: '$e');
     }

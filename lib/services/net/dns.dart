@@ -35,10 +35,7 @@ class Dns {
       final all = await InternetAddress.lookup(host, type: type).timeout(timeout);
       if (all.isEmpty) throw DnsFailure(host, 'no records');
       if (family == ProbeFamily.auto) {
-        return all.firstWhere(
-          (a) => a.type == InternetAddressType.IPv4,
-          orElse: () => all.first,
-        );
+        return all.firstWhere((a) => a.type == InternetAddressType.IPv4, orElse: () => all.first);
       }
       return all.first;
     } on SocketException catch (e) {

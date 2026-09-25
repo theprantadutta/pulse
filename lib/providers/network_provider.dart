@@ -9,9 +9,7 @@ import 'settings_provider.dart';
 
 final geoIpServiceProvider = Provider<GeoIpService>((ref) => GeoIpService());
 
-final networkDetailsReaderProvider = Provider<NetworkDetailsReader>(
-  (ref) => const NetworkDetailsReader(),
-);
+final networkDetailsReaderProvider = Provider<NetworkDetailsReader>((ref) => const NetworkDetailsReader());
 
 @immutable
 class NetworkSnapshot {
@@ -65,7 +63,10 @@ class NetworkSnapshot {
     return [
       'PULSE · NETWORK · $updatedAt',
       row('Connection', [l.kind.name.toUpperCase(), l.name].whereType<String>().join(' · ')),
-      row('Standard', [l.standard, l.band, if (l.channel != null) 'CH ${l.channel}', l.security].whereType<String>().join(' · ')),
+      row(
+        'Standard',
+        [l.standard, l.band, if (l.channel != null) 'CH ${l.channel}', l.security].whereType<String>().join(' · '),
+      ),
       row('Signal', l.signalDbm == null ? null : '${l.signalDbm} dBm'),
       row('Link speed', l.linkMbps == null ? null : '${l.linkMbps} Mbps'),
       row('Local IPv4', l.localIpv4),
@@ -87,9 +88,7 @@ class NetworkSnapshot {
   }
 }
 
-final networkInfoProvider = AsyncNotifierProvider<NetworkInfoNotifier, NetworkSnapshot>(
-  NetworkInfoNotifier.new,
-);
+final networkInfoProvider = AsyncNotifierProvider<NetworkInfoNotifier, NetworkSnapshot>(NetworkInfoNotifier.new);
 
 class NetworkInfoNotifier extends AsyncNotifier<NetworkSnapshot> {
   int _generation = 0;
@@ -99,7 +98,9 @@ class NetworkInfoNotifier extends AsyncNotifier<NetworkSnapshot> {
     // Re-read whenever the connection changes (new Wi-Fi, cable, VPN…).
     ref.listen(connectionProvider, (prev, next) {
       final a = prev?.value, b = next.value;
-      if (a != null && b != null && (a.kind != b.kind || a.name != b.name || a.localIp != b.localIp || a.vpn != b.vpn)) {
+      if (a != null &&
+          b != null &&
+          (a.kind != b.kind || a.name != b.name || a.localIp != b.localIp || a.vpn != b.vpn)) {
         refresh();
       }
     });

@@ -50,7 +50,9 @@ class _DesktopLaunch extends StatelessWidget {
     return Scaffold(
       backgroundColor: w.background,
       body: Container(
-        decoration: BoxDecoration(border: Border.all(color: w.ink, width: kWireBorder)),
+        decoration: BoxDecoration(
+          border: Border.all(color: w.ink, width: kWireBorder),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -59,11 +61,7 @@ class _DesktopLaunch extends StatelessWidget {
               child: Container(
                 color: w.signal,
                 alignment: Alignment.center,
-                child: LayoutBuilder(
-                  builder: (context, box) => PulseMark(
-                    size: (box.maxHeight * 0.4).clamp(48, 360),
-                  ),
-                ),
+                child: LayoutBuilder(builder: (context, box) => PulseMark(size: (box.maxHeight * 0.4).clamp(48, 360))),
               ),
             ),
             Container(width: kWireBorder, color: w.ink),
@@ -79,24 +77,16 @@ class _DesktopLaunch extends StatelessWidget {
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
-                      child: Text(
-                        'PULSE',
-                        style: WireType.display(230, width: 72).copyWith(color: w.ink),
-                      ),
+                      child: Text('PULSE', style: WireType.display(230, width: 72).copyWith(color: w.ink)),
                     ),
                     const SizedBox(height: 28),
-                    Text(
-                      'NETWORK DIAGNOSTICS',
-                      style: WireType.label(15).copyWith(color: w.ink, letterSpacing: 3),
-                    ),
+                    Text('NETWORK DIAGNOSTICS', style: WireType.label(15).copyWith(color: w.ink, letterSpacing: 3)),
                     const Spacer(),
                     WireProgress(value: boot.progress, height: 26, signal: false),
                     const SizedBox(height: 18),
                     Text(
                       boot.error != null ? '${boot.status} failed — continuing' : boot.status,
-                      style: WireType.body(15).copyWith(
-                        color: boot.error != null ? w.signal : w.ink,
-                      ),
+                      style: WireType.body(15).copyWith(color: boot.error != null ? w.signal : w.ink),
                     ),
                   ],
                 ),
@@ -124,17 +114,9 @@ class _MobileLaunch extends StatelessWidget {
         child: Column(
           children: [
             const Spacer(),
-            PulseMark(
-              size: 150,
-              colorway: dark ? PulseMarkColorway.dark : PulseMarkColorway.primary,
-            ),
+            PulseMark(size: 150, colorway: dark ? PulseMarkColorway.dark : PulseMarkColorway.primary),
             const Spacer(),
-            Text(
-              'PULSE',
-              style: WireType.display(56, width: 75).copyWith(
-                color: dark ? w.ink : w.onSignal,
-              ),
-            ),
+            Text('PULSE', style: WireType.display(56, width: 75).copyWith(color: dark ? w.ink : w.onSignal)),
             const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 64),

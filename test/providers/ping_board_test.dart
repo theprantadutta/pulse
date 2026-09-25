@@ -21,12 +21,7 @@ class _FakeProber implements PingProber {
     ProbeFamily family = ProbeFamily.auto,
   }) async {
     if (host.endsWith('.9')) return const ProbeResult(status: ProbeStatus.timeout);
-    return ProbeResult(
-      status: ProbeStatus.ok,
-      rttMs: host.endsWith('.7') ? 120 : 20,
-      ttl: 64,
-      from: host,
-    );
+    return ProbeResult(status: ProbeStatus.ok, rttMs: host.endsWith('.7') ? 120 : 20, ttl: 64, from: host);
   }
 }
 

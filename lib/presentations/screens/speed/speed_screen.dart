@@ -26,7 +26,11 @@ class _SpeedScreenState extends ConsumerState<SpeedScreen> {
     });
   }
 
-  String _mbps(double? v) => v == null ? '—' : v >= 100 ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
+  String _mbps(double? v) => v == null
+      ? '—'
+      : v >= 100
+      ? v.toStringAsFixed(0)
+      : v.toStringAsFixed(1);
 
   Future<void> _change() async {
     final n = ref.read(speedProvider.notifier);
@@ -53,7 +57,9 @@ class _SpeedScreenState extends ConsumerState<SpeedScreen> {
                       children: [
                         Expanded(child: Text('${s.name} · ${s.location}', style: WireType.data(14))),
                         Text(
-                          n.distanceTo(s) == null ? (s.isCloudflare ? 'ANYCAST' : '') : '${n.distanceTo(s)!.round()} KM',
+                          n.distanceTo(s) == null
+                              ? (s.isCloudflare ? 'ANYCAST' : '')
+                              : '${n.distanceTo(s)!.round()} KM',
                           style: WireType.label(),
                         ),
                       ],
@@ -113,10 +119,7 @@ class _SpeedScreenState extends ConsumerState<SpeedScreen> {
     Widget steps() => _Steps(phase: s.phase);
 
     Widget chart({int slots = 48, double pad = 20}) => WireBarChart(
-      bars: [
-        for (final x in s.samples)
-          WireBar(x.mbps, color: x.upload ? w.signal : w.chartBar),
-      ],
+      bars: [for (final x in s.samples) WireBar(x.mbps, color: x.upload ? w.signal : w.chartBar)],
       slots: slots,
       gridStep: 30,
       padding: EdgeInsets.fromLTRB(pad, 16, pad, 0),
@@ -146,7 +149,10 @@ class _SpeedScreenState extends ConsumerState<SpeedScreen> {
               child: Text.rich(
                 TextSpan(
                   children: [
-                    TextSpan(text: serverName, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    TextSpan(
+                      text: serverName,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
                     if (serverMeta.isNotEmpty) TextSpan(text: ' · $serverMeta'),
                   ],
                 ),
@@ -158,34 +164,52 @@ class _SpeedScreenState extends ConsumerState<SpeedScreen> {
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
               decoration: BoxDecoration(
                 color: s.running ? w.signal : null,
-                border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder)),
+                border: Border(
+                  bottom: BorderSide(color: w.ink, width: kWireBorder),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(liveLabel, style: WireType.label().copyWith(color: s.running ? w.onSignal : w.ink)),
-                  WireHeroNumber(
-                    value: heroValue,
-                    size: 150,
-                    color: s.running ? w.onSignal : w.ink,
-                    unit: null,
+                  WireHeroNumber(value: heroValue, size: 150, color: s.running ? w.onSignal : w.ink, unit: null),
+                  Text(
+                    heroUnit.toUpperCase(),
+                    style: WireType.data(14).copyWith(color: s.running ? w.onSignal : w.ink),
                   ),
-                  Text(heroUnit.toUpperCase(), style: WireType.data(14).copyWith(color: s.running ? w.onSignal : w.ink)),
                 ],
               ),
             ),
             Container(
               height: 46,
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: w.ink, width: kWireBorder),
+                ),
+              ),
               child: _Gauge(value: gaugeValue, segments: 20, gap: 2),
             ),
             Container(
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: w.ink, width: kWireBorder),
+                ),
+              ),
               child: WireSplitRow(
                 children: [
-                  WireStat(label: 'Download', value: _mbps(s.downMbps), valueSize: 32, padding: const EdgeInsets.fromLTRB(14, 10, 14, 10)),
-                  WireStat(label: 'Ping', value: s.pingMs == null ? '—' : '${fmtMs(s.pingMs)} MS', valueSize: 32, padding: const EdgeInsets.fromLTRB(14, 10, 14, 10)),
+                  WireStat(
+                    label: 'Download',
+                    value: _mbps(s.downMbps),
+                    valueSize: 32,
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                  ),
+                  WireStat(
+                    label: 'Ping',
+                    value: s.pingMs == null ? '—' : '${fmtMs(s.pingMs)} MS',
+                    valueSize: 32,
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                  ),
                 ],
               ),
             ),
@@ -206,10 +230,17 @@ class _SpeedScreenState extends ConsumerState<SpeedScreen> {
                   children: [
                     Text('SERVER>', style: WireType.label(12)),
                     const SizedBox(width: 16),
-                    Flexible(child: Text(serverName, maxLines: 1, overflow: TextOverflow.ellipsis, style: WireType.data(20))),
+                    Flexible(
+                      child: Text(serverName, maxLines: 1, overflow: TextOverflow.ellipsis, style: WireType.data(20)),
+                    ),
                     const SizedBox(width: 16),
                     Flexible(
-                      child: Text(serverMeta, maxLines: 1, overflow: TextOverflow.ellipsis, style: WireType.body(13).copyWith(color: w.text3)),
+                      child: Text(
+                        serverMeta,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: WireType.body(13).copyWith(color: w.text3),
+                      ),
                     ),
                   ],
                 ),
@@ -248,13 +279,23 @@ class _SpeedScreenState extends ConsumerState<SpeedScreen> {
             if (s.error != null) WireErrorBlock(reason: s.error!, size: 72, onRetry: n.start),
             Container(
               padding: const EdgeInsets.fromLTRB(28, 20, 28, 20),
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: w.ink, width: kWireBorder),
+                ),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(liveLabel, style: WireType.label(12)),
                   const SizedBox(height: 10),
-                  SizedBox(height: 160, child: Align(alignment: Alignment.bottomLeft, child: WireHeroNumber(value: heroValue, unit: heroUnit, size: 180))),
+                  SizedBox(
+                    height: 160,
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: WireHeroNumber(value: heroValue, unit: heroUnit, size: 180),
+                    ),
+                  ),
                   const SizedBox(height: 14),
                   SizedBox(height: 28, child: _Gauge(value: gaugeValue, segments: 40, gap: 3)),
                   const SizedBox(height: 6),
@@ -292,7 +333,11 @@ class _Steps extends StatelessWidget {
     ];
     final current = phase.index;
     return Container(
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: w.ink, width: kWireBorder),
+        ),
+      ),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -305,14 +350,26 @@ class _Steps extends StatelessWidget {
                     final idx = steps[i].$1.index;
                     final done = phase != SpeedPhase.idle && (idx < current || phase == SpeedPhase.done);
                     final active = idx == current && phase != SpeedPhase.done && phase != SpeedPhase.idle;
-                    final bg = done ? w.ink : active ? w.signal : null;
-                    final fg = done ? w.background : active ? w.onSignal : w.ink;
+                    final bg = done
+                        ? w.ink
+                        : active
+                        ? w.signal
+                        : null;
+                    final fg = done
+                        ? w.background
+                        : active
+                        ? w.onSignal
+                        : w.ink;
                     return Container(
                       color: bg,
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       alignment: Alignment.center,
                       child: Text(
-                        '${steps[i].$2}${done ? ' ✓' : active ? '…' : ''}',
+                        '${steps[i].$2}${done
+                            ? ' ✓'
+                            : active
+                            ? '…'
+                            : ''}',
                         style: WireType.label(12).copyWith(color: fg),
                       ),
                     );
@@ -355,7 +412,11 @@ class _SpeedPanel extends ConsumerWidget {
     final w = context.wire;
     final s = state;
     final history = ref.watch(speedHistoryProvider).value ?? const [];
-    String mb(double? v) => v == null ? '—' : v >= 100 ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
+    String mb(double? v) => v == null
+        ? '—'
+        : v >= 100
+        ? v.toStringAsFixed(0)
+        : v.toStringAsFixed(1);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -385,8 +446,18 @@ class _SpeedPanel extends ConsumerWidget {
         const WireRule(),
         WireSplitRow(
           children: [
-            WireStat(label: 'Ping', value: s.pingMs == null ? '—' : '${fmtMs(s.pingMs)} MS', valueSize: 32, padding: const EdgeInsets.fromLTRB(20, 12, 20, 12)),
-            WireStat(label: 'Jitter', value: s.jitterMs == null ? '—' : '${fmtMs(s.jitterMs)} MS', valueSize: 32, padding: const EdgeInsets.fromLTRB(20, 12, 20, 12)),
+            WireStat(
+              label: 'Ping',
+              value: s.pingMs == null ? '—' : '${fmtMs(s.pingMs)} MS',
+              valueSize: 32,
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            ),
+            WireStat(
+              label: 'Jitter',
+              value: s.jitterMs == null ? '—' : '${fmtMs(s.jitterMs)} MS',
+              valueSize: 32,
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            ),
           ],
         ),
         const WireRule(),

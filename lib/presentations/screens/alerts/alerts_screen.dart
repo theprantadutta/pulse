@@ -45,9 +45,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
       selected: !dense && draft.id == r.id,
       highlight: r.firing ? WireRowHighlight.tint : WireRowHighlight.none,
       divider: dense ? kWireHairline : kWireBorder,
-      onTap: () => dense
-          ? context.push('${Routes.alertRule}?id=${r.id}')
-          : setState(() => _editing = RuleDraft.of(r)),
+      onTap: () => dense ? context.push('${Routes.alertRule}?id=${r.id}') : setState(() => _editing = RuleDraft.of(r)),
       padding: EdgeInsets.symmetric(horizontal: dense ? 14 : 20, vertical: dense ? 10 : 14),
       child: Row(
         children: [
@@ -158,7 +156,8 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
             Expanded(
               child: WireTopTitle(
                 'Alerts',
-                subtitle: '${rules.length} RULE${rules.length == 1 ? '' : 'S'} · ${rules.where((r) => r.enabled).length} ACTIVE',
+                subtitle:
+                    '${rules.length} RULE${rules.length == 1 ? '' : 'S'} · ${rules.where((r) => r.enabled).length} ACTIVE',
               ),
             ),
             const WireVRule(),
@@ -219,9 +218,15 @@ class _Banner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('▲ FIRED ${DateFormat('HH:mm').format(alert.event.at)}', style: WireType.label().copyWith(color: w.onSignal)),
+                Text(
+                  '▲ FIRED ${DateFormat('HH:mm').format(alert.event.at)}',
+                  style: WireType.label().copyWith(color: w.onSignal),
+                ),
                 Text(alert.event.message.toUpperCase(), style: WireType.stat(28).copyWith(color: w.onSignal)),
-                Text('${ruleCondition(alert.rule)} · still ongoing', style: WireType.body(12).copyWith(color: w.onSignal)),
+                Text(
+                  '${ruleCondition(alert.rule)} · still ongoing',
+                  style: WireType.body(12).copyWith(color: w.onSignal),
+                ),
               ],
             ),
           ),

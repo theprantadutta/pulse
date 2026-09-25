@@ -46,7 +46,11 @@ void main() {
   setUpAll(loadWireFonts);
   Widget app(Brightness b) => ProviderScope(
     overrides: [traceProvider.overrideWith(_Fake.new)],
-    child: MaterialApp(debugShowCheckedModeBanner: false, theme: buildWireTheme(b), home: const Scaffold(body: TraceScreen())),
+    child: MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: buildWireTheme(b),
+      home: const Scaffold(body: TraceScreen()),
+    ),
   );
   testWidgets('trace screens', (tester) async {
     await renderToPng(tester, 'trace_desktop_light', app(Brightness.light), size: const Size(1060, 736));

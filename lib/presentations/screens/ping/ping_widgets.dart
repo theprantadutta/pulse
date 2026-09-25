@@ -143,10 +143,7 @@ class PingRecentTargets extends ConsumerWidget {
           child: recent.isEmpty
               ? Padding(
                   padding: const EdgeInsets.all(20),
-                  child: Text(
-                    'Finished pings land here.',
-                    style: WireType.body(13).copyWith(color: w.text3),
-                  ),
+                  child: Text('Finished pings land here.', style: WireType.body(13).copyWith(color: w.text3)),
                 )
               : ListView(
                   children: [
@@ -162,10 +159,7 @@ class PingRecentTargets extends ConsumerWidget {
                                 children: [
                                   Text(t.host, style: WireType.data(14), maxLines: 1, overflow: TextOverflow.ellipsis),
                                   if (t.name != null)
-                                    Text(
-                                      t.name!,
-                                      style: WireType.body(11).copyWith(color: w.text2, height: 1.2),
-                                    ),
+                                    Text(t.name!, style: WireType.body(11).copyWith(color: w.text2, height: 1.2)),
                                 ],
                               ),
                             ),
@@ -195,7 +189,9 @@ class PingSessionStrip extends ConsumerWidget {
     return Container(
       height: height,
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder)),
+        border: Border(
+          bottom: BorderSide(color: w.ink, width: kWireBorder),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -263,11 +259,7 @@ class PingBoardGrid extends ConsumerWidget {
                 for (var c = 0; c < cols; c++)
                   Expanded(
                     child: r * cols + c < sessions.length
-                        ? _BoardCell(
-                            session: sessions[r * cols + c],
-                            right: c < cols - 1,
-                            onOpen: onOpen,
-                          )
+                        ? _BoardCell(session: sessions[r * cols + c], right: c < cols - 1, onOpen: onOpen)
                         : WireBox(sides: WireSides(bottom: true, right: c < cols - 1)),
                   ),
               ],
@@ -362,7 +354,9 @@ class _BoardCell extends ConsumerWidget {
           ),
           Container(
             decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: w.ink, width: kWireHairline)),
+              border: Border(
+                top: BorderSide(color: w.ink, width: kWireHairline),
+              ),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(

@@ -12,7 +12,16 @@ import 'package:pulse/services/net/port_scanner.dart';
 
 import 'render_harness.dart';
 
-LanDevice _d(String ip, String? name, String? vendor, double? rtt, {bool gw = false, bool self = false, bool isNew = false, String? mac}) {
+LanDevice _d(
+  String ip,
+  String? name,
+  String? vendor,
+  double? rtt, {
+  bool gw = false,
+  bool self = false,
+  bool isNew = false,
+  String? mac,
+}) {
   final h = LanHost(ip: ip, hostname: name, vendor: vendor, rttMs: rtt, isGateway: gw, isSelf: self, mac: mac);
   return LanDevice(host: h, type: classifyDevice(h), isNew: isNew, firstSeen: DateTime(2026, 9, 12, 9, 14));
 }

@@ -65,7 +65,11 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
             Expanded(child: _HopList(state: s, mobile: true)),
             if (s.hops.isNotEmpty)
               Container(
-                decoration: BoxDecoration(border: Border(top: BorderSide(color: w.ink, width: kWireBorder))),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: w.ink, width: kWireBorder),
+                  ),
+                ),
                 child: WireSplitRow(
                   children: [
                     WireStat(
@@ -87,7 +91,11 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
         ),
         action: s.running
             ? WireButton.bar(label: 'Stop', glyph: '■', variant: WireButtonVariant.inverse, onPressed: n.stop)
-            : WireButton.bar(label: s.hops.isEmpty ? 'Trace' : 'Run again', glyph: s.hops.isEmpty ? '▶' : '↻', onPressed: _run),
+            : WireButton.bar(
+                label: s.hops.isEmpty ? 'Trace' : 'Run again',
+                glyph: s.hops.isEmpty ? '▶' : '↻',
+                onPressed: _run,
+              ),
       ),
       desktop: (context) => WireDesktopPage(
         panelWidth: 340,
@@ -118,12 +126,12 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
           ],
         ),
         body: s.error != null
-            ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [WireErrorBlock(reason: s.error!, onRetry: _run)])
-            : s.hops.isEmpty && !s.running
-            ? const WireEmptyState(
-                title: 'No route yet',
-                message: 'Enter a host and trace the path your packets take.',
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [WireErrorBlock(reason: s.error!, onRetry: _run)],
               )
+            : s.hops.isEmpty && !s.running
+            ? const WireEmptyState(title: 'No route yet', message: 'Enter a host and trace the path your packets take.')
             : _HopList(state: s),
         panel: _Summary(state: s),
       ),
@@ -234,7 +242,9 @@ class _HopList extends StatelessWidget {
                         Expanded(
                           child: Container(
                             height: 14,
-                            decoration: BoxDecoration(border: Border.all(color: w.ink, width: kWireBorder)),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: w.ink, width: kWireBorder),
+                            ),
                             alignment: Alignment.centerLeft,
                             child: FractionallySizedBox(
                               widthFactor: frac.clamp(0, 1),
@@ -284,7 +294,11 @@ class _Summary extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
-          color: s.reached && !s.running ? w.signal : s.hops.isNotEmpty && !s.running ? w.signalTint : null,
+          color: s.reached && !s.running
+              ? w.signal
+              : s.hops.isNotEmpty && !s.running
+              ? w.signalTint
+              : null,
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,8 +319,18 @@ class _Summary extends ConsumerWidget {
         const WireRule(),
         WireSplitRow(
           children: [
-            WireStat(label: 'Total RTT', value: s.totalRtt == null ? '—' : '${fmtMs(s.totalRtt)} MS', valueSize: 32, padding: const EdgeInsets.fromLTRB(20, 12, 20, 12)),
-            WireStat(label: 'Timeouts', value: '${s.timeouts}', valueSize: 32, padding: const EdgeInsets.fromLTRB(20, 12, 20, 12)),
+            WireStat(
+              label: 'Total RTT',
+              value: s.totalRtt == null ? '—' : '${fmtMs(s.totalRtt)} MS',
+              valueSize: 32,
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            ),
+            WireStat(
+              label: 'Timeouts',
+              value: '${s.timeouts}',
+              valueSize: 32,
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            ),
           ],
         ),
         const WireRule(),
@@ -334,8 +358,14 @@ class _Summary extends ConsumerWidget {
                   : Text.rich(
                       TextSpan(
                         children: [
-                          TextSpan(text: 'Hop ${jump.from.toString().padLeft(2, '0')} → ${jump.to.toString().padLeft(2, '0')} adds '),
-                          TextSpan(text: '${fmtMs(jump.addMs)} ms', style: const TextStyle(fontWeight: FontWeight.w700)),
+                          TextSpan(
+                            text:
+                                'Hop ${jump.from.toString().padLeft(2, '0')} → ${jump.to.toString().padLeft(2, '0')} adds ',
+                          ),
+                          TextSpan(
+                            text: '${fmtMs(jump.addMs)} ms',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
                           TextSpan(text: ' — ${jump.text}.'),
                         ],
                       ),
@@ -392,20 +422,27 @@ class _RouteDiagram extends StatelessWidget {
     final shown = route.length <= 4 ? route : [route.first, route[route.length ~/ 2], route.last];
     Widget box(String cc, bool last) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: last ? w.ink : null, border: Border.all(color: w.ink, width: kWireBorder)),
+      decoration: BoxDecoration(
+        color: last ? w.ink : null,
+        border: Border.all(color: w.ink, width: kWireBorder),
+      ),
       child: Text(cc, style: WireType.stat(26).copyWith(color: last ? w.background : w.ink)),
     );
     return Row(
       children: [
         for (var i = 0; i < shown.length; i++) ...[
           if (i > 0) ...[
-            Expanded(child: Container(height: kWireBorder, color: w.ink)),
+            Expanded(
+              child: Container(height: kWireBorder, color: w.ink),
+            ),
             if (shown[i].addMs != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: Text('+${fmtMs(math.max(0, shown[i].addMs!))} MS', style: WireType.label()),
               ),
-            Expanded(child: Container(height: kWireBorder, color: w.ink)),
+            Expanded(
+              child: Container(height: kWireBorder, color: w.ink),
+            ),
           ],
           box(shown[i].cc, i == shown.length - 1),
         ],

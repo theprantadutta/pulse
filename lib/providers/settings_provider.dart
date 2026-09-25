@@ -11,13 +11,9 @@ final sharedPreferencesProvider = Provider<SharedPreferences>(
   (ref) => throw StateError('sharedPreferencesProvider must be overridden'),
 );
 
-final settingsStoreProvider = Provider<SettingsStore>(
-  (ref) => SettingsStore(ref.watch(sharedPreferencesProvider)),
-);
+final settingsStoreProvider = Provider<SettingsStore>((ref) => SettingsStore(ref.watch(sharedPreferencesProvider)));
 
-final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(
-  SettingsNotifier.new,
-);
+final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(SettingsNotifier.new);
 
 class SettingsNotifier extends Notifier<AppSettings> {
   @override
@@ -28,8 +24,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
     await ref.read(settingsStoreProvider).save(state);
   }
 
-  Future<void> setThemeMode(ThemeMode mode) =>
-      update((s) => s.copyWith(themeMode: mode));
+  Future<void> setThemeMode(ThemeMode mode) => update((s) => s.copyWith(themeMode: mode));
 
   Future<void> setAccent(String key) => update((s) => s.copyWith(accent: key));
 }

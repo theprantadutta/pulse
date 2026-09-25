@@ -25,7 +25,11 @@ void main() {
     final prefs = await tester.runAsync(SharedPreferences.getInstance);
     Widget app(Brightness b) => ProviderScope(
       overrides: [sharedPreferencesProvider.overrideWithValue(prefs!)],
-      child: MaterialApp(debugShowCheckedModeBanner: false, theme: buildWireTheme(b), home: const Scaffold(body: SettingsScreen())),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: buildWireTheme(b),
+        home: const Scaffold(body: SettingsScreen()),
+      ),
     );
     await renderToPng(tester, 'settings_desktop_light', app(Brightness.light), size: const Size(1060, 736));
     await renderToPng(tester, 'settings_mobile_dark', app(Brightness.dark), size: const Size(390, 780));

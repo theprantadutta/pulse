@@ -42,8 +42,12 @@ void main() {
       onTrayAlert: tray.add,
     );
     final now = DateTime.now();
-    await db.into(db.monitorTargets).insert(MonitorTargetsCompanion.insert(host: '10.0.0.1', name: 'Router', createdAt: now));
-    await db.into(db.monitorTargets).insert(MonitorTargetsCompanion.insert(host: 'game.example', name: 'Game', createdAt: now));
+    await db
+        .into(db.monitorTargets)
+        .insert(MonitorTargetsCompanion.insert(host: '10.0.0.1', name: 'Router', createdAt: now));
+    await db
+        .into(db.monitorTargets)
+        .insert(MonitorTargetsCompanion.insert(host: 'game.example', name: 'Game', createdAt: now));
   });
 
   tearDown(() => db.close());
@@ -85,16 +89,18 @@ void main() {
   });
 
   test('down rule fires once after its hold time and resets on recovery', () async {
-    await db.into(db.alertRules).insert(
-      AlertRulesCompanion.insert(
-        title: 'Gateway down',
-        target: '10.0.0.1',
-        metric: AlertMetric.down,
-        forSeconds: const Value(0),
-        channels: const Value(AlertChannel.push | AlertChannel.tray),
-        createdAt: DateTime.now(),
-      ),
-    );
+    await db
+        .into(db.alertRules)
+        .insert(
+          AlertRulesCompanion.insert(
+            title: 'Gateway down',
+            target: '10.0.0.1',
+            metric: AlertMetric.down,
+            forSeconds: const Value(0),
+            channels: const Value(AlertChannel.push | AlertChannel.tray),
+            createdAt: DateTime.now(),
+          ),
+        );
     net.state['10.0.0.1'] = (_) => const ProbeResult(status: ProbeStatus.timeout);
     await cycles(3);
     final events = await db.select(db.alertEvents).get();
@@ -112,16 +118,18 @@ void main() {
   });
 
   test('latency rule on any target (*) respects the threshold', () async {
-    await db.into(db.alertRules).insert(
-      AlertRulesCompanion.insert(
-        title: 'High latency',
-        target: '*',
-        metric: AlertMetric.latency,
-        threshold: const Value(100),
-        forSeconds: const Value(0),
-        createdAt: DateTime.now(),
-      ),
-    );
+    await db
+        .into(db.alertRules)
+        .insert(
+          AlertRulesCompanion.insert(
+            title: 'High latency',
+            target: '*',
+            metric: AlertMetric.latency,
+            threshold: const Value(100),
+            forSeconds: const Value(0),
+            createdAt: DateTime.now(),
+          ),
+        );
     await engine.runCycle();
     expect(await db.select(db.alertEvents).get(), isEmpty);
     net.state['game.example'] = (_) => const ProbeResult(status: ProbeStatus.ok, rttMs: 180);
@@ -138,16 +146,18 @@ void main() {
       onTrayAlert: tray.add,
       mutedUntil: () => DateTime.now().add(const Duration(hours: 1)),
     );
-    await db.into(db.alertRules).insert(
-      AlertRulesCompanion.insert(
-        title: 'Down',
-        target: '*',
-        metric: AlertMetric.down,
-        forSeconds: const Value(0),
-        channels: const Value(AlertChannel.tray),
-        createdAt: DateTime.now(),
-      ),
-    );
+    await db
+        .into(db.alertRules)
+        .insert(
+          AlertRulesCompanion.insert(
+            title: 'Down',
+            target: '*',
+            metric: AlertMetric.down,
+            forSeconds: const Value(0),
+            channels: const Value(AlertChannel.tray),
+            createdAt: DateTime.now(),
+          ),
+        );
     net.state['10.0.0.1'] = (_) => const ProbeResult(status: ProbeStatus.timeout);
     await engine.runCycle();
     expect(await db.select(db.alertEvents).get(), hasLength(1));

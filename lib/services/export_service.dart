@@ -17,11 +17,7 @@ class ExportService {
       'pulse-$base-${DateFormat('yyyyMMdd-HHmmss').format(DateTime.now())}.${format.name}';
 
   /// Returns where the file went, or null when the user cancelled.
-  Future<String?> save({
-    required String fileName,
-    required String content,
-    required AppSettings settings,
-  }) async {
+  Future<String?> save({required String fileName, required String content, required AppSettings settings}) async {
     final bytes = Uint8List.fromList(utf8.encode(content));
     final folder = settings.exportFolder;
     final desktop = Platform.isWindows || Platform.isMacOS || Platform.isLinux;

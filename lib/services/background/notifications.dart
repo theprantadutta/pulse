@@ -94,12 +94,7 @@ class PulseNotifications {
     return true;
   }
 
-  static Future<void> show({
-    required int id,
-    required String title,
-    required String body,
-    bool sound = true,
-  }) async {
+  static Future<void> show({required int id, required String title, required String body, bool sound = true}) async {
     await init();
     if (!_ready) return;
     await _plugin.show(

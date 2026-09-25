@@ -41,12 +41,60 @@ const kSpeedServers = <SpeedServer>[
     pingUrl: 'https://speed.cloudflare.com/__down?bytes=0',
     chunked: true,
   ),
-  SpeedServer(id: 'fsn1', name: 'Hetzner', location: 'Falkenstein, DE', downloadUrl: 'https://fsn1-speed.hetzner.com/1GB.bin', pingUrl: 'https://fsn1-speed.hetzner.com/', lat: 50.47, lon: 12.37),
-  SpeedServer(id: 'nbg1', name: 'Hetzner', location: 'Nuremberg, DE', downloadUrl: 'https://nbg1-speed.hetzner.com/1GB.bin', pingUrl: 'https://nbg1-speed.hetzner.com/', lat: 49.45, lon: 11.08),
-  SpeedServer(id: 'hel1', name: 'Hetzner', location: 'Helsinki, FI', downloadUrl: 'https://hel1-speed.hetzner.com/1GB.bin', pingUrl: 'https://hel1-speed.hetzner.com/', lat: 60.17, lon: 24.94),
-  SpeedServer(id: 'ash', name: 'Hetzner', location: 'Ashburn, US', downloadUrl: 'https://ash-speed.hetzner.com/1GB.bin', pingUrl: 'https://ash-speed.hetzner.com/', lat: 39.04, lon: -77.49),
-  SpeedServer(id: 'hil', name: 'Hetzner', location: 'Hillsboro, US', downloadUrl: 'https://hil-speed.hetzner.com/1GB.bin', pingUrl: 'https://hil-speed.hetzner.com/', lat: 45.52, lon: -122.99),
-  SpeedServer(id: 'sin', name: 'Hetzner', location: 'Singapore, SG', downloadUrl: 'https://sin-speed.hetzner.com/1GB.bin', pingUrl: 'https://sin-speed.hetzner.com/', lat: 1.29, lon: 103.85),
+  SpeedServer(
+    id: 'fsn1',
+    name: 'Hetzner',
+    location: 'Falkenstein, DE',
+    downloadUrl: 'https://fsn1-speed.hetzner.com/1GB.bin',
+    pingUrl: 'https://fsn1-speed.hetzner.com/',
+    lat: 50.47,
+    lon: 12.37,
+  ),
+  SpeedServer(
+    id: 'nbg1',
+    name: 'Hetzner',
+    location: 'Nuremberg, DE',
+    downloadUrl: 'https://nbg1-speed.hetzner.com/1GB.bin',
+    pingUrl: 'https://nbg1-speed.hetzner.com/',
+    lat: 49.45,
+    lon: 11.08,
+  ),
+  SpeedServer(
+    id: 'hel1',
+    name: 'Hetzner',
+    location: 'Helsinki, FI',
+    downloadUrl: 'https://hel1-speed.hetzner.com/1GB.bin',
+    pingUrl: 'https://hel1-speed.hetzner.com/',
+    lat: 60.17,
+    lon: 24.94,
+  ),
+  SpeedServer(
+    id: 'ash',
+    name: 'Hetzner',
+    location: 'Ashburn, US',
+    downloadUrl: 'https://ash-speed.hetzner.com/1GB.bin',
+    pingUrl: 'https://ash-speed.hetzner.com/',
+    lat: 39.04,
+    lon: -77.49,
+  ),
+  SpeedServer(
+    id: 'hil',
+    name: 'Hetzner',
+    location: 'Hillsboro, US',
+    downloadUrl: 'https://hil-speed.hetzner.com/1GB.bin',
+    pingUrl: 'https://hil-speed.hetzner.com/',
+    lat: 45.52,
+    lon: -122.99,
+  ),
+  SpeedServer(
+    id: 'sin',
+    name: 'Hetzner',
+    location: 'Singapore, SG',
+    downloadUrl: 'https://sin-speed.hetzner.com/1GB.bin',
+    pingUrl: 'https://sin-speed.hetzner.com/',
+    lat: 1.29,
+    lon: 103.85,
+  ),
 ];
 
 enum SpeedPhase { idle, ping, download, upload, done }
@@ -221,7 +269,15 @@ class SpeedTest {
       );
     }
     if (_cancelled) return;
-    yield SpeedUpdate(phase: SpeedPhase.done, pingMs: ping, jitterMs: jitter, downMbps: down, upMbps: up, progress: 1, colo: colo);
+    yield SpeedUpdate(
+      phase: SpeedPhase.done,
+      pingMs: ping,
+      jitterMs: jitter,
+      downMbps: down,
+      upMbps: up,
+      progress: 1,
+      colo: colo,
+    );
     for (final c in _clients) {
       c.close(force: true);
     }
@@ -243,9 +299,7 @@ class SpeedTest {
       final c = _client();
       while (!stop && !_cancelled) {
         try {
-          final url = server.chunked
-              ? server.downloadUrl.replaceFirst('{bytes}', '25000000')
-              : server.downloadUrl;
+          final url = server.chunked ? server.downloadUrl.replaceFirst('{bytes}', '25000000') : server.downloadUrl;
           final res = await (await c.getUrl(Uri.parse(url))).close();
           await for (final chunk in res) {
             bytes += chunk.length;

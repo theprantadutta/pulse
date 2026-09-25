@@ -39,7 +39,11 @@ void main() {
   setUpAll(loadWireFonts);
   Widget app(Brightness b) => ProviderScope(
     overrides: [portScanProvider.overrideWith(_Fake.new)],
-    child: MaterialApp(debugShowCheckedModeBanner: false, theme: buildWireTheme(b), home: const Scaffold(body: PortsScreen())),
+    child: MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: buildWireTheme(b),
+      home: const Scaffold(body: PortsScreen()),
+    ),
   );
   testWidgets('ports screens', (tester) async {
     await renderToPng(tester, 'ports_desktop_light', app(Brightness.light), size: const Size(1060, 736));

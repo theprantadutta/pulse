@@ -41,11 +41,8 @@ class GeoInfo {
   /// ip-api.com or ipinfo.io.
   final String source;
 
-  String get place => [city, region, countryCode ?? country]
-      .whereType<String>()
-      .where((s) => s.isNotEmpty)
-      .toSet()
-      .join(', ');
+  String get place =>
+      [city, region, countryCode ?? country].whereType<String>().where((s) => s.isNotEmpty).toSet().join(', ');
 
   Map<String, Object?> toJson() => {
     'ip': ip,
@@ -181,9 +178,7 @@ class GeoIpService {
   /// The public IPv6 address, or null when the network has no IPv6 path.
   Future<String?> publicIpv6() async {
     try {
-      final res = await _client
-          .get(Uri.parse('https://api6.ipify.org'))
-          .timeout(const Duration(seconds: 4));
+      final res = await _client.get(Uri.parse('https://api6.ipify.org')).timeout(const Duration(seconds: 4));
       final v = res.body.trim();
       return res.statusCode == 200 && v.contains(':') ? v : null;
     } on Object {

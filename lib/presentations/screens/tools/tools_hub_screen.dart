@@ -20,9 +20,7 @@ class ToolsHubScreen extends ConsumerWidget {
     final latest = ref.watch(latestSessionsProvider).value ?? const {};
     final monitor = ref.watch(monitorSummaryProvider).value;
 
-    String last(SessionTool t, String empty) => latest[t]?.summary.isNotEmpty == true
-        ? latest[t]!.summary
-        : empty;
+    String last(SessionTool t, String empty) => latest[t]?.summary.isNotEmpty == true ? latest[t]!.summary : empty;
 
     final tiles = <_Tile>[
       _Tile('01', 'Ping', Routes.ping, last(SessionTool.ping, 'No runs yet')),
@@ -58,11 +56,9 @@ class ToolsHubScreen extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
               'SETTINGS',
-              style: WireType.label(12).copyWith(
-                color: s.contains(WidgetState.pressed) || s.contains(WidgetState.hovered)
-                    ? c.fg
-                    : w.signal,
-              ),
+              style: WireType.label(
+                12,
+              ).copyWith(color: s.contains(WidgetState.pressed) || s.contains(WidgetState.hovered) ? c.fg : w.signal),
             ),
           ),
         ),
@@ -126,10 +122,7 @@ class _ToolTile extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                tile.name.toUpperCase(),
-                style: WireType.display(26, width: 70, height: 0.95),
-              ),
+              Text(tile.name.toUpperCase(), style: WireType.display(26, width: 70, height: 0.95)),
               const SizedBox(height: 2),
               Builder(
                 builder: (context) {
@@ -138,10 +131,7 @@ class _ToolTile extends StatelessWidget {
                     tile.last,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: WireType.body(11).copyWith(
-                      color: fg == w.ink ? w.text2 : fg,
-                      height: 1.3,
-                    ),
+                    style: WireType.body(11).copyWith(color: fg == w.ink ? w.text2 : fg, height: 1.3),
                   );
                 },
               ),

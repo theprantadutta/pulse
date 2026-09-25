@@ -133,17 +133,31 @@ class Traceroute {
     }
 
     List<TraceHop> snapshot() {
-      final last = reachedAt <= maxHops ? reachedAt : (hops.keys.isEmpty ? 0 : hops.keys.reduce((a, b) => a > b ? a : b));
+      final last = reachedAt <= maxHops
+          ? reachedAt
+          : (hops.keys.isEmpty ? 0 : hops.keys.reduce((a, b) => a > b ? a : b));
       return [for (var t = 1; t <= last; t++) ?hops[t]];
     }
 
     pump();
     await for (final _ in updates.stream) {
-      yield TraceResult(target: target, destination: dest, hops: snapshot(), reached: reachedAt <= maxHops, finished: false);
+      yield TraceResult(
+        target: target,
+        destination: dest,
+        hops: snapshot(),
+        reached: reachedAt <= maxHops,
+        finished: false,
+      );
     }
     final finalHops = snapshot();
     if (geo) await _locate(finalHops);
-    yield TraceResult(target: target, destination: dest, hops: finalHops, reached: reachedAt <= maxHops, finished: true);
+    yield TraceResult(
+      target: target,
+      destination: dest,
+      hops: finalHops,
+      reached: reachedAt <= maxHops,
+      finished: true,
+    );
   }
 
   /// One ip-api batch call for every public hop.
@@ -158,10 +172,7 @@ class Traceroute {
     if (public.isEmpty) return;
     try {
       final res = await _client
-          .post(
-            Uri.parse('http://ip-api.com/batch?fields=status,query,countryCode,city'),
-            body: jsonEncode(public),
-          )
+          .post(Uri.parse('http://ip-api.com/batch?fields=status,query,countryCode,city'), body: jsonEncode(public))
           .timeout(const Duration(seconds: 6));
       if (res.statusCode != 200) return;
       final byIp = {

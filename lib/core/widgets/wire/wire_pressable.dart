@@ -46,11 +46,7 @@ WireStateColors wireRestColors(WireColors w, WireTone tone) {
 
 /// Resolves Wire's state rules:
 /// hover → signal tint, pressed or selected → inverse, disabled → text3.
-WireStateColors wireStateColors(
-  WireColors w,
-  WireTone tone,
-  Set<WidgetState> states,
-) {
+WireStateColors wireStateColors(WireColors w, WireTone tone, Set<WidgetState> states) {
   final rest = wireRestColors(w, tone);
   if (states.contains(WidgetState.disabled)) {
     // Signal means "actionable", so a disabled primary drops its fill.
@@ -58,9 +54,7 @@ WireStateColors wireStateColors(
     return WireStateColors(bg, w.text3);
   }
   if (states.contains(WidgetState.pressed)) {
-    return tone == WireTone.ink
-        ? WireStateColors(w.background, w.ink)
-        : WireStateColors(w.ink, w.background);
+    return tone == WireTone.ink ? WireStateColors(w.background, w.ink) : WireStateColors(w.ink, w.background);
   }
   if (states.contains(WidgetState.selected)) {
     return WireStateColors(w.ink, w.background);
@@ -80,12 +74,7 @@ WireStateColors wireStateColors(
   return rest;
 }
 
-typedef WireStateWidgetBuilder =
-    Widget Function(
-      BuildContext context,
-      WireStateColors colors,
-      Set<WidgetState> states,
-    );
+typedef WireStateWidgetBuilder = Widget Function(BuildContext context, WireStateColors colors, Set<WidgetState> states);
 
 /// The one interactive building block behind every Wire button, row, cell,
 /// nav item and chip. Handles hover, press, keyboard focus and activation.
@@ -140,10 +129,7 @@ class _WirePressableState extends State<WirePressable> {
 
     Widget child = widget.builder(context, colors, states);
     if (_focused) {
-      child = CustomPaint(
-        foregroundPainter: _FocusOutlinePainter(w.signal),
-        child: child,
-      );
+      child = CustomPaint(foregroundPainter: _FocusOutlinePainter(w.signal), child: child);
     }
 
     child = FocusableActionDetector(
@@ -176,12 +162,7 @@ class _WirePressableState extends State<WirePressable> {
       ),
     );
 
-    child = Semantics(
-      button: _enabled,
-      selected: widget.selected,
-      label: widget.semanticLabel,
-      child: child,
-    );
+    child = Semantics(button: _enabled, selected: widget.selected, label: widget.semanticLabel, child: child);
     if (widget.tooltip != null) {
       child = Tooltip(message: widget.tooltip!, child: child);
     }

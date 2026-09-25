@@ -27,9 +27,7 @@ const _kSaveReplies = 5000;
 /// Overridable in tests.
 final pingProberProvider = Provider<PingProber>((ref) => const PingProber());
 
-final historyRepositoryProvider = Provider<HistoryRepository>(
-  (ref) => HistoryRepository(ref.watch(databaseProvider)),
-);
+final historyRepositoryProvider = Provider<HistoryRepository>((ref) => HistoryRepository(ref.watch(databaseProvider)));
 
 /// One live (or finished) ping to a host.
 @immutable
@@ -133,16 +131,12 @@ class PingBoard {
 
   int get liveCount => sessions.where((s) => s.running).length;
 
-  PingBoard copyWith({
-    List<PingSession>? sessions,
-    String? focusedId,
-    bool? showBoard,
-    bool clearFocus = false,
-  }) => PingBoard(
-    sessions: sessions ?? this.sessions,
-    focusedId: clearFocus ? null : focusedId ?? this.focusedId,
-    showBoard: showBoard ?? this.showBoard,
-  );
+  PingBoard copyWith({List<PingSession>? sessions, String? focusedId, bool? showBoard, bool clearFocus = false}) =>
+      PingBoard(
+        sessions: sessions ?? this.sessions,
+        focusedId: clearFocus ? null : focusedId ?? this.focusedId,
+        showBoard: showBoard ?? this.showBoard,
+      );
 }
 
 /// Running aggregates so stats stay O(1) per reply.
@@ -191,14 +185,10 @@ class _Runner {
   final rtts = <double>[];
 }
 
-final pingBoardProvider = NotifierProvider<PingBoardNotifier, PingBoard>(
-  PingBoardNotifier.new,
-);
+final pingBoardProvider = NotifierProvider<PingBoardNotifier, PingBoard>(PingBoardNotifier.new);
 
 /// The focused session, for widgets that only show one.
-final focusedPingProvider = Provider<PingSession?>(
-  (ref) => ref.watch(pingBoardProvider.select((b) => b.focused)),
-);
+final focusedPingProvider = Provider<PingSession?>((ref) => ref.watch(pingBoardProvider.select((b) => b.focused)));
 
 class PingBoardNotifier extends Notifier<PingBoard> {
   final _runners = <String, _Runner>{};
@@ -215,9 +205,7 @@ class PingBoardNotifier extends Notifier<PingBoard> {
   }
 
   void _put(PingSession s) {
-    final list = [
-      for (final x in state.sessions) x.id == s.id ? s : x,
-    ];
+    final list = [for (final x in state.sessions) x.id == s.id ? s : x];
     state = state.copyWith(sessions: list);
   }
 
@@ -424,22 +412,24 @@ class PingBoardNotifier extends Notifier<PingBoard> {
     final summary = avg == null
         ? 'no replies · ${stats.lossPct.toStringAsFixed(0)}% loss'
         : '${avg.toStringAsFixed(avg < 10 ? 1 : 0)} ms · ${stats.lossPct.toStringAsFixed(stats.lossPct % 1 == 0 ? 0 : 1)}%';
-    final id = await ref.read(historyRepositoryProvider).save(
-      tool: SessionTool.ping,
-      target: s.host,
-      label: s.name,
-      startedAt: s.startedAt,
-      endedAt: s.endedAt ?? DateTime.now(),
-      avgMs: avg,
-      lossPct: stats.lossPct,
-      summary: summary,
-      trend: bucketAverages(runner.rtts, 12),
-      payload: {
-        'params': s.params.toJson(),
-        'stats': stats.toJson(),
-        'replies': [for (final r in runner.all) r.toJson()],
-      },
-    );
+    final id = await ref
+        .read(historyRepositoryProvider)
+        .save(
+          tool: SessionTool.ping,
+          target: s.host,
+          label: s.name,
+          startedAt: s.startedAt,
+          endedAt: s.endedAt ?? DateTime.now(),
+          avgMs: avg,
+          lossPct: stats.lossPct,
+          summary: summary,
+          trend: bucketAverages(runner.rtts, 12),
+          payload: {
+            'params': s.params.toJson(),
+            'stats': stats.toJson(),
+            'replies': [for (final r in runner.all) r.toJson()],
+          },
+        );
     runner.session = runner.session.copyWith(historyId: id);
     if (_runners.containsKey(s.id)) _put(runner.session);
   }
@@ -450,24 +440,23 @@ class SavedTargetsRepository {
   SavedTargetsRepository(this.db);
   final AppDatabase db;
 
-  Stream<List<SavedTarget>> watch() => (db.select(db.savedTargets)
-        ..orderBy([
-          (t) => OrderingTerm.asc(t.sortOrder),
-          (t) => OrderingTerm.asc(t.name),
-        ]))
-      .watch();
+  Stream<List<SavedTarget>> watch() => (db.select(
+    db.savedTargets,
+  )..orderBy([(t) => OrderingTerm.asc(t.sortOrder), (t) => OrderingTerm.asc(t.name)])).watch();
 
-  Future<SavedTarget?> byHost(String host) => (db.select(db.savedTargets)
-        ..where((t) => t.host.lower().equals(host.toLowerCase()))
-        ..limit(1))
-      .getSingleOrNull();
+  Future<SavedTarget?> byHost(String host) =>
+      (db.select(db.savedTargets)
+            ..where((t) => t.host.lower().equals(host.toLowerCase()))
+            ..limit(1))
+          .getSingleOrNull();
 
   /// Marks [host] as used now; returns its saved entry if it has one.
   Future<SavedTarget?> touch(String host) async {
     final t = await byHost(host);
     if (t == null) return null;
-    await (db.update(db.savedTargets)..where((x) => x.id.equals(t.id)))
-        .write(SavedTargetsCompanion(lastUsedAt: Value(DateTime.now())));
+    await (db.update(
+      db.savedTargets,
+    )..where((x) => x.id.equals(t.id))).write(SavedTargetsCompanion(lastUsedAt: Value(DateTime.now())));
     return t;
   }
 
@@ -478,23 +467,23 @@ class SavedTargetsRepository {
       return existing.id;
     }
     final count = await db.savedTargets.count().getSingle();
-    return db.into(db.savedTargets).insert(
-      SavedTargetsCompanion.insert(
-        name: name.trim(),
-        host: host.trim(),
-        sortOrder: Value(count),
-        createdAt: DateTime.now(),
-      ),
-    );
+    return db
+        .into(db.savedTargets)
+        .insert(
+          SavedTargetsCompanion.insert(
+            name: name.trim(),
+            host: host.trim(),
+            sortOrder: Value(count),
+            createdAt: DateTime.now(),
+          ),
+        );
   }
 
-  Future<void> update(int id, {required String name, required String host}) =>
-      (db.update(db.savedTargets)..where((t) => t.id.equals(id))).write(
-        SavedTargetsCompanion(name: Value(name.trim()), host: Value(host.trim())),
-      );
+  Future<void> update(int id, {required String name, required String host}) => (db.update(
+    db.savedTargets,
+  )..where((t) => t.id.equals(id))).write(SavedTargetsCompanion(name: Value(name.trim()), host: Value(host.trim())));
 
-  Future<void> delete(int id) =>
-      (db.delete(db.savedTargets)..where((t) => t.id.equals(id))).go();
+  Future<void> delete(int id) => (db.delete(db.savedTargets)..where((t) => t.id.equals(id))).go();
 }
 
 final savedTargetsRepositoryProvider = Provider<SavedTargetsRepository>(
@@ -533,11 +522,8 @@ class PingDraft {
   final String name;
   final PingParams params;
 
-  PingDraft copyWith({String? host, String? name, PingParams? params}) => PingDraft(
-    host: host ?? this.host,
-    name: name ?? this.name,
-    params: params ?? this.params,
-  );
+  PingDraft copyWith({String? host, String? name, PingParams? params}) =>
+      PingDraft(host: host ?? this.host, name: name ?? this.name, params: params ?? this.params);
 }
 
 final pingDraftProvider = NotifierProvider<PingDraftNotifier, PingDraft>(PingDraftNotifier.new);
@@ -553,20 +539,19 @@ class PingDraftNotifier extends Notifier<PingDraft> {
     state = state.copyWith(params: p);
     final settings = ref.read(settingsProvider);
     if (settings.saveAsDefault) {
-      await ref.read(settingsProvider.notifier).update(
-        (s) => s.copyWith(
-          pingCount: p.count,
-          pingIntervalMs: p.intervalMs,
-          pingTimeoutSec: p.timeoutSec,
-          packetSize: p.packetSize,
-          ipVersion: p.ipVersion,
-        ),
-      );
+      await ref
+          .read(settingsProvider.notifier)
+          .update(
+            (s) => s.copyWith(
+              pingCount: p.count,
+              pingIntervalMs: p.intervalMs,
+              pingTimeoutSec: p.timeoutSec,
+              packetSize: p.packetSize,
+              ipVersion: p.ipVersion,
+            ),
+          );
     }
   }
 
-  void reset() => state = PingDraft(
-    host: state.host,
-    params: PingParams.fromSettings(const AppSettings()),
-  );
+  void reset() => state = PingDraft(host: state.host, params: PingParams.fromSettings(const AppSettings()));
 }

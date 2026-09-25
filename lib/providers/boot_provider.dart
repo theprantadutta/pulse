@@ -44,8 +44,7 @@ class BootNotifier extends Notifier<BootState> {
   bool _started = false;
 
   @override
-  BootState build() =>
-      const BootState(step: 0, total: 1, status: 'Starting…');
+  BootState build() => const BootState(step: 0, total: 1, status: 'Starting…');
 
   Future<void> run() async {
     if (_started) return;
@@ -64,16 +63,12 @@ class BootNotifier extends Notifier<BootState> {
       (
         status: 'Reading network interfaces…',
         run: (ref) async {
-          await ref.read(connectionProvider.future).timeout(
-            const Duration(seconds: 2),
-            onTimeout: () => ConnectionSummary.offline,
-          );
+          await ref
+              .read(connectionProvider.future)
+              .timeout(const Duration(seconds: 2), onTimeout: () => ConnectionSummary.offline);
         },
       ),
-      (
-        status: 'Starting notifications…',
-        run: (ref) async => PulseNotifications.init(),
-      ),
+      (status: 'Starting notifications…', run: (ref) async => PulseNotifications.init()),
       if (DesktopHost.supported)
         (
           status: 'Adding tray icon…',
@@ -89,39 +84,19 @@ class BootNotifier extends Notifier<BootState> {
             if (await LaunchAtLogin.isEnabled() != wantLogin) await LaunchAtLogin.setEnabled(wantLogin);
           },
         ),
-      (
-        status: 'Starting monitor…',
-        run: (ref) async => ref.read(monitorRunnerProvider.notifier).start(),
-      ),
+      (status: 'Starting monitor…', run: (ref) async => ref.read(monitorRunnerProvider.notifier).start()),
       ...ref.read(bootTasksProvider),
     ];
     for (var i = 0; i < tasks.length; i++) {
-      state = BootState(
-        step: i,
-        total: tasks.length,
-        status: tasks[i].status,
-        version: version,
-      );
+      state = BootState(step: i, total: tasks.length, status: tasks[i].status, version: version);
       try {
         await tasks[i].run(ref);
       } catch (e) {
         // A failing optional task must not block the app from opening; the
         // failure is surfaced on the launch screen and in the relevant screen.
-        state = BootState(
-          step: i,
-          total: tasks.length,
-          status: tasks[i].status,
-          version: version,
-          error: e,
-        );
+        state = BootState(step: i, total: tasks.length, status: tasks[i].status, version: version, error: e);
       }
     }
-    state = BootState(
-      step: tasks.length,
-      total: tasks.length,
-      status: 'Ready',
-      version: version,
-      done: true,
-    );
+    state = BootState(step: tasks.length, total: tasks.length, status: 'Ready', version: version, done: true);
   }
 }

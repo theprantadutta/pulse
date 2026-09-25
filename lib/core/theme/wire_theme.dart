@@ -93,9 +93,7 @@ class WireColors extends ThemeExtension<WireColors> {
   /// follow the chosen accent in both themes.
   WireColors withSignal(Color c, Brightness b) {
     if (c == signalOrange) return copyWith(signal: c);
-    final tint = b == Brightness.light
-        ? Color.lerp(c, paper, 0.62)!
-        : Color.lerp(c, inkBlack, 0.70)!;
+    final tint = b == Brightness.light ? Color.lerp(c, paper, 0.62)! : Color.lerp(c, inkBlack, 0.70)!;
     return copyWith(signal: c, signalTint: tint);
   }
 
@@ -176,10 +174,7 @@ class WireType {
     height: height,
     fontWeight: weight,
     letterSpacing: 0,
-    fontVariations: [
-      FontVariation('wdth', width),
-      FontVariation('wght', weight.value.toDouble()),
-    ],
+    fontVariations: [FontVariation('wdth', width), FontVariation('wght', weight.value.toDouble())],
   );
 
   /// 150–210 desktop, 150–190 mobile.
@@ -192,8 +187,7 @@ class WireType {
   static TextStyle title(double size) => display(size, width: 75, height: 1);
 
   /// 16–20, UPPERCASE.
-  static TextStyle nav(double size) =>
-      display(size, width: 80, weight: FontWeight.w800, height: 1);
+  static TextStyle nav(double size) => display(size, width: 80, weight: FontWeight.w800, height: 1);
 
   static TextStyle data(double size) => TextStyle(
     fontFamily: 'SpaceMono',
@@ -203,12 +197,8 @@ class WireType {
     height: 1.3,
   );
 
-  static TextStyle body(double size) => TextStyle(
-    fontFamily: 'SpaceMono',
-    fontFamilyFallback: fallback,
-    fontSize: size,
-    height: 1.5,
-  );
+  static TextStyle body(double size) =>
+      TextStyle(fontFamily: 'SpaceMono', fontFamilyFallback: fallback, fontSize: size, height: 1.5);
 
   static TextStyle label([double size = 11]) => TextStyle(
     fontFamily: 'SpaceMono',
@@ -261,6 +251,13 @@ class WireMotion {
   static const copied = Duration(milliseconds: 1200);
 }
 
+/// Sheets slide in over 180ms easeOut.
+const kWireSheetAnimation = AnimationStyle(
+  duration: WireMotion.panel,
+  reverseDuration: WireMotion.panel,
+  curve: WireMotion.panelCurve,
+);
+
 ThemeData buildWireTheme(Brightness b, {Color? accent}) {
   final base = b == Brightness.light ? WireColors.light : WireColors.dark;
   final w = base.withSignal(accent ?? WireColors.signalOrange, b);
@@ -309,11 +306,7 @@ ThemeData buildWireTheme(Brightness b, {Color? accent}) {
       selectionColor: w.signalTint,
       selectionHandleColor: w.signal,
     ),
-    dividerTheme: DividerThemeData(
-      color: w.ink,
-      thickness: kWireHairline,
-      space: 0,
-    ),
+    dividerTheme: DividerThemeData(color: w.ink, thickness: kWireHairline, space: 0),
     scrollbarTheme: ScrollbarThemeData(
       thumbColor: WidgetStatePropertyAll(w.ink),
       radius: Radius.zero,
@@ -354,14 +347,8 @@ ThemeData buildWireTheme(Brightness b, {Color? accent}) {
       isDense: true,
       hintStyle: WireType.body(13).copyWith(color: w.text3),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.zero,
-        borderSide: side,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.zero,
-        borderSide: side,
-      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: side),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: side),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.zero,
         borderSide: BorderSide(color: w.signal, width: kWireBorder),
@@ -371,10 +358,7 @@ ThemeData buildWireTheme(Brightness b, {Color? accent}) {
       style: FilledButton.styleFrom(
         backgroundColor: w.signal,
         foregroundColor: w.onSignal,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-          side: side,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero, side: side),
         textStyle: WireType.nav(18),
         minimumSize: const Size(0, 56),
         elevation: 0,
@@ -390,25 +374,14 @@ ThemeData buildWireTheme(Brightness b, {Color? accent}) {
       ),
     ),
     textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(
-        foregroundColor: w.ink,
-        shape: square,
-        textStyle: WireType.label(12),
-      ),
+      style: TextButton.styleFrom(foregroundColor: w.ink, shape: square, textStyle: WireType.label(12)),
     ),
     switchTheme: SwitchThemeData(
-      thumbColor: WidgetStateProperty.resolveWith(
-        (s) => s.contains(WidgetState.selected) ? w.signal : w.ink,
-      ),
-      trackColor: WidgetStateProperty.resolveWith(
-        (s) => s.contains(WidgetState.selected) ? w.ink : Colors.transparent,
-      ),
+      thumbColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? w.signal : w.ink),
+      trackColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? w.ink : Colors.transparent),
       trackOutlineColor: WidgetStatePropertyAll(w.ink),
     ),
-    progressIndicatorTheme: ProgressIndicatorThemeData(
-      color: w.signal,
-      linearTrackColor: w.mutedRow,
-    ),
+    progressIndicatorTheme: ProgressIndicatorThemeData(color: w.signal, linearTrackColor: w.mutedRow),
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {
         TargetPlatform.android: _WireSlideTransitionsBuilder(),

@@ -13,9 +13,11 @@ void main() {
       summary: ConnectionSummary(kind: LinkKind.wifi, localIp: ip?.$1, interfaceName: ip?.$2),
     );
     // ignore: avoid_print
-    print('kind=${d.kind} name=${d.name} ssid=${d.ssid} std=${d.standard} band=${d.band} ch=${d.channel} '
-        'sec=${d.security} sig=${d.signalDbm}dBm bars=${d.signalBars} link=${d.linkMbps} ip=${d.localIpv4} '
-        'subnet=${d.subnetCidr} gw=${d.gateway} dns=${d.dns} mac=${d.mac} v6=${d.ipv6} vpn=${d.vpn}');
+    print(
+      'kind=${d.kind} name=${d.name} ssid=${d.ssid} std=${d.standard} band=${d.band} ch=${d.channel} '
+      'sec=${d.security} sig=${d.signalDbm}dBm bars=${d.signalBars} link=${d.linkMbps} ip=${d.localIpv4} '
+      'subnet=${d.subnetCidr} gw=${d.gateway} dns=${d.dns} mac=${d.mac} v6=${d.ipv6} vpn=${d.vpn}',
+    );
     expect(d.kind, isNot(LinkKind.none));
     expect(d.localIpv4, isNotNull);
     expect(d.gateway, isNotNull);

@@ -87,7 +87,9 @@ class TraceState {
     final b = StringBuffer('PULSE TRACEROUTE $target (${destination ?? '?'})\n');
     for (final h in hops) {
       final probesText = h.probes.map((p) => p == null ? '*' : '${p.toStringAsFixed(1)} ms').join('  ');
-      b.writeln('${h.n.toString().padLeft(2)}  ${(h.ip ?? '*').padRight(16)} ${(h.host ?? '').padRight(42)} $probesText  ${h.countryCode ?? ''}');
+      b.writeln(
+        '${h.n.toString().padLeft(2)}  ${(h.ip ?? '*').padRight(16)} ${(h.host ?? '').padRight(42)} $probesText  ${h.countryCode ?? ''}',
+      );
     }
     b.writeln(reached ? 'Destination reached in ${hops.length} hops.' : 'Destination not reached.');
     return b.toString();
@@ -153,16 +155,22 @@ class TraceNotifier extends Notifier<TraceState> {
   Future<void> _save(DateTime started) async {
     final s = state;
     final route = s.route.map((r) => r.cc).join(' → ');
-    await ref.read(historyRepositoryProvider).save(
-      tool: SessionTool.trace,
-      target: s.target,
-      startedAt: started,
-      endedAt: DateTime.now(),
-      avgMs: s.totalRtt,
-      lossPct: s.hops.isEmpty ? null : s.timeouts / s.hops.length * 100,
-      summary: '${s.hops.length} hops${s.reached ? '' : ' · not reached'}${route.isEmpty ? '' : ' · $route'}',
-      trend: bucketAverages([for (final h in s.hops) h.avg ?? 0], 12),
-      payload: {'destination': s.destination, 'reached': s.reached, 'hops': [for (final h in s.hops) h.toJson()]},
-    );
+    await ref
+        .read(historyRepositoryProvider)
+        .save(
+          tool: SessionTool.trace,
+          target: s.target,
+          startedAt: started,
+          endedAt: DateTime.now(),
+          avgMs: s.totalRtt,
+          lossPct: s.hops.isEmpty ? null : s.timeouts / s.hops.length * 100,
+          summary: '${s.hops.length} hops${s.reached ? '' : ' · not reached'}${route.isEmpty ? '' : ' · $route'}',
+          trend: bucketAverages([for (final h in s.hops) h.avg ?? 0], 12),
+          payload: {
+            'destination': s.destination,
+            'reached': s.reached,
+            'hops': [for (final h in s.hops) h.toJson()],
+          },
+        );
   }
 }

@@ -37,19 +37,14 @@ class PingParams {
   String get countLabel => count == 0 ? '∞' : '$count';
   String get intervalLabel => (intervalMs / 1000).toStringAsFixed(intervalMs < 1000 ? 1 : 1);
 
-  PingParams copyWith({
-    int? count,
-    int? intervalMs,
-    int? timeoutSec,
-    int? packetSize,
-    IpVersionPref? ipVersion,
-  }) => PingParams(
-    count: count ?? this.count,
-    intervalMs: intervalMs ?? this.intervalMs,
-    timeoutSec: timeoutSec ?? this.timeoutSec,
-    packetSize: packetSize ?? this.packetSize,
-    ipVersion: ipVersion ?? this.ipVersion,
-  );
+  PingParams copyWith({int? count, int? intervalMs, int? timeoutSec, int? packetSize, IpVersionPref? ipVersion}) =>
+      PingParams(
+        count: count ?? this.count,
+        intervalMs: intervalMs ?? this.intervalMs,
+        timeoutSec: timeoutSec ?? this.timeoutSec,
+        packetSize: packetSize ?? this.packetSize,
+        ipVersion: ipVersion ?? this.ipVersion,
+      );
 
   Map<String, Object?> toJson() => {
     'count': count,
@@ -64,10 +59,7 @@ class PingParams {
     intervalMs: j['intervalMs'] as int? ?? 1000,
     timeoutSec: j['timeoutSec'] as int? ?? 5,
     packetSize: j['packetSize'] as int? ?? 56,
-    ipVersion: IpVersionPref.values.firstWhere(
-      (v) => v.name == j['ipVersion'],
-      orElse: () => IpVersionPref.auto,
-    ),
+    ipVersion: IpVersionPref.values.firstWhere((v) => v.name == j['ipVersion'], orElse: () => IpVersionPref.auto),
   );
 }
 
@@ -107,10 +99,7 @@ class PingReply {
   factory PingReply.fromJson(Map<String, dynamic> j) => PingReply(
     seq: j['seq'] as int,
     at: DateTime.fromMillisecondsSinceEpoch(j['at'] as int),
-    state: ReplyState.values.firstWhere(
-      (s) => s.name == j['state'],
-      orElse: () => ReplyState.timeout,
-    ),
+    state: ReplyState.values.firstWhere((s) => s.name == j['state'], orElse: () => ReplyState.timeout),
     rttMs: (j['rtt'] as num?)?.toDouble(),
     ttl: j['ttl'] as int?,
     v6: j['v6'] == true,
@@ -119,14 +108,7 @@ class PingReply {
 
 @immutable
 class PingStats {
-  const PingStats({
-    this.sent = 0,
-    this.received = 0,
-    this.min,
-    this.avg,
-    this.max,
-    this.jitter,
-  });
+  const PingStats({this.sent = 0, this.received = 0, this.min, this.avg, this.max, this.jitter});
 
   factory PingStats.of(Iterable<PingReply> replies) {
     var sent = 0;

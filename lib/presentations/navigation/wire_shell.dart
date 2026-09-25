@@ -34,7 +34,10 @@ class WireShell extends StatelessWidget {
       WireMode.desktop => Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(width: WireLayout.sidebar, child: _Sidebar(location: location)),
+          SizedBox(
+            width: WireLayout.sidebar,
+            child: _Sidebar(location: location),
+          ),
           Container(width: kWireBorder, color: w.ink),
           Expanded(child: child),
         ],
@@ -42,7 +45,10 @@ class WireShell extends StatelessWidget {
       WireMode.compact => Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(width: WireLayout.rail, child: _Rail(location: location)),
+          SizedBox(
+            width: WireLayout.rail,
+            child: _Rail(location: location),
+          ),
           Container(width: kWireBorder, color: w.ink),
           Expanded(child: child),
         ],
@@ -68,11 +74,7 @@ class WireShell extends StatelessWidget {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: overlay,
-      child: Scaffold(
-        backgroundColor: w.background,
-        resizeToAvoidBottomInset: mode == WireMode.mobile,
-        body: body,
-      ),
+      child: Scaffold(backgroundColor: w.background, resizeToAvoidBottomInset: mode == WireMode.mobile, body: body),
     );
   }
 }
@@ -103,9 +105,7 @@ class _Sidebar extends ConsumerWidget {
                     semanticLabel: d.label,
                     child: Row(
                       children: [
-                        Expanded(
-                          child: Text(d.label.toUpperCase(), style: WireType.nav(17)),
-                        ),
+                        Expanded(child: Text(d.label.toUpperCase(), style: WireType.nav(17))),
                         Text(d.index, style: WireType.body(11).copyWith(height: 1)),
                       ],
                     ),
@@ -116,7 +116,9 @@ class _Sidebar extends ConsumerWidget {
         ),
         Container(
           decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: w.ink, width: kWireBorder)),
+            border: Border(
+              top: BorderSide(color: w.ink, width: kWireBorder),
+            ),
           ),
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
           child: const _ConnectionFooter(),
@@ -142,13 +144,13 @@ class _LogoCell extends StatelessWidget {
         height: WireLayout.topBar,
         decoration: BoxDecoration(
           color: w.signal,
-          border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder)),
+          border: Border(
+            bottom: BorderSide(color: w.ink, width: kWireBorder),
+          ),
         ),
         padding: EdgeInsets.symmetric(horizontal: compact ? 0 : 20),
         alignment: compact ? Alignment.center : Alignment.centerLeft,
-        child: compact
-            ? const PulseMark(size: 34)
-            : const PulseLockup(height: 34),
+        child: compact ? const PulseMark(size: 34) : const PulseLockup(height: 34),
       ),
     );
   }
@@ -170,12 +172,14 @@ class _ConnectionFooter extends ConsumerWidget {
         Text.rich(
           TextSpan(
             children: [
-              TextSpan(text: '● ', style: TextStyle(color: online ? w.ink : w.signal)),
+              TextSpan(
+                text: '● ',
+                style: TextStyle(color: online ? w.ink : w.signal),
+              ),
               TextSpan(
                 text: conn == null
                     ? 'CHECKING…'
-                    : [conn.kindLabel, if (name != null && name.isNotEmpty) name.toUpperCase()]
-                        .join(' / '),
+                    : [conn.kindLabel, if (name != null && name.isNotEmpty) name.toUpperCase()].join(' / '),
               ),
             ],
           ),
@@ -231,12 +235,11 @@ class _Rail extends ConsumerWidget {
           height: 48,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: w.ink, width: kWireBorder)),
+            border: Border(
+              top: BorderSide(color: w.ink, width: kWireBorder),
+            ),
           ),
-          child: Text(
-            '●',
-            style: WireType.data(14).copyWith(color: online ? w.ink : w.signal),
-          ),
+          child: Text('●', style: WireType.data(14).copyWith(color: online ? w.ink : w.signal)),
         ),
       ],
     );
@@ -258,7 +261,9 @@ class _TabBar extends StatelessWidget {
       MobileTab.history: 'HISTORY',
     };
     return Container(
-      decoration: BoxDecoration(border: Border.all(color: w.ink, width: kWireBorder)),
+      decoration: BoxDecoration(
+        border: Border.all(color: w.ink, width: kWireBorder),
+      ),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,

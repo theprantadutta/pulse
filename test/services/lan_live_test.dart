@@ -20,9 +20,15 @@ void main() {
   });
 
   test('ARP parser handles Windows, macOS and Linux formats', () {
-    expect(ArpTable.parse('  192.168.0.1           28-87-ba-94-33-3b     dynamic'), {'192.168.0.1': '28:87:BA:94:33:3B'});
-    expect(ArpTable.parse('? (10.0.0.1) at 0:1b:2c:3d:4e:5f on en0 ifscope [ethernet]'), {'10.0.0.1': '00:1B:2C:3D:4E:5F'});
-    expect(ArpTable.parse('192.168.1.7 dev wlan0 lladdr aa:bb:cc:dd:ee:ff REACHABLE'), {'192.168.1.7': 'AA:BB:CC:DD:EE:FF'});
+    expect(ArpTable.parse('  192.168.0.1           28-87-ba-94-33-3b     dynamic'), {
+      '192.168.0.1': '28:87:BA:94:33:3B',
+    });
+    expect(ArpTable.parse('? (10.0.0.1) at 0:1b:2c:3d:4e:5f on en0 ifscope [ethernet]'), {
+      '10.0.0.1': '00:1B:2C:3D:4E:5F',
+    });
+    expect(ArpTable.parse('192.168.1.7 dev wlan0 lladdr aa:bb:cc:dd:ee:ff REACHABLE'), {
+      '192.168.1.7': 'AA:BB:CC:DD:EE:FF',
+    });
   });
 
   test('subnet helpers', () {
@@ -50,8 +56,10 @@ void main() {
     print('sweep ${sw.elapsed.inMilliseconds} ms, ${last!.hosts.length} hosts');
     for (final h in last.hosts) {
       // ignore: avoid_print
-      print('  ${h.ip.padRight(15)} ${(h.mac ?? '-').padRight(17)} ${(h.hostname ?? '-').padRight(24)} ${h.vendor ?? '-'}  '
-          '${classifyDevice(h).label} ${h.rttMs?.toStringAsFixed(1) ?? 'arp'}${h.isGateway ? ' GW' : ''}${h.isSelf ? ' SELF' : ''}');
+      print(
+        '  ${h.ip.padRight(15)} ${(h.mac ?? '-').padRight(17)} ${(h.hostname ?? '-').padRight(24)} ${h.vendor ?? '-'}  '
+        '${classifyDevice(h).label} ${h.rttMs?.toStringAsFixed(1) ?? 'arp'}${h.isGateway ? ' GW' : ''}${h.isSelf ? ' SELF' : ''}',
+      );
     }
     expect(last.hosts.any((h) => h.isGateway), isTrue);
   }, timeout: const Timeout(Duration(minutes: 2)));

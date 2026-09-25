@@ -7,12 +7,7 @@ import 'wire_pressable.dart';
 /// most cells only draw right and/or bottom.
 @immutable
 class WireSides {
-  const WireSides({
-    this.top = false,
-    this.right = false,
-    this.bottom = false,
-    this.left = false,
-  });
+  const WireSides({this.top = false, this.right = false, this.bottom = false, this.left = false});
 
   final bool top, right, bottom, left;
 
@@ -27,8 +22,7 @@ class WireSides {
   static const vertical = WireSides(left: true, right: true);
 
   Border toBorder(Color color, double width) {
-    BorderSide s(bool on) =>
-        on ? BorderSide(color: color, width: width) : BorderSide.none;
+    BorderSide s(bool on) => on ? BorderSide(color: color, width: width) : BorderSide.none;
     return Border(top: s(top), right: s(right), bottom: s(bottom), left: s(left));
   }
 }
@@ -81,13 +75,7 @@ class WireBox extends StatelessWidget {
         border: sides.toBorder(borderColor ?? w.ink, borderWidth),
         boxShadow: shadowOffset == null
             ? null
-            : [
-                BoxShadow(
-                  color: shadowColor ?? w.ink,
-                  offset: shadowOffset!,
-                  blurRadius: 0,
-                ),
-              ],
+            : [BoxShadow(color: shadowColor ?? w.ink, offset: shadowOffset!, blurRadius: 0)],
       ),
       child: child,
     );
@@ -142,15 +130,10 @@ class WireCell extends StatelessWidget {
       builder: (context, c, states) => Container(
         width: width,
         height: height,
-        constraints: minHeight == null
-            ? null
-            : BoxConstraints(minHeight: minHeight!),
+        constraints: minHeight == null ? null : BoxConstraints(minHeight: minHeight!),
         alignment: alignment,
         padding: padding,
-        decoration: BoxDecoration(
-          color: c.bg,
-          border: sides.toBorder(w.ink, kWireBorder),
-        ),
+        decoration: BoxDecoration(color: c.bg, border: sides.toBorder(w.ink, kWireBorder)),
         child: WireForeground(color: c.fg, child: child),
       ),
     );
@@ -220,7 +203,9 @@ class WireRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.bg,
         border: divider > 0
-            ? Border(bottom: BorderSide(color: w.ink, width: divider))
+            ? Border(
+                bottom: BorderSide(color: w.ink, width: divider),
+              )
             : null,
       ),
       child: WireForeground(color: c.fg, child: child),
@@ -228,12 +213,7 @@ class WireRow extends StatelessWidget {
     if (onTap == null && onLongPress == null) {
       return build(wireRestColors(w, tone));
     }
-    return WirePressable(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      tone: tone,
-      builder: (context, c, states) => build(c),
-    );
+    return WirePressable(onTap: onTap, onLongPress: onLongPress, tone: tone, builder: (context, c, states) => build(c));
   }
 }
 
@@ -276,8 +256,7 @@ class WireRule extends StatelessWidget {
   final Color? color;
 
   @override
-  Widget build(BuildContext context) =>
-      Container(height: width, color: color ?? context.wire.ink);
+  Widget build(BuildContext context) => Container(height: width, color: color ?? context.wire.ink);
 }
 
 /// A 2px vertical ink rule.
@@ -287,6 +266,5 @@ class WireVRule extends StatelessWidget {
   final Color? color;
 
   @override
-  Widget build(BuildContext context) =>
-      Container(width: width, color: color ?? context.wire.ink);
+  Widget build(BuildContext context) => Container(width: width, color: color ?? context.wire.ink);
 }

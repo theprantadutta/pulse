@@ -23,16 +23,23 @@ class _Net implements PingProber {
   bool discordDown = false;
   final _n = <String, int>{};
   @override
-  Future<ProbeResult> probe(String host, {Duration timeout = const Duration(seconds: 2), int packetSize = 56, int ttl = 64, ProbeFamily family = ProbeFamily.auto}) async {
+  Future<ProbeResult> probe(
+    String host, {
+    Duration timeout = const Duration(seconds: 2),
+    int packetSize = 56,
+    int ttl = 64,
+    ProbeFamily family = ProbeFamily.auto,
+  }) async {
     final i = _n[host] = (_n[host] ?? 0) + 1;
     return switch (host) {
       '192.168.1.1' => const ProbeResult(status: ProbeStatus.ok, rttMs: 2),
       '8.8.8.8' => ProbeResult(status: ProbeStatus.ok, rttMs: 24 + (i % 5).toDouble()),
-      'discord.gg' => discordDown
-          ? const ProbeResult(status: ProbeStatus.timeout)
-          : i % 4 == 0
-          ? const ProbeResult(status: ProbeStatus.timeout)
-          : const ProbeResult(status: ProbeStatus.ok, rttMs: 87),
+      'discord.gg' =>
+        discordDown
+            ? const ProbeResult(status: ProbeStatus.timeout)
+            : i % 4 == 0
+            ? const ProbeResult(status: ProbeStatus.timeout)
+            : const ProbeResult(status: ProbeStatus.ok, rttMs: 87),
       _ => const ProbeResult(status: ProbeStatus.ok, rttMs: 42),
     };
   }
@@ -47,15 +54,69 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final db = AppDatabase(NativeDatabase.memory());
       final now = DateTime.now();
-      for (final (h, n) in [('192.168.1.1', 'Router'), ('8.8.8.8', 'Google DNS'), ('1.1.1.1', 'Cloudflare'), ('github.com', 'GitHub'), ('discord.gg', 'Discord')]) {
+      for (final (h, n) in [
+        ('192.168.1.1', 'Router'),
+        ('8.8.8.8', 'Google DNS'),
+        ('1.1.1.1', 'Cloudflare'),
+        ('github.com', 'GitHub'),
+        ('discord.gg', 'Discord'),
+      ]) {
         await db.into(db.monitorTargets).insert(MonitorTargetsCompanion.insert(host: h, name: n, createdAt: now));
       }
-      await db.into(db.alertRules).insert(AlertRulesCompanion.insert(title: 'High latency', target: '8.8.8.8', metric: AlertMetric.latency, threshold: const Value(100), createdAt: now, channels: const Value(3)));
-      await db.into(db.alertRules).insert(AlertRulesCompanion.insert(title: 'Packet loss', target: '*', metric: AlertMetric.loss, threshold: const Value(5), forSeconds: const Value(0), createdAt: now));
-      await db.into(db.alertRules).insert(AlertRulesCompanion.insert(title: 'Gateway down', target: '192.168.1.1', metric: AlertMetric.down, forSeconds: const Value(10), createdAt: now, channels: const Value(5)));
-      await db.into(db.alertRules).insert(AlertRulesCompanion.insert(title: 'New LAN device', target: '*', metric: AlertMetric.newDevice, enabled: const Value(false), createdAt: now, channels: const Value(2)));
+      await db
+          .into(db.alertRules)
+          .insert(
+            AlertRulesCompanion.insert(
+              title: 'High latency',
+              target: '8.8.8.8',
+              metric: AlertMetric.latency,
+              threshold: const Value(100),
+              createdAt: now,
+              channels: const Value(3),
+            ),
+          );
+      await db
+          .into(db.alertRules)
+          .insert(
+            AlertRulesCompanion.insert(
+              title: 'Packet loss',
+              target: '*',
+              metric: AlertMetric.loss,
+              threshold: const Value(5),
+              forSeconds: const Value(0),
+              createdAt: now,
+            ),
+          );
+      await db
+          .into(db.alertRules)
+          .insert(
+            AlertRulesCompanion.insert(
+              title: 'Gateway down',
+              target: '192.168.1.1',
+              metric: AlertMetric.down,
+              forSeconds: const Value(10),
+              createdAt: now,
+              channels: const Value(5),
+            ),
+          );
+      await db
+          .into(db.alertRules)
+          .insert(
+            AlertRulesCompanion.insert(
+              title: 'New LAN device',
+              target: '*',
+              metric: AlertMetric.newDevice,
+              enabled: const Value(false),
+              createdAt: now,
+              channels: const Value(2),
+            ),
+          );
       final net = _Net();
-      final engine = MonitorEngine(db: db, prober: net, settings: () => const AppSettings(notificationsEnabled: false, monitorIntervalSec: 60));
+      final engine = MonitorEngine(
+        db: db,
+        prober: net,
+        settings: () => const AppSettings(notificationsEnabled: false, monitorIntervalSec: 60),
+      );
       for (var i = 0; i < 6; i++) {
         await engine.runCycle();
       }
@@ -68,7 +129,11 @@ void main() {
 
   Widget app(AppDatabase db, SharedPreferences prefs, Widget child, Brightness b) => ProviderScope(
     overrides: [databaseProvider.overrideWithValue(db), sharedPreferencesProvider.overrideWithValue(prefs)],
-    child: MaterialApp(debugShowCheckedModeBanner: false, theme: buildWireTheme(b), home: Scaffold(body: child)),
+    child: MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: buildWireTheme(b),
+      home: Scaffold(body: child),
+    ),
   );
 
   testWidgets('monitor + alerts', (tester) async {

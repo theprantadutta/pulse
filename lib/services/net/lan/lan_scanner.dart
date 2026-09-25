@@ -72,36 +72,121 @@ DeviceType classifyDevice(LanHost h, {List<int> openPorts = const []}) {
   bool n(List<String> k) => k.any(name.contains);
   bool v(List<String> k) => k.any(vendor.contains);
 
-  if (openPorts.contains(9100) || openPorts.contains(631) || n(['printer', 'laserjet', 'officejet', 'deskjet', 'epson', 'brother', 'canon', 'mfc-', 'ipp'])) {
+  if (openPorts.contains(9100) ||
+      openPorts.contains(631) ||
+      n(['printer', 'laserjet', 'officejet', 'deskjet', 'epson', 'brother', 'canon', 'mfc-', 'ipp'])) {
     return DeviceType.printer;
   }
   if (n(['ipad', 'tab', 'tablet', 'kindle']) || v(['amazon technologies']) && n(['kindle'])) return DeviceType.tablet;
-  if (n(['iphone', 'android', 'galaxy', 'pixel', 'redmi', 'realme', 'oneplus', 'oppo', 'vivo', 'xiaomi', 'huawei', 'phone', 'mi-'])) {
+  if (n([
+    'iphone',
+    'android',
+    'galaxy',
+    'pixel',
+    'redmi',
+    'realme',
+    'oneplus',
+    'oppo',
+    'vivo',
+    'xiaomi',
+    'huawei',
+    'phone',
+    'mi-',
+  ])) {
     return DeviceType.phone;
   }
-  if (n(['tv', 'bravia', 'roku', 'chromecast', 'firetv', 'fire-tv', 'shield', 'appletv', 'apple-tv', 'webos'])) return DeviceType.tv;
-  if (n(['nas', 'diskstation', 'ds2', 'ds9', 'qnap', 'truenas', 'unraid', 'mycloud']) || v(['synology', 'qnap', 'western digital', 'buffalo'])) {
+  if (n(['tv', 'bravia', 'roku', 'chromecast', 'firetv', 'fire-tv', 'shield', 'appletv', 'apple-tv', 'webos'])) {
+    return DeviceType.tv;
+  }
+  if (n(['nas', 'diskstation', 'ds2', 'ds9', 'qnap', 'truenas', 'unraid', 'mycloud']) ||
+      v(['synology', 'qnap', 'western digital', 'buffalo'])) {
     return DeviceType.storage;
   }
-  if (n(['cam', 'ipc', 'nvr', 'dvr']) || v(['hikvision', 'dahua', 'reolink', 'axis comm', 'wyze', 'ezviz', 'amcrest'])) return DeviceType.camera;
-  if (n(['playstation', 'ps4', 'ps5', 'xbox', 'switch', 'nintendo']) || v(['sony interactive', 'nintendo', 'microsoft']) && n(['xbox'])) {
+  if (n(['cam', 'ipc', 'nvr', 'dvr']) ||
+      v(['hikvision', 'dahua', 'reolink', 'axis comm', 'wyze', 'ezviz', 'amcrest'])) {
+    return DeviceType.camera;
+  }
+  if (n(['playstation', 'ps4', 'ps5', 'xbox', 'switch', 'nintendo']) ||
+      v(['sony interactive', 'nintendo', 'microsoft']) && n(['xbox'])) {
     return DeviceType.console;
   }
   if (n(['sonos', 'echo', 'homepod', 'speaker', 'soundbar']) || v(['sonos', 'bose', 'harman'])) return DeviceType.audio;
-  if (v(['espressif', 'tuya', 'shelly', 'sonoff', 'itead', 'lifi', 'signify', 'philips lighting', 'tp-link smart', 'wiz', 'broadlink', 'xiaomi communications', 'beijing xiaomi', 'raspberry', 'arduino', 'particle', 'nordic'])) {
+  if (v([
+    'espressif',
+    'tuya',
+    'shelly',
+    'sonoff',
+    'itead',
+    'lifi',
+    'signify',
+    'philips lighting',
+    'tp-link smart',
+    'wiz',
+    'broadlink',
+    'xiaomi communications',
+    'beijing xiaomi',
+    'raspberry',
+    'arduino',
+    'particle',
+    'nordic',
+  ])) {
     return DeviceType.iot;
   }
   if (v(['apple']) && n(['macbook', 'imac', 'mac-', 'mac.'])) return DeviceType.pc;
   if (v(['apple'])) return DeviceType.phone;
-  if (v(['samsung', 'xiaomi', 'oneplus', 'oppo', 'vivo', 'realme', 'huawei', 'honor', 'motorola', 'google', 'nothing tech', 'zte', 'lg electronics'])) {
+  if (v([
+    'samsung',
+    'xiaomi',
+    'oneplus',
+    'oppo',
+    'vivo',
+    'realme',
+    'huawei',
+    'honor',
+    'motorola',
+    'google',
+    'nothing tech',
+    'zte',
+    'lg electronics',
+  ])) {
     return name.isEmpty ? DeviceType.phone : DeviceType.phone;
   }
-  if (h.isSelf || openPorts.contains(3389) || openPorts.contains(445) || openPorts.contains(139) ||
+  if (h.isSelf ||
+      openPorts.contains(3389) ||
+      openPorts.contains(445) ||
+      openPorts.contains(139) ||
       n(['pc', 'desktop', 'laptop', 'workstation', 'win-', 'macbook', 'thinkpad']) ||
-      v(['intel', 'dell', 'lenovo', 'hewlett', 'asustek', 'micro-star', 'gigabyte', 'realtek', 'liteon', 'azurewave', 'hon hai', 'foxconn', 'acer'])) {
+      v([
+        'intel',
+        'dell',
+        'lenovo',
+        'hewlett',
+        'asustek',
+        'micro-star',
+        'gigabyte',
+        'realtek',
+        'liteon',
+        'azurewave',
+        'hon hai',
+        'foxconn',
+        'acer',
+      ])) {
     return DeviceType.pc;
   }
-  if (v(['tp-link', 'netgear', 'ubiquiti', 'mikrotik', 'cisco', 'zyxel', 'd-link', 'huawei tech', 'tenda', 'arris', 'technicolor', 'sagemcom'])) {
+  if (v([
+    'tp-link',
+    'netgear',
+    'ubiquiti',
+    'mikrotik',
+    'cisco',
+    'zyxel',
+    'd-link',
+    'huawei tech',
+    'tenda',
+    'arris',
+    'technicolor',
+    'sagemcom',
+  ])) {
     return DeviceType.router;
   }
   return DeviceType.unknown;
@@ -143,9 +228,7 @@ class LanScanner {
     final mask = (0xFFFFFFFF << (32 - p)) & 0xFFFFFFFF;
     final net = addr & mask;
     final bcast = net | (~mask & 0xFFFFFFFF);
-    return [
-      for (var a = net + 1; a < bcast; a++) '${(a >> 24) & 255}.${(a >> 16) & 255}.${(a >> 8) & 255}.${a & 255}',
-    ];
+    return [for (var a = net + 1; a < bcast; a++) '${(a >> 24) & 255}.${(a >> 16) & 255}.${(a >> 8) & 255}.${a & 255}'];
   }
 
   static String cidrFor(String ip, int prefix) {
@@ -163,11 +246,7 @@ class LanScanner {
     return last.join('.');
   }
 
-  Stream<LanScanProgress> scan({
-    required String localIp,
-    required int prefix,
-    String? gateway,
-  }) async* {
+  Stream<LanScanProgress> scan({required String localIp, required int prefix, String? gateway}) async* {
     final targets = hostsFor(localIp, prefix);
     final found = <String, LanHost>{};
     var probed = 0;
@@ -268,11 +347,7 @@ class LanScanner {
 
   Future<String?> _name(LanHost h) async {
     if (h.isSelf) return Platform.localHostname;
-    final results = await Future.wait([
-      Dns.reverse(h.ip),
-      NameProbe.netbios(h.ip),
-      NameProbe.mdns(h.ip),
-    ]);
+    final results = await Future.wait([Dns.reverse(h.ip), NameProbe.netbios(h.ip), NameProbe.mdns(h.ip)]);
     String? clean(String? n) {
       if (n == null || n.isEmpty) return null;
       final s = n.replaceAll(RegExp(r'\.(local|lan|home|localdomain|domain|router)\.?$'), '');

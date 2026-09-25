@@ -37,18 +37,17 @@ Page<void> _page(BuildContext context, GoRouterState state, Widget child) {
     transitionDuration: WireMotion.panel,
     reverseTransitionDuration: WireMotion.panel,
     transitionsBuilder: (context, animation, secondary, child) => SlideTransition(
-      position: Tween(begin: const Offset(1, 0), end: Offset.zero)
-          .chain(CurveTween(curve: WireMotion.panelCurve))
-          .animate(animation),
+      position: Tween(
+        begin: const Offset(1, 0),
+        end: Offset.zero,
+      ).chain(CurveTween(curve: WireMotion.panelCurve)).animate(animation),
       child: child,
     ),
   );
 }
 
-GoRoute _route(String path, Widget Function(GoRouterState s) build) => GoRoute(
-  path: path,
-  pageBuilder: (context, state) => _page(context, state, build(state)),
-);
+GoRoute _route(String path, Widget Function(GoRouterState s) build) =>
+    GoRoute(path: path, pageBuilder: (context, state) => _page(context, state, build(state)));
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -57,13 +56,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: Routes.launch,
-        pageBuilder: (context, state) =>
-            NoTransitionPage(key: state.pageKey, child: const LaunchScreen()),
+        pageBuilder: (context, state) => NoTransitionPage(key: state.pageKey, child: const LaunchScreen()),
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
-        builder: (context, state, child) =>
-            WireShell(location: state.uri.path, child: child),
+        builder: (context, state, child) => WireShell(location: state.uri.path, child: child),
         routes: [
           _route(Routes.ping, (s) => const PingScreen()),
           _route(Routes.traceroute, (s) => TraceScreen(initialTarget: s.uri.queryParameters['target'])),

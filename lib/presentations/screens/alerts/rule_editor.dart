@@ -56,7 +56,11 @@ class _RuleEditorState extends ConsumerState<RuleEditor> {
     final w = context.wire;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: widget.compact ? 14 : 20, vertical: 14),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: w.ink, width: kWireBorder),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -167,8 +171,16 @@ class _RuleEditorState extends ConsumerState<RuleEditor> {
                     final wasDefault = _title.text == RuleDraft.defaultTitle(_d.metric);
                     _d = _d.copyWith(
                       metric: m,
-                      threshold: m == AlertMetric.loss ? 5 : m == AlertMetric.latency ? 100 : 0,
-                      forSeconds: m == AlertMetric.down ? 10 : m == AlertMetric.loss ? 60 : 30,
+                      threshold: m == AlertMetric.loss
+                          ? 5
+                          : m == AlertMetric.latency
+                          ? 100
+                          : 0,
+                      forSeconds: m == AlertMetric.down
+                          ? 10
+                          : m == AlertMetric.loss
+                          ? 60
+                          : 30,
                     );
                     if (wasDefault || _title.text.isEmpty) _title.text = RuleDraft.defaultTitle(m);
                   }),
@@ -237,7 +249,11 @@ class _RuleEditorState extends ConsumerState<RuleEditor> {
           ),
         ),
         Container(
-          decoration: BoxDecoration(border: Border(top: BorderSide(color: w.ink, width: kWireBorder))),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: w.ink, width: kWireBorder),
+            ),
+          ),
           child: IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -291,7 +307,10 @@ class _Chip extends StatelessWidget {
       builder: (context, c, s) => Container(
         constraints: const BoxConstraints(minHeight: 36),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(color: c.bg, border: Border.all(color: w.ink, width: kWireBorder)),
+        decoration: BoxDecoration(
+          color: c.bg,
+          border: Border.all(color: w.ink, width: kWireBorder),
+        ),
         child: Text(label, style: WireType.label(12).copyWith(color: c.fg)),
       ),
     );

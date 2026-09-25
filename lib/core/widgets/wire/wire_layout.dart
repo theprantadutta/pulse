@@ -115,11 +115,7 @@ class WireColumns extends StatelessWidget {
             : Alignment.centerLeft,
         child: cells[i],
       );
-      children.add(
-        c.width != null
-            ? SizedBox(width: c.width, child: cell)
-            : Expanded(flex: c.flex ?? 1, child: cell),
-      );
+      children.add(c.width != null ? SizedBox(width: c.width, child: cell) : Expanded(flex: c.flex ?? 1, child: cell));
     }
     return Row(crossAxisAlignment: crossAxisAlignment, children: children);
   }
@@ -127,13 +123,7 @@ class WireColumns extends StatelessWidget {
 
 /// Mobile screen header: 48px, ink fill + paper title, or signal fill.
 class WireMobileHeader extends StatelessWidget {
-  const WireMobileHeader({
-    super.key,
-    required this.title,
-    this.onBack,
-    this.trailing,
-    this.signal = false,
-  });
+  const WireMobileHeader({super.key, required this.title, this.onBack, this.trailing, this.signal = false});
 
   final String title;
   final VoidCallback? onBack;
@@ -149,7 +139,9 @@ class WireMobileHeader extends StatelessWidget {
       height: WireLayout.mobileHeader,
       decoration: BoxDecoration(
         color: bg,
-        border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder)),
+        border: Border(
+          bottom: BorderSide(color: w.ink, width: kWireBorder),
+        ),
       ),
       child: Row(
         children: [
@@ -179,10 +171,7 @@ class WireMobileHeader extends StatelessWidget {
           if (trailing != null)
             WireForeground(
               color: fg,
-              child: DefaultTextStyle.merge(
-                style: WireType.label(12),
-                child: trailing!,
-              ),
+              child: DefaultTextStyle.merge(style: WireType.label(12), child: trailing!),
             ),
           const SizedBox(width: 14),
         ],
@@ -193,12 +182,7 @@ class WireMobileHeader extends StatelessWidget {
 
 /// Top-bar chip (e.g. COUNT ∞, INT 1.0s). Tappable when [onTap] is set.
 class WireTopChip extends StatelessWidget {
-  const WireTopChip({
-    super.key,
-    required this.label,
-    this.onTap,
-    this.selected = false,
-  });
+  const WireTopChip({super.key, required this.label, this.onTap, this.selected = false});
 
   final String label;
   final VoidCallback? onTap;
@@ -235,10 +219,7 @@ class WireTag extends StatelessWidget {
         color: c.bg,
         border: Border.all(color: w.ink, width: dense ? 1 : kWireBorder),
       ),
-      child: Text(
-        label.toUpperCase(),
-        style: WireType.label(dense ? 9 : 11).copyWith(color: c.fg),
-      ),
+      child: Text(label.toUpperCase(), style: WireType.label(dense ? 9 : 11).copyWith(color: c.fg)),
     );
   }
 }
@@ -401,10 +382,7 @@ class WireEmptyState extends StatelessWidget {
           children: [
             PulseMark(size: compact ? 40 : 64, colorway: PulseMarkColorway.mono, color: w.text3),
             const SizedBox(height: 16),
-            Text(
-              title.toUpperCase(),
-              style: WireType.display(compact ? 40 : 64, width: 66).copyWith(color: w.ink),
-            ),
+            Text(title.toUpperCase(), style: WireType.display(compact ? 40 : 64, width: 66).copyWith(color: w.ink)),
             const SizedBox(height: 10),
             Text(message, style: WireType.body(13).copyWith(color: w.text2)),
             if (actionLabel != null && onAction != null) ...[
@@ -425,13 +403,7 @@ class WireEmptyState extends StatelessWidget {
 
 /// Replaces a hero on failure: UNREACHABLE on signal tint + mono reason.
 class WireErrorBlock extends StatelessWidget {
-  const WireErrorBlock({
-    super.key,
-    required this.reason,
-    this.title = 'UNREACHABLE',
-    this.size = 96,
-    this.onRetry,
-  });
+  const WireErrorBlock({super.key, required this.reason, this.title = 'UNREACHABLE', this.size = 96, this.onRetry});
 
   final String reason;
   final String title;
@@ -498,16 +470,9 @@ class WireKeyValueRow extends StatelessWidget {
             child: Text(label.toUpperCase(), style: WireType.label().copyWith(color: w.text2)),
           ),
           Expanded(
-            child: SelectableText(
-              value,
-              maxLines: 1,
-              style: WireType.data(14).copyWith(color: valueColor ?? w.ink),
-            ),
+            child: SelectableText(value, maxLines: 1, style: WireType.data(14).copyWith(color: valueColor ?? w.ink)),
           ),
-          if (copy) ...[
-            const SizedBox(width: 10),
-            WireCopyButton(value: () => value),
-          ],
+          if (copy) ...[const SizedBox(width: 10), WireCopyButton(value: () => value)],
         ],
       ),
     );

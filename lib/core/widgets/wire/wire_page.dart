@@ -52,7 +52,9 @@ class WireDesktopPage extends StatelessWidget {
     final bar = Container(
       height: WireLayout.topBar,
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder)),
+        border: Border(
+          bottom: BorderSide(color: w.ink, width: kWireBorder),
+        ),
       ),
       child: topBar,
     );
@@ -76,15 +78,14 @@ class WireDesktopPage extends StatelessWidget {
             child: CustomScrollView(
               slivers: [
                 SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: scrollBody ? null : MediaQuery.sizeOf(context).height * 0.72,
-                    child: body,
-                  ),
+                  child: SizedBox(height: scrollBody ? null : MediaQuery.sizeOf(context).height * 0.72, child: body),
                 ),
                 SliverToBoxAdapter(
                   child: Container(
                     decoration: BoxDecoration(
-                      border: Border(top: BorderSide(color: w.ink, width: kWireBorder)),
+                      border: Border(
+                        top: BorderSide(color: w.ink, width: kWireBorder),
+                      ),
                     ),
                     child: panel,
                   ),
@@ -104,9 +105,7 @@ class WireDesktopPage extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: scrollBody ? SingleChildScrollView(child: body) : body,
-              ),
+              Expanded(child: scrollBody ? SingleChildScrollView(child: body) : body),
               Container(width: kWireBorder, color: w.ink),
               SizedBox(width: panelWidth, child: panel),
             ],
@@ -120,12 +119,7 @@ class WireDesktopPage extends StatelessWidget {
 /// Mobile page inside the bordered shell container: header, body and an
 /// optional full-width action bar.
 class WireMobilePage extends StatelessWidget {
-  const WireMobilePage({
-    super.key,
-    required this.header,
-    required this.body,
-    this.action,
-  });
+  const WireMobilePage({super.key, required this.header, required this.body, this.action});
 
   final Widget header;
   final Widget body;
@@ -142,7 +136,9 @@ class WireMobilePage extends StatelessWidget {
         if (action != null)
           Container(
             decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: w.ink, width: kWireBorder)),
+              border: Border(
+                top: BorderSide(color: w.ink, width: kWireBorder),
+              ),
             ),
             child: action,
           ),
@@ -159,8 +155,7 @@ class WireAdaptive extends StatelessWidget {
   final WidgetBuilder desktop;
 
   @override
-  Widget build(BuildContext context) =>
-      context.isMobileLayout ? mobile(context) : desktop(context);
+  Widget build(BuildContext context) => context.isMobileLayout ? mobile(context) : desktop(context);
 }
 
 /// Top-bar title cell (e.g. SETTINGS, HISTORY).

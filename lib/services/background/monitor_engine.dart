@@ -58,13 +58,7 @@ class CycleReport {
 
 /// Runs background checks, maintains incidents and fires alert rules.
 class MonitorEngine {
-  MonitorEngine({
-    required this.db,
-    required this.prober,
-    required this.settings,
-    this.onTrayAlert,
-    this.mutedUntil,
-  });
+  MonitorEngine({required this.db, required this.prober, required this.settings, this.onTrayAlert, this.mutedUntil});
 
   final AppDatabase db;
   final PingProber prober;
@@ -97,7 +91,9 @@ class MonitorEngine {
       }
       final fired = await _evaluateRules(targets, now);
       await _pruneIfDue(now);
-      final firing = await (db.select(db.alertRules)..where((r) => r.firing.equals(true) & r.enabled.equals(true))).get();
+      final firing = await (db.select(
+        db.alertRules,
+      )..where((r) => r.firing.equals(true) & r.enabled.equals(true))).get();
       return CycleReport(
         targets: targets.length,
         down: results.values.where((c) => c.received == 0).length,
@@ -152,20 +148,27 @@ class MonitorEngine {
 
   /// Median RTT over the last 24 hours — the target's normal.
   Future<double?> _baseline(int targetId, DateTime now) async {
-    final rows = await (db.select(db.monitorChecks)
-          ..where((c) => c.targetId.equals(targetId) & c.at.isBiggerOrEqualValue(now.subtract(const Duration(hours: 24))) & c.rttAvg.isNotNull())
-          ..orderBy([(c) => OrderingTerm.desc(c.at)])
-          ..limit(1440))
-        .get();
+    final rows =
+        await (db.select(db.monitorChecks)
+              ..where(
+                (c) =>
+                    c.targetId.equals(targetId) &
+                    c.at.isBiggerOrEqualValue(now.subtract(const Duration(hours: 24))) &
+                    c.rttAvg.isNotNull(),
+              )
+              ..orderBy([(c) => OrderingTerm.desc(c.at)])
+              ..limit(1440))
+            .get();
     if (rows.length < 5) return null;
     final v = rows.map((r) => r.rttAvg!).toList()..sort();
     return v[v.length ~/ 2];
   }
 
-  Future<Incident?> _open(int targetId, String kind) => (db.select(db.incidents)
-        ..where((i) => i.targetId.equals(targetId) & i.kind.equals(kind) & i.endedAt.isNull())
-        ..limit(1))
-      .getSingleOrNull();
+  Future<Incident?> _open(int targetId, String kind) =>
+      (db.select(db.incidents)
+            ..where((i) => i.targetId.equals(targetId) & i.kind.equals(kind) & i.endedAt.isNull())
+            ..limit(1))
+          .getSingleOrNull();
 
   Future<void> _updateIncidents(MonitorTarget t, DateTime now) async {
     final recent = await _recentChecks(t.id, limit: 5);
@@ -182,16 +185,18 @@ class MonitorEngine {
           final other = await _open(t.id, kind);
           if (other != null) await _close(other, now);
         }
-        await db.into(db.incidents).insert(
-          IncidentsCompanion.insert(
-            targetId: t.id,
-            kind: 'down',
-            title: '$name unreachable',
-            description: 'No reply to ${last.sent} probes',
-            startedAt: last.at,
-            failedChecks: const Value(1),
-          ),
-        );
+        await db
+            .into(db.incidents)
+            .insert(
+              IncidentsCompanion.insert(
+                targetId: t.id,
+                kind: 'down',
+                title: '$name unreachable',
+                description: 'No reply to ${last.sent} probes',
+                startedAt: last.at,
+                failedChecks: const Value(1),
+              ),
+            );
       } else {
         final failed = down.failedChecks + 1;
         await (db.update(db.incidents)..where((i) => i.id.equals(down.id))).write(
@@ -215,16 +220,18 @@ class MonitorEngine {
     if (last.received == 0) return;
     if (answering.length >= 3 && lossPct >= 10) {
       if (lossOpen == null) {
-        await db.into(db.incidents).insert(
-          IncidentsCompanion.insert(
-            targetId: t.id,
-            kind: 'loss',
-            title: '$name packet loss',
-            description: '${lossPct.round()}% loss',
-            startedAt: answering.last.at,
-            peak: Value(lossPct),
-          ),
-        );
+        await db
+            .into(db.incidents)
+            .insert(
+              IncidentsCompanion.insert(
+                targetId: t.id,
+                kind: 'loss',
+                title: '$name packet loss',
+                description: '${lossPct.round()}% loss',
+                startedAt: answering.last.at,
+                peak: Value(lossPct),
+              ),
+            );
       } else {
         final peak = math.max(lossOpen.peak ?? 0, lossPct);
         final mins = now.difference(lossOpen.startedAt).inMinutes;
@@ -248,23 +255,22 @@ class MonitorEngine {
       final limit = math.max(base * 3, base + 80);
       if (avg > limit) {
         if (latOpen == null) {
-          await db.into(db.incidents).insert(
-            IncidentsCompanion.insert(
-              targetId: t.id,
-              kind: 'latency',
-              title: '$name latency high',
-              description: 'Avg ${avg.round()} ms (normal ${base.round()} ms)',
-              startedAt: last3.last.at,
-              peak: Value(avg),
-            ),
-          );
+          await db
+              .into(db.incidents)
+              .insert(
+                IncidentsCompanion.insert(
+                  targetId: t.id,
+                  kind: 'latency',
+                  title: '$name latency high',
+                  description: 'Avg ${avg.round()} ms (normal ${base.round()} ms)',
+                  startedAt: last3.last.at,
+                  peak: Value(avg),
+                ),
+              );
         } else {
           final peak = math.max(latOpen.peak ?? 0, avg);
           await (db.update(db.incidents)..where((i) => i.id.equals(latOpen.id))).write(
-            IncidentsCompanion(
-              peak: Value(peak),
-              description: Value('Avg ${avg.round()} ms, peak ${peak.round()} ms'),
-            ),
+            IncidentsCompanion(peak: Value(peak), description: Value('Avg ${avg.round()} ms, peak ${peak.round()} ms')),
           );
         }
       } else if (latOpen != null && avg < base * 1.5 + 20) {
@@ -278,12 +284,14 @@ class MonitorEngine {
 
   /// Returns messages of rules that fired this cycle.
   Future<List<String>> _evaluateRules(List<MonitorTarget> targets, DateTime now) async {
-    final rules = await (db.select(db.alertRules)
-          ..where((r) => r.enabled.equals(true) & r.metric.isNotIn([AlertMetric.newDevice])))
-        .get();
+    final rules = await (db.select(
+      db.alertRules,
+    )..where((r) => r.enabled.equals(true) & r.metric.isNotIn([AlertMetric.newDevice]))).get();
     final fired = <String>[];
     for (final rule in rules) {
-      final watched = rule.target == '*' ? targets : targets.where((t) => t.host.toLowerCase() == rule.target.toLowerCase()).toList();
+      final watched = rule.target == '*'
+          ? targets
+          : targets.where((t) => t.host.toLowerCase() == rule.target.toLowerCase()).toList();
       String? breach;
       double? value;
       for (final t in watched) {
@@ -324,16 +332,16 @@ class MonitorEngine {
       }
       final since = rule.breachSince ?? now;
       if (rule.breachSince == null) {
-        await (db.update(db.alertRules)..where((r) => r.id.equals(rule.id))).write(AlertRulesCompanion(breachSince: Value(now)));
+        await (db.update(
+          db.alertRules,
+        )..where((r) => r.id.equals(rule.id))).write(AlertRulesCompanion(breachSince: Value(now)));
       }
       final held = now.difference(since).inSeconds >= rule.forSeconds - 1;
       if (held && !rule.firing) {
-        final message = rule.metric == AlertMetric.down
-            ? '$breach for ${_dur(now.difference(since))}'
-            : breach;
-        await db.into(db.alertEvents).insert(
-          AlertEventsCompanion.insert(ruleId: rule.id, at: now, message: message, value: Value(value)),
-        );
+        final message = rule.metric == AlertMetric.down ? '$breach for ${_dur(now.difference(since))}' : breach;
+        await db
+            .into(db.alertEvents)
+            .insert(AlertEventsCompanion.insert(ruleId: rule.id, at: now, message: message, value: Value(value)));
         await (db.update(db.alertRules)..where((r) => r.id.equals(rule.id))).write(
           AlertRulesCompanion(firing: const Value(true), lastFiredAt: Value(now)),
         );
@@ -369,9 +377,9 @@ class MonitorEngine {
   /// for hosts never seen on this subnet. Returns the new devices.
   Future<List<LanHost>> runLanWatch({bool force = false}) async {
     final now = DateTime.now();
-    final rules = await (db.select(db.alertRules)
-          ..where((r) => r.enabled.equals(true) & r.metric.equals(AlertMetric.newDevice)))
-        .get();
+    final rules = await (db.select(
+      db.alertRules,
+    )..where((r) => r.enabled.equals(true) & r.metric.equals(AlertMetric.newDevice))).get();
     if (rules.isEmpty && !settings().lanDeviceWatch) return const [];
     if (!force && _lastLanWatch != null && now.difference(_lastLanWatch!).inMinutes < 15) return const [];
     _lastLanWatch = now;
@@ -380,11 +388,12 @@ class MonitorEngine {
     if (link.localIpv4 == null) return const [];
     final prefix = link.prefixLength ?? 24;
     final cidr = LanScanner.cidrFor(link.localIpv4!, prefix);
-    final known = {
-      for (final d in await (db.select(db.lanDevices)..where((t) => t.subnet.equals(cidr))).get()) d.key,
-    };
+    final known = {for (final d in await (db.select(db.lanDevices)..where((t) => t.subnet.equals(cidr))).get()) d.key};
     LanScanProgress? last;
-    await for (final p in LanScanner(prober: prober, concurrency: 32).scan(localIp: link.localIpv4!, prefix: prefix, gateway: link.gateway)) {
+    await for (final p in LanScanner(
+      prober: prober,
+      concurrency: 32,
+    ).scan(localIp: link.localIpv4!, prefix: prefix, gateway: link.gateway)) {
       last = p;
     }
     final hosts = last?.hosts ?? const <LanHost>[];
@@ -418,7 +427,9 @@ class MonitorEngine {
       for (final rule in rules) {
         final message = 'New on $cidr: $label';
         await db.into(db.alertEvents).insert(AlertEventsCompanion.insert(ruleId: rule.id, at: now, message: message));
-        await (db.update(db.alertRules)..where((r) => r.id.equals(rule.id))).write(AlertRulesCompanion(lastFiredAt: Value(now)));
+        await (db.update(
+          db.alertRules,
+        )..where((r) => r.id.equals(rule.id))).write(AlertRulesCompanion(lastFiredAt: Value(now)));
         await deliver(rule, message);
       }
     }

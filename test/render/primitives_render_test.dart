@@ -24,15 +24,16 @@ class _Gallery extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    color: w.signal,
-                    padding: const EdgeInsets.all(12),
-                    child: const PulseLockup(height: 34),
-                  ),
+                  Container(color: w.signal, padding: const EdgeInsets.all(12), child: const PulseLockup(height: 34)),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const WireButton(label: 'Start', glyph: '▶', variant: WireButtonVariant.primary, onPressed: _noop),
+                      const WireButton(
+                        label: 'Start',
+                        glyph: '▶',
+                        variant: WireButtonVariant.primary,
+                        onPressed: _noop,
+                      ),
                       const WireButton(label: 'Stop', glyph: '■', variant: WireButtonVariant.inverse, onPressed: _noop),
                       const WireButton(label: 'Copy', onPressed: _noop),
                       const SizedBox(width: 12),
@@ -77,7 +78,14 @@ class _Gallery extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   WireStatusStrip(
-                    colors: [for (var i = 0; i < 48; i++) i == 20 ? w.signal : i == 12 ? w.degraded : w.ink],
+                    colors: [
+                      for (var i = 0; i < 48; i++)
+                        i == 20
+                            ? w.signal
+                            : i == 12
+                            ? w.degraded
+                            : w.ink,
+                    ],
                   ),
                   const SizedBox(height: 12),
                   const WireProgress(value: 0.72),
@@ -88,17 +96,19 @@ class _Gallery extends StatelessWidget {
                   const WireRow(highlight: WireRowHighlight.muted, child: Text('* * *  TIMEOUT')),
                   const WireKeyValueRow(label: 'Local IPv4', value: '192.168.1.42'),
                   const SizedBox(height: 12),
-                  const Row(children: [
-                    WireTag('Gateway'),
-                    SizedBox(width: 8),
-                    WireTag('New', tone: WireTone.signal),
-                    SizedBox(width: 8),
-                    WireBlockMeter(filled: 3),
-                    SizedBox(width: 8),
-                    PulseMark(size: 48, colorway: PulseMarkColorway.paper),
-                    PulseMark(size: 48, contained: true),
-                    PulseMark(size: 48, contained: true, colorway: PulseMarkColorway.dark),
-                  ]),
+                  const Row(
+                    children: [
+                      WireTag('Gateway'),
+                      SizedBox(width: 8),
+                      WireTag('New', tone: WireTone.signal),
+                      SizedBox(width: 8),
+                      WireBlockMeter(filled: 3),
+                      SizedBox(width: 8),
+                      PulseMark(size: 48, colorway: PulseMarkColorway.paper),
+                      PulseMark(size: 48, contained: true),
+                      PulseMark(size: 48, contained: true, colorway: PulseMarkColorway.dark),
+                    ],
+                  ),
                   const SizedBox(height: 12),
                   const WireErrorBlock(reason: 'DNS lookup failed for nosuch.host', size: 64),
                 ],
@@ -121,11 +131,7 @@ void main() {
       await renderToPng(
         tester,
         'primitives_${b.name}',
-        MaterialApp(
-          debugShowCheckedModeBanner: false,
-          theme: buildWireTheme(b),
-          home: const _Gallery(),
-        ),
+        MaterialApp(debugShowCheckedModeBanner: false, theme: buildWireTheme(b), home: const _Gallery()),
       );
     });
   }

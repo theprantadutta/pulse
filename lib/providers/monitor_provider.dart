@@ -120,9 +120,10 @@ class MonitorRunner extends Notifier<MonitorRunState> {
 
   Future<void> _configure() async {
     final settings = ref.read(settingsProvider);
-    final newDeviceRules = await (ref.read(databaseProvider).select(ref.read(databaseProvider).alertRules)
-          ..where((r) => r.enabled.equals(true) & r.metric.equals(AlertMetric.newDevice)))
-        .get();
+    final newDeviceRules =
+        await (ref.read(databaseProvider).select(ref.read(databaseProvider).alertRules)
+              ..where((r) => r.enabled.equals(true) & r.metric.equals(AlertMetric.newDevice)))
+            .get();
     final work = _targets > 0 || newDeviceRules.isNotEmpty || settings.lanDeviceWatch;
 
     if (_paused || !work) {
@@ -273,11 +274,13 @@ class MonitorOverview {
 final monitorOverviewProvider = StreamProvider<MonitorOverview>((ref) {
   final db = ref.watch(databaseProvider);
   final range = ref.watch(monitorRangeProvider);
-  final trigger = db.customSelect(
-    'SELECT (SELECT MAX(id) FROM monitor_checks) AS c, (SELECT COUNT(*) FROM monitor_targets) AS t, '
-    '(SELECT COUNT(*) FROM incidents WHERE ended_at IS NULL) AS i',
-    readsFrom: {db.monitorChecks, db.monitorTargets, db.incidents},
-  ).watchSingle();
+  final trigger = db
+      .customSelect(
+        'SELECT (SELECT MAX(id) FROM monitor_checks) AS c, (SELECT COUNT(*) FROM monitor_targets) AS t, '
+        '(SELECT COUNT(*) FROM incidents WHERE ended_at IS NULL) AS i',
+        readsFrom: {db.monitorChecks, db.monitorTargets, db.incidents},
+      )
+      .watchSingle();
   return trigger.asyncMap((_) => _overview(db, range));
 });
 
@@ -286,16 +289,20 @@ Future<MonitorOverview> _overview(AppDatabase db, MonitorRange range) async {
   final start = now.subtract(range.span);
   final blockSec = range.block.inSeconds;
   final startSec = start.millisecondsSinceEpoch ~/ 1000;
-  final targets = await (db.select(db.monitorTargets)..orderBy([(t) => OrderingTerm.asc(t.sortOrder), (t) => OrderingTerm.asc(t.id)])).get();
+  final targets = await (db.select(
+    db.monitorTargets,
+  )..orderBy([(t) => OrderingTerm.asc(t.sortOrder), (t) => OrderingTerm.asc(t.id)])).get();
 
   // drift stores DateTime as unix seconds.
-  final rows = await db.customSelect(
-    'SELECT target_id, CAST((at - ?) / ? AS INTEGER) AS b, COUNT(*) AS n, '
-    'SUM(CASE WHEN received = 0 THEN 1 ELSE 0 END) AS down, SUM(sent) AS sent, SUM(received) AS recv, AVG(rtt_avg) AS rtt '
-    'FROM monitor_checks WHERE at >= ? GROUP BY target_id, b',
-    variables: [Variable.withInt(startSec), Variable.withInt(blockSec), Variable.withInt(startSec)],
-    readsFrom: {db.monitorChecks},
-  ).get();
+  final rows = await db
+      .customSelect(
+        'SELECT target_id, CAST((at - ?) / ? AS INTEGER) AS b, COUNT(*) AS n, '
+        'SUM(CASE WHEN received = 0 THEN 1 ELSE 0 END) AS down, SUM(sent) AS sent, SUM(received) AS recv, AVG(rtt_avg) AS rtt '
+        'FROM monitor_checks WHERE at >= ? GROUP BY target_id, b',
+        variables: [Variable.withInt(startSec), Variable.withInt(blockSec), Variable.withInt(startSec)],
+        readsFrom: {db.monitorChecks},
+      )
+      .get();
 
   final open = await (db.select(db.incidents)..where((i) => i.endedAt.isNull())).get();
   final openTargets = open.map((i) => i.targetId).toSet();
@@ -345,11 +352,12 @@ Future<MonitorOverview> _overview(AppDatabase db, MonitorRange range) async {
     }
     totalChecks += checks;
     totalUp += up;
-    final last = await (db.select(db.monitorChecks)
-          ..where((c) => c.targetId.equals(t.id))
-          ..orderBy([(c) => OrderingTerm.desc(c.at)])
-          ..limit(1))
-        .getSingleOrNull();
+    final last =
+        await (db.select(db.monitorChecks)
+              ..where((c) => c.targetId.equals(t.id))
+              ..orderBy([(c) => OrderingTerm.desc(c.at)])
+              ..limit(1))
+            .getSingleOrNull();
     out.add(
       TargetRow(
         target: t,
@@ -380,16 +388,14 @@ class IncidentView {
 
 final incidentsProvider = StreamProvider<List<IncidentView>>((ref) {
   final db = ref.watch(databaseProvider);
-  final q = db.select(db.incidents).join([
-    innerJoin(db.monitorTargets, db.monitorTargets.id.equalsExp(db.incidents.targetId)),
-  ])
-    ..orderBy([OrderingTerm.desc(db.incidents.startedAt)])
-    ..limit(40);
+  final q =
+      db.select(db.incidents).join([
+          innerJoin(db.monitorTargets, db.monitorTargets.id.equalsExp(db.incidents.targetId)),
+        ])
+        ..orderBy([OrderingTerm.desc(db.incidents.startedAt)])
+        ..limit(40);
   return q.watch().map((rows) {
-    final list = [
-      for (final r in rows)
-        IncidentView(r.readTable(db.incidents), r.readTable(db.monitorTargets).name),
-    ];
+    final list = [for (final r in rows) IncidentView(r.readTable(db.incidents), r.readTable(db.monitorTargets).name)];
     list.sort((a, b) {
       if (a.ongoing != b.ongoing) return a.ongoing ? -1 : 1;
       return b.incident.startedAt.compareTo(a.incident.startedAt);
@@ -404,16 +410,26 @@ class MonitorTargetsRepository {
   final AppDatabase db;
 
   Future<int> add(String host, String name) async {
-    final existing = await (db.select(db.monitorTargets)..where((t) => t.host.lower().equals(host.toLowerCase()))).getSingleOrNull();
+    final existing = await (db.select(
+      db.monitorTargets,
+    )..where((t) => t.host.lower().equals(host.toLowerCase()))).getSingleOrNull();
     if (existing != null) {
-      await (db.update(db.monitorTargets)..where((t) => t.id.equals(existing.id)))
-          .write(MonitorTargetsCompanion(enabled: const Value(true), name: Value(name.isEmpty ? existing.name : name)));
+      await (db.update(db.monitorTargets)..where((t) => t.id.equals(existing.id))).write(
+        MonitorTargetsCompanion(enabled: const Value(true), name: Value(name.isEmpty ? existing.name : name)),
+      );
       return existing.id;
     }
     final n = await db.monitorTargets.count().getSingle();
-    return db.into(db.monitorTargets).insert(
-      MonitorTargetsCompanion.insert(host: host.trim(), name: name.trim(), sortOrder: Value(n), createdAt: DateTime.now()),
-    );
+    return db
+        .into(db.monitorTargets)
+        .insert(
+          MonitorTargetsCompanion.insert(
+            host: host.trim(),
+            name: name.trim(),
+            sortOrder: Value(n),
+            createdAt: DateTime.now(),
+          ),
+        );
   }
 
   Future<void> update(int id, {String? name, bool? enabled}) =>

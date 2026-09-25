@@ -24,9 +24,7 @@ class GeoScreen extends ConsumerStatefulWidget {
 }
 
 class _GeoScreenState extends ConsumerState<GeoScreen> {
-  late final _query = TextEditingController(
-    text: widget.initialTarget ?? ref.read(geoProvider).query,
-  );
+  late final _query = TextEditingController(text: widget.initialTarget ?? ref.read(geoProvider).query);
 
   @override
   void initState() {
@@ -80,7 +78,11 @@ class _GeoScreenState extends ConsumerState<GeoScreen> {
           children: [
             Container(
               height: 50,
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: w.ink, width: kWireBorder),
+                ),
+              ),
               child: WireTargetField(
                 controller: _query,
                 prefix: 'LOOKUP>',
@@ -91,11 +93,19 @@ class _GeoScreenState extends ConsumerState<GeoScreen> {
             ),
             Container(
               height: 220,
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: w.ink, width: kWireBorder),
+                ),
+              ),
               child: _GeoMap(state: s, compact: true),
             ),
             if (s.error != null)
-              WireErrorBlock(title: s.error!.contains('private') ? 'PRIVATE' : 'UNREACHABLE', reason: s.error!, size: 56)
+              WireErrorBlock(
+                title: s.error!.contains('private') ? 'PRIVATE' : 'UNREACHABLE',
+                reason: s.error!,
+                size: 56,
+              )
             else if (s.target != null) ...[
               Container(
                 color: w.signal,
@@ -106,7 +116,10 @@ class _GeoScreenState extends ConsumerState<GeoScreen> {
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
-                      child: Text(_placeTitle(s.target!), style: WireType.display(48, width: 65).copyWith(color: w.onSignal)),
+                      child: Text(
+                        _placeTitle(s.target!),
+                        style: WireType.display(48, width: 65).copyWith(color: w.onSignal),
+                      ),
                     ),
                     Text(
                       [
@@ -174,7 +187,9 @@ class _GeoScreenState extends ConsumerState<GeoScreen> {
               child: Container(
                 decoration: BoxDecoration(
                   color: w.background,
-                  border: Border(top: BorderSide(color: w.ink, width: kWireBorder)),
+                  border: Border(
+                    top: BorderSide(color: w.ink, width: kWireBorder),
+                  ),
                 ),
                 child: WireSplitRow(
                   children: [
@@ -248,12 +263,7 @@ class _KvRow extends StatelessWidget {
           Text(k.toUpperCase(), style: WireType.label()),
           const SizedBox(width: 16),
           Expanded(
-            child: SelectableText(
-              v,
-              textAlign: TextAlign.right,
-              maxLines: 1,
-              style: WireType.data(dense ? 13 : 14),
-            ),
+            child: SelectableText(v, textAlign: TextAlign.right, maxLines: 1, style: WireType.data(dense ? 13 : 14)),
           ),
         ],
       ),
@@ -274,17 +284,16 @@ class _Panel extends ConsumerWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          WireErrorBlock(
-            title: s.error!.contains('private') ? 'PRIVATE' : 'UNREACHABLE',
-            reason: s.error!,
-            size: 64,
-          ),
+          WireErrorBlock(title: s.error!.contains('private') ? 'PRIVATE' : 'UNREACHABLE', reason: s.error!, size: 64),
         ],
       );
     }
     if (g == null) {
       return Center(
-        child: Text(s.loading ? 'Locating ${s.query}…' : 'Look up a domain or IP.', style: WireType.body(13).copyWith(color: w.text3)),
+        child: Text(
+          s.loading ? 'Locating ${s.query}…' : 'Look up a domain or IP.',
+          style: WireType.body(13).copyWith(color: w.text3),
+        ),
       );
     }
     final meta = [g.countryCode, g.timezone?.toUpperCase(), utcOffsetLabel(g.timezone)].whereType<String>().join(' · ');
@@ -301,7 +310,10 @@ class _Panel extends ConsumerWidget {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: Text(_placeTitle(g), style: WireType.display(54, width: 65, height: 0.95).copyWith(color: w.onSignal)),
+                child: Text(
+                  _placeTitle(g),
+                  style: WireType.display(54, width: 65, height: 0.95).copyWith(color: w.onSignal),
+                ),
               ),
               Text(meta, style: WireType.label(12).copyWith(color: w.onSignal)),
             ],
@@ -320,7 +332,11 @@ class _Panel extends ConsumerWidget {
           ),
         ),
         Container(
-          decoration: BoxDecoration(border: Border(top: BorderSide(color: w.ink, width: kWireBorder))),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: w.ink, width: kWireBorder),
+            ),
+          ),
           child: IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -403,16 +419,48 @@ class _GeoMapState extends State<_GeoMap> {
     final w = context.wire;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final gray = <double>[
-      0.2126, 0.7152, 0.0722, 0, 0,
-      0.2126, 0.7152, 0.0722, 0, 0,
-      0.2126, 0.7152, 0.0722, 0, 0,
-      0, 0, 0, 1, 0,
+      0.2126,
+      0.7152,
+      0.0722,
+      0,
+      0,
+      0.2126,
+      0.7152,
+      0.0722,
+      0,
+      0,
+      0.2126,
+      0.7152,
+      0.0722,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
     ];
     final grayInverted = <double>[
-      -0.2126, -0.7152, -0.0722, 0, 235,
-      -0.2126, -0.7152, -0.0722, 0, 235,
-      -0.2126, -0.7152, -0.0722, 0, 235,
-      0, 0, 0, 1, 0,
+      -0.2126,
+      -0.7152,
+      -0.0722,
+      0,
+      235,
+      -0.2126,
+      -0.7152,
+      -0.0722,
+      0,
+      235,
+      -0.2126,
+      -0.7152,
+      -0.0722,
+      0,
+      235,
+      0,
+      0,
+      0,
+      1,
+      0,
     ];
     final me = _point(widget.state.me);
     final target = _point(widget.state.target);
@@ -445,19 +493,24 @@ class _GeoMapState extends State<_GeoMap> {
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.pranta.pulse',
               maxNativeZoom: 19,
-              tileBuilder: (context, tile, _) => ColorFiltered(
-                colorFilter: ColorFilter.matrix(dark ? grayInverted : gray),
-                child: tile,
-              ),
+              tileBuilder: (context, tile, _) =>
+                  ColorFiltered(colorFilter: ColorFilter.matrix(dark ? grayInverted : gray), child: tile),
             ),
             if (me != null && target != null && me != target)
               PolylineLayer(
-                polylines: [Polyline(points: [me, target], strokeWidth: kWireBorder, color: w.ink)],
+                polylines: [
+                  Polyline(points: [me, target], strokeWidth: kWireBorder, color: w.ink),
+                ],
               ),
             MarkerLayer(
               markers: [
                 if (me != null) ...[
-                  Marker(point: me, width: 16, height: 16, child: Container(color: w.ink)),
+                  Marker(
+                    point: me,
+                    width: 16,
+                    height: 16,
+                    child: Container(color: w.ink),
+                  ),
                   Marker(
                     point: me,
                     width: 80,
@@ -472,7 +525,10 @@ class _GeoMapState extends State<_GeoMap> {
                     width: widget.compact ? 18 : 22,
                     height: widget.compact ? 18 : 22,
                     child: Container(
-                      decoration: BoxDecoration(color: w.signal, border: Border.all(color: w.ink, width: kWireBorder)),
+                      decoration: BoxDecoration(
+                        color: w.signal,
+                        border: Border.all(color: w.ink, width: kWireBorder),
+                      ),
                     ),
                   ),
                   if (!widget.compact)
@@ -495,7 +551,10 @@ class _GeoMapState extends State<_GeoMap> {
             onTap: () => launchUrl(Uri.parse('https://www.openstreetmap.org/copyright')),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: w.background, border: Border.all(color: w.ink, width: 1)),
+              decoration: BoxDecoration(
+                color: w.background,
+                border: Border.all(color: w.ink, width: 1),
+              ),
               child: Text('© OpenStreetMap contributors', style: WireType.body(10).copyWith(color: w.ink, height: 1.2)),
             ),
           ),

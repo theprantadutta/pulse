@@ -270,42 +270,46 @@ class LossNotifier extends Notifier<LossState> {
     state = s.copyWith(running: false);
     if (s.run.sent == 0) return;
     final v = lossVerdict(s);
-    await ref.read(historyRepositoryProvider).save(
-      tool: SessionTool.loss,
-      target: s.target,
-      startedAt: s.startedAt!,
-      endedAt: DateTime.now(),
-      avgMs: s.run.avgRtt,
-      lossPct: s.run.lossPct,
-      summary: '${s.run.lossPct.toStringAsFixed(1)}% · ${v.word}',
-      payload: {
-        'address': s.address,
-        'rate': s.ratePerSec,
-        'sent': s.run.sent,
-        'lost': s.run.lost,
-        'late': s.run.late,
-        'burst': s.run.longestBurst,
-        'verdict': v.text,
-        'packets': [
-          for (var i = 0; i < s.run.sent; i++) {'seq': i + 1, 'state': s.run.packets[i].name, 'rtt': s.run.rtts[i]},
-        ],
-      },
-    );
+    await ref
+        .read(historyRepositoryProvider)
+        .save(
+          tool: SessionTool.loss,
+          target: s.target,
+          startedAt: s.startedAt!,
+          endedAt: DateTime.now(),
+          avgMs: s.run.avgRtt,
+          lossPct: s.run.lossPct,
+          summary: '${s.run.lossPct.toStringAsFixed(1)}% · ${v.word}',
+          payload: {
+            'address': s.address,
+            'rate': s.ratePerSec,
+            'sent': s.run.sent,
+            'lost': s.run.lost,
+            'late': s.run.late,
+            'burst': s.run.longestBurst,
+            'verdict': v.text,
+            'packets': [
+              for (var i = 0; i < s.run.sent; i++) {'seq': i + 1, 'state': s.run.packets[i].name, 'rtt': s.run.rtts[i]},
+            ],
+          },
+        );
   }
 
   /// SET ALERT ON LOSS: a rule that fires when loss stays above the level
   /// seen here (at least 1%) for a minute.
   Future<int> createLossAlert() async {
     final threshold = math.max(1.0, (state.run.lossPct).floorToDouble());
-    return ref.read(alertRulesRepositoryProvider).save(
-      RuleDraft(
-        title: 'Packet loss · ${state.target}',
-        target: state.target,
-        metric: AlertMetric.loss,
-        threshold: threshold,
-        forSeconds: 60,
-      ),
-    );
+    return ref
+        .read(alertRulesRepositoryProvider)
+        .save(
+          RuleDraft(
+            title: 'Packet loss · ${state.target}',
+            target: state.target,
+            metric: AlertMetric.loss,
+            threshold: threshold,
+            forSeconds: 60,
+          ),
+        );
   }
 
   /// CSV of every packet so far.

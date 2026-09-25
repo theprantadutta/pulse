@@ -87,24 +87,17 @@ class WireButton extends StatelessWidget {
       tooltip: tooltip,
       semanticLabel: label,
       builder: (context, c, states) {
-        final text = [if (glyph != null && !busy) glyph!, label.toUpperCase()]
-            .join(' ');
+        final text = [if (glyph != null && !busy) glyph!, label.toUpperCase()].join(' ');
         return Container(
           height: height,
           width: expand ? double.infinity : null,
           padding: padding,
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: c.bg,
-            border: edges.toBorder(w.ink, kWireBorder),
-          ),
+          decoration: BoxDecoration(color: c.bg, border: edges.toBorder(w.ink, kWireBorder)),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (busy) ...[
-                WireBusyGlyph(color: c.fg, size: fontSize * 0.6),
-                const SizedBox(width: 8),
-              ],
+              if (busy) ...[WireBusyGlyph(color: c.fg, size: fontSize * 0.6), const SizedBox(width: 8)],
               Flexible(
                 child: Text(
                   text,
@@ -139,10 +132,7 @@ class _WireBusyGlyphState extends State<WireBusyGlyph> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(
-      const Duration(milliseconds: 160),
-      (_) => setState(() => _step = (_step + 1) % 4),
-    );
+    _timer = Timer.periodic(const Duration(milliseconds: 160), (_) => setState(() => _step = (_step + 1) % 4));
   }
 
   @override
@@ -228,7 +218,9 @@ class WireSegmented<T> extends StatelessWidget {
     return Container(
       height: height,
       decoration: bordered
-          ? BoxDecoration(border: Border.all(color: w.ink, width: kWireBorder))
+          ? BoxDecoration(
+              border: Border.all(color: w.ink, width: kWireBorder),
+            )
           : null,
       child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: cells),
     );
@@ -237,12 +229,7 @@ class WireSegmented<T> extends StatelessWidget {
 
 /// Square switch: 2px border; on = ink track + signal knob.
 class WireToggle extends StatelessWidget {
-  const WireToggle({
-    super.key,
-    required this.value,
-    required this.onChanged,
-    this.semanticLabel,
-  });
+  const WireToggle({super.key, required this.value, required this.onChanged, this.semanticLabel});
 
   final bool value;
   final ValueChanged<bool>? onChanged;
@@ -257,10 +244,7 @@ class WireToggle extends StatelessWidget {
       child: WirePressable(
         onTap: onChanged == null ? null : () => onChanged!(!value),
         builder: (context, c, states) => ConstrainedBox(
-          constraints: const BoxConstraints(
-            minWidth: WireLayout.minHit,
-            minHeight: WireLayout.minHit,
-          ),
+          constraints: const BoxConstraints(minWidth: WireLayout.minHit, minHeight: WireLayout.minHit),
           child: Center(
             child: Container(
               width: 48,
@@ -344,21 +328,23 @@ class _WireCopyButtonState extends State<WireCopyButton> {
       onTap: _copy,
       selected: _copied,
       semanticLabel: widget.label,
+      // The visual box can be small; the hit area never is.
       builder: (context, c, states) => ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: WireLayout.minHit),
-        child: Container(
-          height: widget.height,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: c.bg,
-            border: widget.bordered
-                ? Border.all(color: w.ink, width: kWireBorder)
-                : null,
-          ),
-          child: Text(
-            _copied ? 'COPIED' : widget.label,
-            style: WireType.label(widget.fontSize).copyWith(color: c.fg),
+        constraints: const BoxConstraints(minWidth: WireLayout.minHit, minHeight: WireLayout.minHit),
+        child: Center(
+          widthFactor: 1,
+          child: Container(
+            height: widget.height,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: c.bg,
+              border: widget.bordered ? Border.all(color: w.ink, width: kWireBorder) : null,
+            ),
+            child: Text(
+              _copied ? 'COPIED' : widget.label,
+              style: WireType.label(widget.fontSize).copyWith(color: c.fg),
+            ),
           ),
         ),
       ),

@@ -139,11 +139,7 @@ class WindowsIcmp {
         case _ipDestHostUnreachable:
         case _ipDestProtUnreachable:
         case _ipDestPortUnreachable:
-          return ProbeResult(
-            status: ProbeStatus.unreachable,
-            from: from,
-            message: 'Destination unreachable',
-          );
+          return ProbeResult(status: ProbeStatus.unreachable, from: from, message: 'Destination unreachable');
         case _ipReqTimedOut:
           return const ProbeResult(status: ProbeStatus.timeout);
         default:

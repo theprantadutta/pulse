@@ -32,29 +32,17 @@ class SettingsStore {
       pingIntervalMs: pick(kPingIntervalKey, _defaults.pingIntervalMs),
       pingTimeoutSec: pick(kPingTimeoutKey, _defaults.pingTimeoutSec),
       packetSize: pick(kPacketSizeKey, _defaults.packetSize),
-      ipVersion: IpVersionPref.values.firstWhere(
-        (v) => v.name == ipv,
-        orElse: () => _defaults.ipVersion,
-      ),
+      ipVersion: IpVersionPref.values.firstWhere((v) => v.name == ipv, orElse: () => _defaults.ipVersion),
       slowThresholdMs: pick(kSlowThresholdKey, _defaults.slowThresholdMs),
       saveAsDefault: pick(kSaveAsDefaultKey, _defaults.saveAsDefault),
       monitorIntervalSec: pick(kMonitorIntervalKey, _defaults.monitorIntervalSec),
-      monitorInBackground: pick(
-        kMonitorBackgroundKey,
-        _defaults.monitorInBackground,
-      ),
+      monitorInBackground: pick(kMonitorBackgroundKey, _defaults.monitorInBackground),
       closeToTray: pick(kCloseToTrayKey, _defaults.closeToTray),
       launchAtStartup: pick(kLaunchAtStartupKey, _defaults.launchAtStartup),
-      notificationsEnabled: pick(
-        kNotificationsKey,
-        _defaults.notificationsEnabled,
-      ),
+      notificationsEnabled: pick(kNotificationsKey, _defaults.notificationsEnabled),
       notificationSound: pick(kNotificationSoundKey, _defaults.notificationSound),
       retentionDays: pick(kRetentionDaysKey, _defaults.retentionDays),
-      exportFormat: ExportFormat.values.firstWhere(
-        (f) => f.name == format,
-        orElse: () => _defaults.exportFormat,
-      ),
+      exportFormat: ExportFormat.values.firstWhere((f) => f.name == format, orElse: () => _defaults.exportFormat),
       exportFolder: prefs.getString(kExportFolderKey),
       publicIpLookups: pick(kPublicIpLookupsKey, _defaults.publicIpLookups),
       lanDeviceWatch: pick(kLanDeviceWatchKey, _defaults.lanDeviceWatch),
@@ -80,8 +68,7 @@ class SettingsStore {
       prefs.setBool(kNotificationSoundKey, s.notificationSound),
       prefs.setInt(kRetentionDaysKey, s.retentionDays),
       prefs.setString(kExportFormatKey, s.exportFormat.name),
-      if (s.exportFolder != null)
-        prefs.setString(kExportFolderKey, s.exportFolder!),
+      if (s.exportFolder != null) prefs.setString(kExportFolderKey, s.exportFolder!),
       prefs.setBool(kPublicIpLookupsKey, s.publicIpLookups),
       prefs.setBool(kLanDeviceWatchKey, s.lanDeviceWatch),
     ]);
@@ -91,10 +78,7 @@ class SettingsStore {
   void _migrateLegacy() {
     final legacyDark = prefs.getBool(kLegacyIsDarkModeKey);
     if (legacyDark != null && !prefs.containsKey(kThemeModeKey)) {
-      prefs.setString(
-        kThemeModeKey,
-        (legacyDark ? ThemeMode.dark : ThemeMode.light).name,
-      );
+      prefs.setString(kThemeModeKey, (legacyDark ? ThemeMode.dark : ThemeMode.light).name);
     }
     if (legacyDark != null) prefs.remove(kLegacyIsDarkModeKey);
     if (prefs.containsKey(kLegacyFlexSchemeKey)) {

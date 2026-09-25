@@ -36,8 +36,7 @@ Future<void> renderToPng(
   await tester.pumpWidget(RepaintBoundary(key: key, child: child));
   await tester.pump(const Duration(milliseconds: 300));
   await tester.runAsync(() async {
-    final boundary =
-        key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+    final boundary = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
     final image = await boundary.toImage(pixelRatio: pixelRatio);
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     final file = File('build/renders/$name.png')..createSync(recursive: true);

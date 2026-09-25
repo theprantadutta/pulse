@@ -59,8 +59,7 @@ class LaunchAtLogin {
   }
 
   static String get _desktopFile {
-    final config = Platform.environment['XDG_CONFIG_HOME'] ??
-        p.join(Platform.environment['HOME'] ?? '', '.config');
+    final config = Platform.environment['XDG_CONFIG_HOME'] ?? p.join(Platform.environment['HOME'] ?? '', '.config');
     return p.join(config, 'autostart', 'pulse.desktop');
   }
 }

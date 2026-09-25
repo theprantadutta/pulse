@@ -50,8 +50,7 @@ class NameProbe {
     try {
       socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
       final id = (_rand ^ ip.hashCode) & 0xFFFF;
-      final b = BytesBuilder()
-        ..add([id >> 8, id & 0xFF, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+      final b = BytesBuilder()..add([id >> 8, id & 0xFF, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
       for (final label in [...ip.split('.').reversed, 'in-addr', 'arpa']) {
         b
           ..addByte(label.length)
@@ -133,10 +132,7 @@ class WakeOnLan {
     final hex = mac.replaceAll(RegExp(r'[^0-9A-Fa-f]'), '');
     if (hex.length != 12) throw ArgumentError('Invalid MAC address: $mac');
     final macBytes = [for (var i = 0; i < 12; i += 2) int.parse(hex.substring(i, i + 2), radix: 16)];
-    final packet = Uint8List.fromList([
-      ...List.filled(6, 0xFF),
-      for (var i = 0; i < 16; i++) ...macBytes,
-    ]);
+    final packet = Uint8List.fromList([...List.filled(6, 0xFF), for (var i = 0; i < 16; i++) ...macBytes]);
     final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
     socket.broadcastEnabled = true;
     try {

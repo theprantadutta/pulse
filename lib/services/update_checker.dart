@@ -35,8 +35,7 @@ class UpdateChecker {
 
 /// Semver-ish comparison of "1.2.3" strings (build metadata ignored).
 int compareVersions(String a, String b) {
-  List<int> parts(String v) =>
-      v.split('+').first.split('-').first.split('.').map((p) => int.tryParse(p) ?? 0).toList();
+  List<int> parts(String v) => v.split('+').first.split('-').first.split('.').map((p) => int.tryParse(p) ?? 0).toList();
   final x = parts(a), y = parts(b);
   for (var i = 0; i < 3; i++) {
     final d = (i < x.length ? x[i] : 0) - (i < y.length ? y[i] : 0);

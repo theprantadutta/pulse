@@ -91,17 +91,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   WireSectionBar(_section.label, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10)),
-                  Expanded(child: SingleChildScrollView(child: _SectionBody(section: _section))),
+                  Expanded(
+                    child: SingleChildScrollView(child: _SectionBody(section: _section)),
+                  ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                    decoration: BoxDecoration(border: Border(top: BorderSide(color: w.ink, width: kWireBorder))),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: w.ink, width: kWireBorder),
+                      ),
+                    ),
                     child: Row(
                       children: [
                         Expanded(
                           child: Text.rich(
                             TextSpan(
                               children: [
-                                TextSpan(text: 'PULSE $version', style: const TextStyle(fontWeight: FontWeight.w700)),
+                                TextSpan(
+                                  text: 'PULSE $version',
+                                  style: const TextStyle(fontWeight: FontWeight.w700),
+                                ),
                                 const TextSpan(text: ' · Apache-2.0 · made with Flutter'),
                               ],
                             ),
@@ -140,7 +149,9 @@ class _SectionTab extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: BoxDecoration(
           color: c.bg,
-          border: Border(bottom: BorderSide(color: w.ink, width: kWireHairline)),
+          border: Border(
+            bottom: BorderSide(color: w.ink, width: kWireHairline),
+          ),
         ),
         child: Text(label.toUpperCase(), style: WireType.data(13).copyWith(color: c.fg)),
       ),
@@ -171,7 +182,11 @@ class _SectionBody extends ConsumerWidget {
               title: 'Theme',
               child: dense
                   ? WireSegmented<ThemeMode>(
-                      options: const [(ThemeMode.light, 'PAPER'), (ThemeMode.dark, 'INK'), (ThemeMode.system, 'SYSTEM')],
+                      options: const [
+                        (ThemeMode.light, 'PAPER'),
+                        (ThemeMode.dark, 'INK'),
+                        (ThemeMode.system, 'SYSTEM'),
+                      ],
                       selected: s.themeMode,
                       onChanged: n.setThemeMode,
                     )
@@ -193,7 +208,13 @@ class _SectionBody extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   for (final e in WireColors.accents.entries) ...[
-                    _Swatch(color: e.value, name: e.key, size: dense ? 28 : 40, selected: s.accent == e.key, onTap: () => n.setAccent(e.key)),
+                    _Swatch(
+                      color: e.value,
+                      name: e.key,
+                      size: dense ? 28 : 40,
+                      selected: s.accent == e.key,
+                      onTap: () => n.setAccent(e.key),
+                    ),
                     SizedBox(width: dense ? 8 : 10),
                   ],
                 ],
@@ -203,14 +224,40 @@ class _SectionBody extends ConsumerWidget {
         );
 
       case SettingsSection.ping:
-        Widget seg<T>(String title, List<(T, String)> opts, T value, ValueChanged<T> on, {bool enabled = true, String? desc}) =>
-            _Block(pad: pad, title: title, description: desc, child: WireSegmented<T>(options: opts, selected: value, onChanged: on, enabled: enabled, height: 40));
+        Widget seg<T>(
+          String title,
+          List<(T, String)> opts,
+          T value,
+          ValueChanged<T> on, {
+          bool enabled = true,
+          String? desc,
+        }) => _Block(
+          pad: pad,
+          title: title,
+          description: desc,
+          child: WireSegmented<T>(options: opts, selected: value, onChanged: on, enabled: enabled, height: 40),
+        );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            seg('Default count', [for (final c in PingParams.counts) (c, c == 0 ? '∞' : '$c')], s.pingCount, (v) => set((x) => x.copyWith(pingCount: v))),
-            seg('Interval', [for (final v in PingParams.intervals) (v, '${v / 1000} S'.replaceAll('.0 ', ' '))], s.pingIntervalMs, (v) => set((x) => x.copyWith(pingIntervalMs: v))),
-            seg('Timeout', [for (final v in PingParams.timeouts) (v, '$v S')], s.pingTimeoutSec, (v) => set((x) => x.copyWith(pingTimeoutSec: v))),
+            seg(
+              'Default count',
+              [for (final c in PingParams.counts) (c, c == 0 ? '∞' : '$c')],
+              s.pingCount,
+              (v) => set((x) => x.copyWith(pingCount: v)),
+            ),
+            seg(
+              'Interval',
+              [for (final v in PingParams.intervals) (v, '${v / 1000} S'.replaceAll('.0 ', ' '))],
+              s.pingIntervalMs,
+              (v) => set((x) => x.copyWith(pingIntervalMs: v)),
+            ),
+            seg(
+              'Timeout',
+              [for (final v in PingParams.timeouts) (v, '$v S')],
+              s.pingTimeoutSec,
+              (v) => set((x) => x.copyWith(pingTimeoutSec: v)),
+            ),
             seg(
               'Packet size',
               [for (final v in PingParams.sizes) (v, '$v B')],
@@ -221,7 +268,12 @@ class _SectionBody extends ConsumerWidget {
             ),
             seg(
               'IP version',
-              const [(IpVersionPref.auto, 'AUTO'), (IpVersionPref.ipv4, 'IPv4'), (IpVersionPref.ipv6, 'IPv6'), (IpVersionPref.both, 'BOTH')],
+              const [
+                (IpVersionPref.auto, 'AUTO'),
+                (IpVersionPref.ipv4, 'IPv4'),
+                (IpVersionPref.ipv6, 'IPv6'),
+                (IpVersionPref.both, 'BOTH'),
+              ],
               s.ipVersion,
               (v) => set((x) => x.copyWith(ipVersion: v)),
             ),
@@ -309,7 +361,9 @@ class _SectionBody extends ConsumerWidget {
               description: 'Alert rules can notify you even when Pulse is in the background',
               value: s.notificationsEnabled,
               onChanged: (v) async {
-                if (v && !await PulseNotifications.requestPermission() && (Platform.isAndroid || Platform.isIOS || Platform.isMacOS)) {
+                if (v &&
+                    !await PulseNotifications.requestPermission() &&
+                    (Platform.isAndroid || Platform.isIOS || Platform.isMacOS)) {
                   messenger.showSnackBar(const SnackBar(content: Text('Notifications are blocked in system settings')));
                 }
                 await set((x) => x.copyWith(notificationsEnabled: v));
@@ -328,7 +382,12 @@ class _SectionBody extends ConsumerWidget {
               description: 'Checks that alerts reach you',
               value: 'TEST',
               dense: dense,
-              onTap: () => PulseNotifications.show(id: 9, title: 'Pulse', body: 'Notifications work.', sound: s.notificationSound),
+              onTap: () => PulseNotifications.show(
+                id: 9,
+                title: 'Pulse',
+                body: 'Notifications work.',
+                sound: s.notificationSound,
+              ),
             ),
           ],
         );
@@ -356,7 +415,10 @@ class _SectionBody extends ConsumerWidget {
               description: 'Used by every Export button',
               value: s.exportFormat.name.toUpperCase(),
               dense: dense,
-              onTap: () => set((x) => x.copyWith(exportFormat: x.exportFormat == ExportFormat.csv ? ExportFormat.txt : ExportFormat.csv)),
+              onTap: () => set(
+                (x) =>
+                    x.copyWith(exportFormat: x.exportFormat == ExportFormat.csv ? ExportFormat.txt : ExportFormat.csv),
+              ),
             ),
             if (DesktopHost.supported)
               _ValueRow(
@@ -378,7 +440,11 @@ class _SectionBody extends ConsumerWidget {
               dense: dense,
               danger: true,
               onTap: () async {
-                final ok = await _confirm(context, 'Clear all data?', 'History, saved targets, monitor targets, alert rules and LAN devices are deleted. Settings are kept.');
+                final ok = await _confirm(
+                  context,
+                  'Clear all data?',
+                  'History, saved targets, monitor targets, alert rules and LAN devices are deleted. Settings are kept.',
+                );
                 if (!ok) return;
                 await ref.read(pingBoardProvider.notifier).stopAll();
                 ref.read(pingBoardProvider.notifier).clearFinished();
@@ -396,7 +462,8 @@ class _SectionBody extends ConsumerWidget {
             _ToggleRow(
               pad: pad,
               title: 'Public IP lookups',
-              description: 'Sends IPs to ip-api.com / ipinfo.io for ISP, ASN and location (Network, Geo IP, Traceroute)',
+              description:
+                  'Sends IPs to ip-api.com / ipinfo.io for ISP, ASN and location (Network, Geo IP, Traceroute)',
               value: s.publicIpLookups,
               onChanged: (v) async {
                 await set((x) => x.copyWith(publicIpLookups: v));
@@ -422,22 +489,36 @@ class _SectionBody extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              PulseLockup(height: dense ? 36 : 56, colorway: Theme.of(context).brightness == Brightness.dark ? PulseMarkColorway.dark : PulseMarkColorway.paper),
+              PulseLockup(
+                height: dense ? 36 : 56,
+                colorway: Theme.of(context).brightness == Brightness.dark
+                    ? PulseMarkColorway.dark
+                    : PulseMarkColorway.paper,
+              ),
               const SizedBox(height: 16),
               Text('Version ${info?.version ?? ''} (${info?.buildNumber ?? ''})', style: WireType.data(13)),
               const SizedBox(height: 4),
-              Text('Network diagnostics for desktop and mobile. Apache-2.0.', style: WireType.body(12).copyWith(color: context.wire.text2)),
+              Text(
+                'Network diagnostics for desktop and mobile. Apache-2.0.',
+                style: WireType.body(12).copyWith(color: context.wire.text2),
+              ),
               const SizedBox(height: 16),
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
                 children: [
-                  WireButton(label: 'GitHub', height: 40, fontSize: 15, onPressed: () => launchUrl(Uri.parse('https://github.com/${UpdateChecker.repo}'))),
+                  WireButton(
+                    label: 'GitHub',
+                    height: 40,
+                    fontSize: 15,
+                    onPressed: () => launchUrl(Uri.parse('https://github.com/${UpdateChecker.repo}')),
+                  ),
                   WireButton(
                     label: 'Licenses',
                     height: 40,
                     fontSize: 15,
-                    onPressed: () => showLicensePage(context: context, applicationName: 'Pulse', applicationVersion: info?.version),
+                    onPressed: () =>
+                        showLicensePage(context: context, applicationName: 'Pulse', applicationVersion: info?.version),
                   ),
                   const _UpdateCheck(asButton: true),
                 ],
@@ -466,7 +547,10 @@ Future<bool> _confirm(BuildContext context, String title, String body) async {
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 child: Text(title.toUpperCase(), style: WireType.title(26).copyWith(color: w.onSignal)),
               ),
-              Padding(padding: const EdgeInsets.all(20), child: Text(body, style: WireType.body(13))),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(body, style: WireType.body(13)),
+              ),
               PanelActions(
                 actions: [
                   (label: 'Cancel', primary: false, onTap: () => Navigator.of(context).pop(false)),
@@ -502,16 +586,32 @@ class _Block extends StatelessWidget {
     );
     return Container(
       padding: pad,
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: w.ink, width: kWireBorder),
+        ),
+      ),
       child: inline
-          ? Row(children: [Expanded(child: head), const SizedBox(width: 12), child])
+          ? Row(
+              children: [
+                Expanded(child: head),
+                const SizedBox(width: 12),
+                child,
+              ],
+            )
           : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [head, const SizedBox(height: 12), child]),
     );
   }
 }
 
 class _ToggleRow extends StatelessWidget {
-  const _ToggleRow({required this.pad, required this.title, required this.value, required this.onChanged, this.description});
+  const _ToggleRow({
+    required this.pad,
+    required this.title,
+    required this.value,
+    required this.onChanged,
+    this.description,
+  });
   final EdgeInsets pad;
   final String title;
   final String? description;
@@ -531,7 +631,8 @@ class _ToggleRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title.toUpperCase(), style: WireType.title(pad.left > 20 ? 20 : 19)),
-                if (description != null) Text(description!, style: WireType.body(12).copyWith(color: w.text2, height: 1.3)),
+                if (description != null)
+                  Text(description!, style: WireType.body(12).copyWith(color: w.text2, height: 1.3)),
               ],
             ),
           ),
@@ -575,7 +676,8 @@ class _ValueRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title.toUpperCase(), style: WireType.title(dense ? 19 : 20)),
-                if (description != null && !dense) Text(description!, style: WireType.body(12).copyWith(color: w.text2, height: 1.3)),
+                if (description != null && !dense)
+                  Text(description!, style: WireType.body(12).copyWith(color: w.text2, height: 1.3)),
               ],
             ),
           ),
@@ -612,7 +714,15 @@ class _ThemeCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(width: 40, decoration: BoxDecoration(color: c.signal, border: Border(right: BorderSide(color: c.ink, width: kWireBorder)))),
+          Container(
+            width: 40,
+            decoration: BoxDecoration(
+              color: c.signal,
+              border: Border(
+                right: BorderSide(color: c.ink, width: kWireBorder),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
             child: Text('25', style: WireType.hero(40).copyWith(color: c.ink)),
@@ -640,14 +750,27 @@ class _ThemeCard extends StatelessWidget {
           children: [
             Container(
               height: 90,
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: w.ink, width: kWireBorder),
+                ),
+              ),
               child: switch (mode) {
                 ThemeMode.light => preview(WireColors.light),
                 ThemeMode.dark => preview(WireColors.dark),
                 ThemeMode.system => Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(child: Container(decoration: BoxDecoration(color: WireColors.paper, border: Border(right: BorderSide(color: w.ink, width: kWireBorder))))),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: WireColors.paper,
+                          border: Border(
+                            right: BorderSide(color: w.ink, width: kWireBorder),
+                          ),
+                        ),
+                      ),
+                    ),
                     Expanded(child: Container(color: WireColors.inkBlack)),
                   ],
                 ),
@@ -666,7 +789,13 @@ class _ThemeCard extends StatelessWidget {
 }
 
 class _Swatch extends StatelessWidget {
-  const _Swatch({required this.color, required this.name, required this.size, required this.selected, required this.onTap});
+  const _Swatch({
+    required this.color,
+    required this.name,
+    required this.size,
+    required this.selected,
+    required this.onTap,
+  });
   final Color color;
   final String name;
   final double size;
@@ -742,7 +871,10 @@ class _UpdateCheckState extends ConsumerState<_UpdateCheck> {
       builder: (context, c, s) => Container(
         color: c.bg,
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        child: Text(label, style: WireType.label(12).copyWith(color: _info?.newer == true ? context.wire.signal : c.fg)),
+        child: Text(
+          label,
+          style: WireType.label(12).copyWith(color: _info?.newer == true ? context.wire.signal : c.fg),
+        ),
       ),
     );
   }

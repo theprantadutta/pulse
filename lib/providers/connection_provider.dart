@@ -9,13 +9,7 @@ import 'package:network_info_plus/network_info_plus.dart';
 enum LinkKind { wifi, ethernet, cellular, vpn, other, none }
 
 class ConnectionSummary {
-  const ConnectionSummary({
-    required this.kind,
-    this.name,
-    this.localIp,
-    this.interfaceName,
-    this.vpn = false,
-  });
+  const ConnectionSummary({required this.kind, this.name, this.localIp, this.interfaceName, this.vpn = false});
 
   final LinkKind kind;
 
@@ -42,10 +36,7 @@ class ConnectionSummary {
 /// Picks the best local IPv4: private ranges first, skipping loopback,
 /// link-local and virtual adapters.
 Future<(String, String)?> primaryLocalIpv4() async {
-  final interfaces = await NetworkInterface.list(
-    type: InternetAddressType.IPv4,
-    includeLinkLocal: false,
-  );
+  final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4, includeLinkLocal: false);
   bool isVirtual(String n) {
     final l = n.toLowerCase();
     return l.contains('vethernet') ||
@@ -61,9 +52,7 @@ Future<(String, String)?> primaryLocalIpv4() async {
   }
 
   bool isPrivate(String ip) =>
-      ip.startsWith('10.') ||
-      ip.startsWith('192.168.') ||
-      RegExp(r'^172\.(1[6-9]|2\d|3[01])\.').hasMatch(ip);
+      ip.startsWith('10.') || ip.startsWith('192.168.') || RegExp(r'^172\.(1[6-9]|2\d|3[01])\.').hasMatch(ip);
 
   (String, String)? fallback;
   for (final iface in interfaces) {
@@ -106,13 +95,7 @@ Future<ConnectionSummary> readConnection(List<ConnectivityResult> results) async
   if (name == null || name.isEmpty || name == '<unknown ssid>') {
     name = primary?.$2;
   }
-  return ConnectionSummary(
-    kind: kind,
-    name: name,
-    localIp: ip,
-    interfaceName: primary?.$2,
-    vpn: vpn,
-  );
+  return ConnectionSummary(kind: kind, name: name, localIp: ip, interfaceName: primary?.$2, vpn: vpn);
 }
 
 /// Live connection summary; refreshes whenever connectivity changes.

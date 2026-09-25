@@ -250,7 +250,11 @@ class _DesktopBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
-          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: w.ink, width: kWireBorder),
+            ),
+          ),
           child: IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -287,7 +291,11 @@ class _DesktopBody extends StatelessWidget {
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: w.ink, width: kWireBorder),
+                            ),
+                          ),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
@@ -299,7 +307,8 @@ class _DesktopBody extends StatelessWidget {
                                       : 'WIRED',
                                 ),
                               ),
-                              if (l.kind == LinkKind.wifi) WireBlockMeter(filled: l.signalBars, blockWidth: 12, maxHeight: 44),
+                              if (l.kind == LinkKind.wifi)
+                                WireBlockMeter(filled: l.signalBars, blockWidth: 12, maxHeight: 44),
                             ],
                           ),
                         ),
@@ -307,10 +316,7 @@ class _DesktopBody extends StatelessWidget {
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                          child: _BigStat(
-                            label: 'Link speed',
-                            value: l.linkMbps == null ? '—' : '${l.linkMbps} MBPS',
-                          ),
+                          child: _BigStat(label: 'Link speed', value: l.linkMbps == null ? '—' : '${l.linkMbps} MBPS'),
                         ),
                       ),
                     ],
@@ -325,7 +331,9 @@ class _DesktopBody extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(child: _Table(title: 'Addressing', rows: _addressing(l))),
+              Expanded(
+                child: _Table(title: 'Addressing', rows: _addressing(l)),
+              ),
               const WireVRule(),
               Expanded(
                 child: _Table(
@@ -375,7 +383,9 @@ class _ChipStrip extends StatelessWidget {
     final w = context.wire;
     final all = [...chips, vpn ? 'VPN ON' : 'VPN OFF'];
     return Container(
-      decoration: BoxDecoration(border: Border.all(color: w.ink, width: kWireBorder)),
+      decoration: BoxDecoration(
+        border: Border.all(color: w.ink, width: kWireBorder),
+      ),
       child: IntrinsicHeight(
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -451,7 +461,9 @@ class _MobileBody extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: w.signal,
-            border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder)),
+            border: Border(
+              bottom: BorderSide(color: w.ink, width: kWireBorder),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -471,7 +483,11 @@ class _MobileBody extends StatelessWidget {
           ),
         ),
         Container(
-          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: w.ink, width: kWireBorder),
+            ),
+          ),
           child: WireSplitRow(
             children: [
               WireStat(

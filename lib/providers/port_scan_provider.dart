@@ -39,8 +39,10 @@ class PortScanState {
   final int concurrency;
 
   int get scanned => results.length;
-  List<PortResult> get open => results.values.where((r) => r.state == PortState.open).toList()..sort((a, b) => a.port.compareTo(b.port));
-  List<PortResult> get filtered => results.values.where((r) => r.state == PortState.filtered).toList()..sort((a, b) => a.port.compareTo(b.port));
+  List<PortResult> get open =>
+      results.values.where((r) => r.state == PortState.open).toList()..sort((a, b) => a.port.compareTo(b.port));
+  List<PortResult> get filtered =>
+      results.values.where((r) => r.state == PortState.filtered).toList()..sort((a, b) => a.port.compareTo(b.port));
 
   String get rangeLabel => switch (preset) {
     PortPreset.common => 'COMMON',
@@ -123,19 +125,21 @@ class PortScanNotifier extends Notifier<PortScanState> {
     var lastPush = DateTime.fromMillisecondsSinceEpoch(0);
     final mobile = Platform.isAndroid || Platform.isIOS;
     final done = Completer<void>();
-    _sub = PortScanner(concurrency: mobile ? 64 : 128).scan(address, ports).listen(
-      (r) {
-        results[r.port] = r;
-        final now = DateTime.now();
-        if (now.difference(lastPush).inMilliseconds > 80) {
-          lastPush = now;
-          state = state.copyWith(results: Map.of(results), elapsed: now.difference(started));
-        }
-      },
-      onDone: () {
-        if (!done.isCompleted) done.complete();
-      },
-    );
+    _sub = PortScanner(concurrency: mobile ? 64 : 128)
+        .scan(address, ports)
+        .listen(
+          (r) {
+            results[r.port] = r;
+            final now = DateTime.now();
+            if (now.difference(lastPush).inMilliseconds > 80) {
+              lastPush = now;
+              state = state.copyWith(results: Map.of(results), elapsed: now.difference(started));
+            }
+          },
+          onDone: () {
+            if (!done.isCompleted) done.complete();
+          },
+        );
     await done.future;
     state = state.copyWith(results: Map.of(results), running: false, elapsed: DateTime.now().difference(started));
     await _save(started);
@@ -149,19 +153,21 @@ class PortScanNotifier extends Notifier<PortScanState> {
   Future<void> _save(DateTime started) async {
     final s = state;
     final open = s.open;
-    await ref.read(historyRepositoryProvider).save(
-      tool: SessionTool.ports,
-      target: s.target,
-      startedAt: started,
-      endedAt: DateTime.now(),
-      summary: '${open.length} open${open.isEmpty ? '' : ' · ${open.take(5).map((p) => p.port).join(', ')}'}',
-      payload: {
-        'address': s.address,
-        'range': s.rangeLabel,
-        'scanned': s.scanned,
-        'open': [for (final p in open) p.toJson()],
-        'filtered': s.filtered.length,
-      },
-    );
+    await ref
+        .read(historyRepositoryProvider)
+        .save(
+          tool: SessionTool.ports,
+          target: s.target,
+          startedAt: started,
+          endedAt: DateTime.now(),
+          summary: '${open.length} open${open.isEmpty ? '' : ' · ${open.take(5).map((p) => p.port).join(', ')}'}',
+          payload: {
+            'address': s.address,
+            'range': s.rangeLabel,
+            'scanned': s.scanned,
+            'open': [for (final p in open) p.toJson()],
+            'filtered': s.filtered.length,
+          },
+        );
   }
 }

@@ -123,7 +123,11 @@ class MonitorScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Container(
-                    decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: w.ink, width: kWireBorder),
+                      ),
+                    ),
                     child: WireSplitRow(
                       children: [
                         WireStat(
@@ -139,8 +143,18 @@ class MonitorScreen extends ConsumerWidget {
                           valueSize: 64,
                           padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
                         ),
-                        WireStat(label: 'Incidents', value: '${overview?.incidents ?? 0}', valueSize: 64, padding: const EdgeInsets.fromLTRB(20, 14, 20, 14)),
-                        WireStat(label: 'Checks', value: fmtCount(overview?.checks ?? 0), valueSize: 64, padding: const EdgeInsets.fromLTRB(20, 14, 20, 14)),
+                        WireStat(
+                          label: 'Incidents',
+                          value: '${overview?.incidents ?? 0}',
+                          valueSize: 64,
+                          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+                        ),
+                        WireStat(
+                          label: 'Checks',
+                          value: fmtCount(overview?.checks ?? 0),
+                          valueSize: 64,
+                          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+                        ),
                       ],
                     ),
                   ),
@@ -182,7 +196,10 @@ class MonitorScreen extends ConsumerWidget {
               child: incidents.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.all(20),
-                      child: Text('No incidents. Outages, loss and latency spikes show up here.', style: WireType.body(13).copyWith(color: w.text3)),
+                      child: Text(
+                        'No incidents. Outages, loss and latency spikes show up here.',
+                        style: WireType.body(13).copyWith(color: w.text3),
+                      ),
                     )
                   : ListView(children: [for (final i in incidents) _IncidentRow(view: i)]),
             ),
@@ -248,7 +265,11 @@ class _DesktopTargetRow extends ConsumerWidget {
     final w = context.wire;
     final r = row;
     return WireRow(
-      highlight: r.incident ? WireRowHighlight.tint : r.target.enabled ? WireRowHighlight.none : WireRowHighlight.muted,
+      highlight: r.incident
+          ? WireRowHighlight.tint
+          : r.target.enabled
+          ? WireRowHighlight.none
+          : WireRowHighlight.muted,
       onTap: () => showTargetMenu(context, ref, r.target),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: WireColumns(
@@ -269,7 +290,10 @@ class _DesktopTargetRow extends ConsumerWidget {
           ),
           WireStatusStrip(colors: _blockColors(context, r.blocks), height: 26),
           Text(fmtPct(r.uptime), style: WireType.data(13)),
-          Text(r.nowDown ? 'DOWN' : fmtMs(r.nowMs), style: WireType.stat(26).copyWith(color: r.nowDown ? w.signal : w.ink)),
+          Text(
+            r.nowDown ? 'DOWN' : fmtMs(r.nowMs),
+            style: WireType.stat(26).copyWith(color: r.nowDown ? w.signal : w.ink),
+          ),
         ],
       ),
     );
@@ -306,7 +330,10 @@ class _MobileTargetRow extends ConsumerWidget {
                   ],
                 ),
               ),
-              Text(r.nowDown ? 'DOWN' : fmtMs(r.nowMs), style: WireType.stat(24).copyWith(color: r.nowDown ? w.signal : w.ink)),
+              Text(
+                r.nowDown ? 'DOWN' : fmtMs(r.nowMs),
+                style: WireType.stat(24).copyWith(color: r.nowDown ? w.signal : w.ink),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -374,12 +401,24 @@ Future<void> showAddTargetDialog(BuildContext context, WidgetRef ref, {String ho
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 child: Text('ADD TARGET', style: WireType.title(26).copyWith(color: w.background)),
               ),
-              Padding(padding: const EdgeInsets.fromLTRB(20, 18, 20, 6), child: Text('HOST OR IP', style: WireType.label())),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+                child: Text('HOST OR IP', style: WireType.label()),
+              ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: WireInput(controller: hostC, hint: '8.8.8.8', autofocus: true, keyboardType: TextInputType.url, onSubmitted: (_) => save()),
+                child: WireInput(
+                  controller: hostC,
+                  hint: '8.8.8.8',
+                  autofocus: true,
+                  keyboardType: TextInputType.url,
+                  onSubmitted: (_) => save(),
+                ),
               ),
-              Padding(padding: const EdgeInsets.fromLTRB(20, 14, 20, 6), child: Text('NAME', style: WireType.label())),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+                child: Text('NAME', style: WireType.label()),
+              ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: WireInput(controller: nameC, hint: 'Google DNS', onSubmitted: (_) => save()),
@@ -419,7 +458,10 @@ Future<void> showTargetMenu(BuildContext context, WidgetRef ref, MonitorTarget t
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 child: Text(t.host.toUpperCase(), style: WireType.title(26).copyWith(color: w.background)),
               ),
-              Padding(padding: const EdgeInsets.fromLTRB(20, 18, 20, 6), child: Text('NAME', style: WireType.label())),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+                child: Text('NAME', style: WireType.label()),
+              ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: WireInput(controller: nameC, hint: 'Name'),

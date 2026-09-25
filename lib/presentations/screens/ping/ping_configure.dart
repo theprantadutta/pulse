@@ -29,7 +29,11 @@ class PingParametersPanel extends ConsumerWidget {
     final draft = ref.read(pingDraftProvider.notifier);
     Widget row(String label, String hint, Widget control) => Container(
       padding: EdgeInsets.symmetric(horizontal: compact ? 18 : 20, vertical: compact ? 12 : 14),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: w.ink, width: kWireBorder),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -124,7 +128,11 @@ class SaveAsDefaultRow extends ConsumerWidget {
     final on = ref.watch(settingsProvider.select((s) => s.saveAsDefault));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      decoration: BoxDecoration(border: Border(top: BorderSide(color: w.ink, width: kWireBorder))),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: w.ink, width: kWireBorder),
+        ),
+      ),
       child: Row(
         children: [
           Expanded(child: Text('SAVE AS DEFAULT', style: WireType.label(12))),
@@ -191,12 +199,7 @@ List<_Suggestion> _suggest(
 /// Main column of the Configure view: suggestions, quick targets and the
 /// saved (named) targets with multi-select → ping selected.
 class PingConfigureMain extends ConsumerStatefulWidget {
-  const PingConfigureMain({
-    super.key,
-    required this.onPicked,
-    required this.onStarted,
-    this.embedded = false,
-  });
+  const PingConfigureMain({super.key, required this.onPicked, required this.onStarted, this.embedded = false});
 
   /// Lays out inside another scroll view (mobile sheet).
   final bool embedded;
@@ -239,7 +242,11 @@ class _PingConfigureMainState extends ConsumerState<PingConfigureMain> {
       children: [
         if (suggestions.isNotEmpty)
           Container(
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: w.ink, width: kWireBorder),
+              ),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -256,10 +263,7 @@ class _PingConfigureMainState extends ConsumerState<PingConfigureMain> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(suggestions[i].host, style: WireType.data(16)),
-                              Text(
-                                suggestions[i].desc,
-                                style: WireType.body(12).copyWith(color: w.text3, height: 1.3),
-                              ),
+                              Text(suggestions[i].desc, style: WireType.body(12).copyWith(color: w.text3, height: 1.3)),
                             ],
                           ),
                         ),
@@ -388,11 +392,9 @@ class _PingConfigureMainState extends ConsumerState<PingConfigureMain> {
                           label: '▶',
                           tooltip: 'Ping ${t.name}',
                           onTap: () async {
-                            await ref.read(pingBoardProvider.notifier).start(
-                              t.host,
-                              name: t.name,
-                              params: ref.read(pingDraftProvider).params,
-                            );
+                            await ref
+                                .read(pingBoardProvider.notifier)
+                                .start(t.host, name: t.name, params: ref.read(pingDraftProvider).params);
                             widget.onStarted();
                           },
                         ),
@@ -424,14 +426,15 @@ class _PingConfigureMainState extends ConsumerState<PingConfigureMain> {
                               ? null
                               : () async {
                                   final picks = saved.where((t) => _selected.contains(t.id));
-                                  final n = await ref.read(pingBoardProvider.notifier).startMany(
-                                    [for (final t in picks) (host: t.host, name: t.name)],
-                                    params: ref.read(pingDraftProvider).params,
-                                  );
+                                  final n = await ref.read(pingBoardProvider.notifier).startMany([
+                                    for (final t in picks) (host: t.host, name: t.name),
+                                  ], params: ref.read(pingDraftProvider).params);
                                   if (!context.mounted) return;
                                   if (n < picks.length) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Started $n — at most $kMaxLivePings live pings at once.')),
+                                      SnackBar(
+                                        content: Text('Started $n — at most $kMaxLivePings live pings at once.'),
+                                      ),
                                     );
                                   }
                                   setState(_selected.clear);
@@ -570,7 +573,8 @@ class _SavedTargetDialogState extends ConsumerState<_SavedTargetDialog> {
       setState(() => _error = 'Give it a name and a host or IP.');
       return;
     }
-    if (!RegExp(r'^[A-Za-z0-9.\-:%_]+$').hasMatch(host) || (host.contains(':') && InternetAddress.tryParse(host) == null)) {
+    if (!RegExp(r'^[A-Za-z0-9.\-:%_]+$').hasMatch(host) ||
+        (host.contains(':') && InternetAddress.tryParse(host) == null)) {
       setState(() => _error = 'That does not look like a host name or IP address.');
       return;
     }
@@ -630,7 +634,11 @@ class _SavedTargetDialogState extends ConsumerState<_SavedTargetDialog> {
               ),
             const SizedBox(height: 20),
             Container(
-              decoration: BoxDecoration(border: Border(top: BorderSide(color: w.ink, width: kWireBorder))),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: w.ink, width: kWireBorder),
+                ),
+              ),
               child: IntrinsicHeight(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,

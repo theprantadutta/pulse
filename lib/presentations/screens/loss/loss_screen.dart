@@ -71,7 +71,10 @@ class _LossScreenState extends ConsumerState<LossScreen> {
         header: WireMobileHeader(
           title: 'Packet loss',
           onBack: mobileBack(context),
-          trailing: Text(s.startedAt == null ? '' : _clock(elapsed), style: WireType.label(12).copyWith(color: w.signal)),
+          trailing: Text(
+            s.startedAt == null ? '' : _clock(elapsed),
+            style: WireType.label(12).copyWith(color: w.signal),
+          ),
         ),
         body: ListView(
           padding: EdgeInsets.zero,
@@ -84,7 +87,10 @@ class _LossScreenState extends ConsumerState<LossScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('LOSS · ${verdict.word.toUpperCase()}', style: WireType.label().copyWith(color: heroSignal ? w.onSignal : w.ink)),
+                  Text(
+                    'LOSS · ${verdict.word.toUpperCase()}',
+                    style: WireType.label().copyWith(color: heroSignal ? w.onSignal : w.ink),
+                  ),
                   WireHeroNumber(value: lossText, size: 150, color: heroSignal ? w.onSignal : w.ink),
                 ],
               ),
@@ -92,15 +98,35 @@ class _LossScreenState extends ConsumerState<LossScreen> {
             const WireRule(),
             WireSplitRow(
               children: [
-                WireStat(label: 'Sent', value: '${r.sent}', valueSize: 30, padding: const EdgeInsets.fromLTRB(14, 10, 14, 10)),
-                WireStat(label: 'Lost', value: '${r.lost}', valueSize: 30, padding: const EdgeInsets.fromLTRB(14, 10, 14, 10)),
+                WireStat(
+                  label: 'Sent',
+                  value: '${r.sent}',
+                  valueSize: 30,
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                ),
+                WireStat(
+                  label: 'Lost',
+                  value: '${r.lost}',
+                  valueSize: 30,
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                ),
               ],
             ),
             const WireRule(),
             WireSplitRow(
               children: [
-                WireStat(label: 'Late', value: '${r.late}', valueSize: 30, padding: const EdgeInsets.fromLTRB(14, 10, 14, 10)),
-                WireStat(label: 'Avg RTT', value: r.avgRtt == null ? '—' : '${fmtMs(r.avgRtt)} MS', valueSize: 30, padding: const EdgeInsets.fromLTRB(14, 10, 14, 10)),
+                WireStat(
+                  label: 'Late',
+                  value: '${r.late}',
+                  valueSize: 30,
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                ),
+                WireStat(
+                  label: 'Avg RTT',
+                  value: r.avgRtt == null ? '—' : '${fmtMs(r.avgRtt)} MS',
+                  valueSize: 30,
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                ),
               ],
             ),
             const WireRule(),
@@ -148,7 +174,11 @@ class _LossScreenState extends ConsumerState<LossScreen> {
           children: [
             if (s.error != null) WireErrorBlock(reason: s.error!, size: 80),
             Container(
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: w.ink, width: kWireBorder),
+                ),
+              ),
               child: IntrinsicHeight(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -161,7 +191,10 @@ class _LossScreenState extends ConsumerState<LossScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('PACKET LOSS', style: WireType.label(12).copyWith(color: heroSignal ? w.onSignal : w.ink)),
+                          Text(
+                            'PACKET LOSS',
+                            style: WireType.label(12).copyWith(color: heroSignal ? w.onSignal : w.ink),
+                          ),
                           SizedBox(
                             height: 180,
                             child: Align(
@@ -211,7 +244,10 @@ class _LossScreenState extends ConsumerState<LossScreen> {
                                     TextSpan(
                                       children: [
                                         TextSpan(text: s.running ? 'Verdict so far: ' : 'Verdict: '),
-                                        TextSpan(text: '${verdict.word}. ', style: const TextStyle(fontWeight: FontWeight.w700)),
+                                        TextSpan(
+                                          text: '${verdict.word}. ',
+                                          style: const TextStyle(fontWeight: FontWeight.w700),
+                                        ),
                                         TextSpan(text: verdict.text),
                                       ],
                                     ),
@@ -249,7 +285,10 @@ class _LossScreenState extends ConsumerState<LossScreen> {
                     ),
                     const SizedBox(height: 10),
                     if (r.packets.isEmpty)
-                      Text('Pick a target, duration and rate, then START.', style: WireType.body(13).copyWith(color: w.text3))
+                      Text(
+                        'Pick a target, duration and rate, then START.',
+                        style: WireType.body(13).copyWith(color: w.text3),
+                      )
                     else
                       _Timeline(run: r, columns: 40, cellHeight: 16, gap: 3),
                   ],
@@ -298,7 +337,15 @@ class _Timeline extends StatelessWidget {
         if (p == PacketState.lost) lost = true;
         if (p == PacketState.late) late = true;
       }
-      colors.add(lost ? w.signal : late ? w.degraded : pending ? w.mutedRow : w.ink);
+      colors.add(
+        lost
+            ? w.signal
+            : late
+            ? w.degraded
+            : pending
+            ? w.mutedRow
+            : w.ink,
+      );
     }
     return LayoutBuilder(
       builder: (context, box) {

@@ -42,8 +42,13 @@ class _Geo extends GeoIpService {
 
 class _Prober implements PingProber {
   @override
-  Future<ProbeResult> probe(String host, {Duration timeout = const Duration(seconds: 2), int packetSize = 56, int ttl = 64, ProbeFamily family = ProbeFamily.auto}) async =>
-      ProbeResult(status: ProbeStatus.ok, rttMs: host.endsWith('.1') ? 2.4 : 11);
+  Future<ProbeResult> probe(
+    String host, {
+    Duration timeout = const Duration(seconds: 2),
+    int packetSize = 56,
+    int ttl = 64,
+    ProbeFamily family = ProbeFamily.auto,
+  }) async => ProbeResult(status: ProbeStatus.ok, rttMs: host.endsWith('.1') ? 2.4 : 11);
 }
 
 const _wifi = LinkDetails(
@@ -94,6 +99,12 @@ void main() {
     await shot(tester, 'network_desktop_light', _wifi, Brightness.light, const Size(1060, 736));
     await shot(tester, 'network_mobile_light', _wifi, Brightness.light, const Size(390, 780));
     await shot(tester, 'network_desktop_dark', _wifi, Brightness.dark, const Size(1060, 736));
-    await shot(tester, 'network_offline', const LinkDetails(kind: LinkKind.none), Brightness.light, const Size(1060, 736));
+    await shot(
+      tester,
+      'network_offline',
+      const LinkDetails(kind: LinkKind.none),
+      Brightness.light,
+      const Size(1060, 736),
+    );
   });
 }

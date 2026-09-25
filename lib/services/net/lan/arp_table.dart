@@ -10,8 +10,7 @@ class ArpTable {
   static final _ipv4 = RegExp(r'((?:\d{1,3}\.){3}\d{1,3})');
   static final _mac = RegExp(r'([0-9A-Fa-f]{1,2}[:-]){5}[0-9A-Fa-f]{1,2}');
 
-  static bool get available =>
-      Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+  static bool get available => Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
   static Future<Map<String, String>> read() async {
     try {
@@ -36,10 +35,7 @@ class ArpTable {
       final ip = _ipv4.firstMatch(line)?.group(1);
       final mac = _mac.firstMatch(line)?.group(0);
       if (ip == null || mac == null) continue;
-      final norm = mac
-          .split(RegExp('[:-]'))
-          .map((p) => p.padLeft(2, '0').toUpperCase())
-          .join(':');
+      final norm = mac.split(RegExp('[:-]')).map((p) => p.padLeft(2, '0').toUpperCase()).join(':');
       if (norm == 'FF:FF:FF:FF:FF:FF' || norm == '00:00:00:00:00:00') continue;
       if (norm.startsWith('01:00:5E')) continue; // IPv4 multicast
       out[ip] = norm;

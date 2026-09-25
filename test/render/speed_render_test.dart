@@ -30,7 +30,8 @@ class _Fake extends SpeedNotifier {
       jitterMs: 3,
       downMbps: 212.4,
       samples: [
-        for (var i = 0; i < 40; i++) SpeedSample(i < 24 ? 150 + r.nextDouble() * 90 : 30 + r.nextDouble() * 30, upload: i >= 24),
+        for (var i = 0; i < 40; i++)
+          SpeedSample(i < 24 ? 150 + r.nextDouble() * 90 : 30 + r.nextDouble() * 30, upload: i >= 24),
       ],
     );
   }
@@ -54,12 +55,18 @@ void main() {
     overrides: [
       speedProvider.overrideWith(_Fake.new),
       networkInfoProvider.overrideWith(_Net.new),
-      speedHistoryProvider.overrideWith((ref) => Stream.value([
-        (at: DateTime.now(), down: 208.1, up: 47.9),
-        (at: DateTime.now().subtract(const Duration(days: 1)), down: 96.4, up: 41.0),
-      ])),
+      speedHistoryProvider.overrideWith(
+        (ref) => Stream.value([
+          (at: DateTime.now(), down: 208.1, up: 47.9),
+          (at: DateTime.now().subtract(const Duration(days: 1)), down: 96.4, up: 41.0),
+        ]),
+      ),
     ],
-    child: MaterialApp(debugShowCheckedModeBanner: false, theme: buildWireTheme(b), home: const Scaffold(body: SpeedScreen())),
+    child: MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: buildWireTheme(b),
+      home: const Scaffold(body: SpeedScreen()),
+    ),
   );
   testWidgets('speed screens', (tester) async {
     await renderToPng(tester, 'speed_desktop_light', app(Brightness.light), size: const Size(1060, 736));

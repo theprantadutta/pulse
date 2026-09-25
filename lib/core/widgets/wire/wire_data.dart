@@ -57,11 +57,7 @@ class WireStat extends StatelessWidget {
               TextSpan(
                 children: [
                   TextSpan(text: value),
-                  if (unit != null)
-                    TextSpan(
-                      text: ' $unit',
-                      style: WireType.stat(valueSize * 0.5),
-                    ),
+                  if (unit != null) TextSpan(text: ' $unit', style: WireType.stat(valueSize * 0.5)),
                 ],
               ),
               maxLines: 1,
@@ -70,10 +66,7 @@ class WireStat extends StatelessWidget {
           ),
           if (caption != null) ...[
             const SizedBox(height: 4),
-            Text(
-              caption!,
-              style: WireType.body(11).copyWith(color: tone == WireTone.plain ? w.text2 : c.fg),
-            ),
+            Text(caption!, style: WireType.body(11).copyWith(color: tone == WireTone.plain ? w.text2 : c.fg)),
           ],
         ],
       ),
@@ -112,9 +105,7 @@ class WireHeroNumber extends StatelessWidget {
           if (unit != null)
             TextSpan(
               text: unit!.toUpperCase(),
-              style: WireType.hero(size * 0.286).copyWith(
-                color: unitColor ?? w.signal,
-              ),
+              style: WireType.hero(size * 0.286).copyWith(color: unitColor ?? w.signal),
             ),
         ],
       ),
@@ -123,11 +114,7 @@ class WireHeroNumber extends StatelessWidget {
       style: WireType.hero(size).copyWith(color: color ?? w.ink),
     );
     if (!fit) return text;
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      alignment: Alignment.bottomLeft,
-      child: text,
-    );
+    return FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.bottomLeft, child: text);
   }
 }
 
@@ -185,22 +172,15 @@ class WireBarChart extends StatefulWidget {
   State<WireBarChart> createState() => _WireBarChartState();
 }
 
-class _WireBarChartState extends State<WireBarChart>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _grow = AnimationController(
-    vsync: this,
-    duration: WireMotion.bars,
-    value: 1,
-  );
+class _WireBarChartState extends State<WireBarChart> with SingleTickerProviderStateMixin {
+  late final AnimationController _grow = AnimationController(vsync: this, duration: WireMotion.bars, value: 1);
 
   @override
   void didUpdateWidget(WireBarChart old) {
     super.didUpdateWidget(old);
     final changed =
         old.bars.length != widget.bars.length ||
-        (widget.bars.isNotEmpty &&
-            old.bars.isNotEmpty &&
-            old.bars.last.value != widget.bars.last.value);
+        (widget.bars.isNotEmpty && old.bars.isNotEmpty && old.bars.last.value != widget.bars.last.value);
     if (changed) _grow.forward(from: 0);
   }
 
@@ -285,8 +265,7 @@ class _BarChartPainter extends CustomPainter {
 
     final values = bars.map((b) => b.value).whereType<double>();
     final peak = values.isEmpty ? 0.0 : values.reduce(math.max);
-    final top = maxValue ??
-        math.max(peak * 1.12, (threshold ?? 0) * 1.6).clamp(1.0, double.infinity);
+    final top = maxValue ?? math.max(peak * 1.12, (threshold ?? 0) * 1.6).clamp(1.0, double.infinity);
 
     final n = math.max(slots, bars.length);
     final barW = (size.width - gap * (n - 1)) / n;
@@ -302,19 +281,12 @@ class _BarChartPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = kWireBorder;
         final h = size.height * t;
-        canvas.drawRect(
-          Rect.fromLTWH(x + 1, size.height - h + 1, barW - 2, h - 1),
-          p,
-        );
+        canvas.drawRect(Rect.fromLTWH(x + 1, size.height - h + 1, barW - 2, h - 1), p);
         continue;
       }
       final h = (b.value! / top).clamp(0.0, 1.0) * size.height * t;
-      final color = b.color ??
-          (threshold != null && b.value! > threshold! ? signal : ink);
-      canvas.drawRect(
-        Rect.fromLTWH(x, size.height - math.max(h, 2), barW, math.max(h, 2)),
-        Paint()..color = color,
-      );
+      final color = b.color ?? (threshold != null && b.value! > threshold! ? signal : ink);
+      canvas.drawRect(Rect.fromLTWH(x, size.height - math.max(h, 2), barW, math.max(h, 2)), Paint()..color = color);
     }
   }
 
@@ -324,13 +296,7 @@ class _BarChartPainter extends CustomPainter {
 
 /// A row of N equal status cells separated by 2px gaps.
 class WireStatusStrip extends StatelessWidget {
-  const WireStatusStrip({
-    super.key,
-    required this.colors,
-    this.height = 26,
-    this.gap = 2,
-    this.borderColor,
-  });
+  const WireStatusStrip({super.key, required this.colors, this.height = 26, this.gap = 2, this.borderColor});
 
   final List<Color> colors;
   final double height;
@@ -343,10 +309,7 @@ class WireStatusStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: height,
-      child: CustomPaint(
-        painter: _StripPainter(colors, gap, borderColor),
-        size: Size.infinite,
-      ),
+      child: CustomPaint(painter: _StripPainter(colors, gap, borderColor), size: Size.infinite),
     );
   }
 }
@@ -378,19 +341,13 @@ class _StripPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_StripPainter old) =>
-      old.colors != colors || old.gap != gap || old.border != border;
+  bool shouldRepaint(_StripPainter old) => old.colors != colors || old.gap != gap || old.border != border;
 }
 
 /// 2px-bordered progress bar; the fill has a 2px ink edge.
 /// When [value] is null it runs the 1px ink "scanline".
 class WireProgress extends StatefulWidget {
-  const WireProgress({
-    super.key,
-    required this.value,
-    this.height = 14,
-    this.signal = true,
-  });
+  const WireProgress({super.key, required this.value, this.height = 14, this.signal = true});
 
   final double? value;
   final double height;
@@ -402,12 +359,8 @@ class WireProgress extends StatefulWidget {
   State<WireProgress> createState() => _WireProgressState();
 }
 
-class _WireProgressState extends State<WireProgress>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _scan = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1400),
-  );
+class _WireProgressState extends State<WireProgress> with SingleTickerProviderStateMixin {
+  late final AnimationController _scan = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
 
   @override
   void initState() {
@@ -461,7 +414,9 @@ class _WireProgressState extends State<WireProgress>
               decoration: BoxDecoration(
                 color: widget.signal ? w.signal : w.ink,
                 border: v > 0 && v < 1
-                    ? Border(right: BorderSide(color: w.ink, width: kWireBorder))
+                    ? Border(
+                        right: BorderSide(color: w.ink, width: kWireBorder),
+                      )
                     : null,
               ),
             ),
@@ -474,13 +429,7 @@ class _WireProgressState extends State<WireProgress>
 
 /// Mini bar sparkline (History TREND column).
 class WireSparkline extends StatelessWidget {
-  const WireSparkline({
-    super.key,
-    required this.values,
-    this.threshold,
-    this.height = 22,
-    this.color,
-  });
+  const WireSparkline({super.key, required this.values, this.threshold, this.height = 22, this.color});
 
   final List<double> values;
   final double? threshold;
@@ -492,10 +441,7 @@ class WireSparkline extends StatelessWidget {
     return SizedBox(
       height: height,
       child: WireBarChart(
-        bars: [
-          for (final v in values)
-            WireBar(v, color: threshold != null && v > threshold! ? null : color),
-        ],
+        bars: [for (final v in values) WireBar(v, color: threshold != null && v > threshold! ? null : color)],
         threshold: threshold,
         gap: 2,
         gridStep: 1000,

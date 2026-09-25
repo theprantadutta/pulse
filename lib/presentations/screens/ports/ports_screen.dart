@@ -67,7 +67,10 @@ class _PortsScreenState extends ConsumerState<PortsScreen> {
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-                  child: Text('Comma-separated ports and ranges, 1–65535.', style: WireType.body(12).copyWith(color: w.text2)),
+                  child: Text(
+                    'Comma-separated ports and ranges, 1–65535.',
+                    style: WireType.body(12).copyWith(color: w.text2),
+                  ),
                 ),
                 PanelActions(
                   actions: [
@@ -102,7 +105,11 @@ class _PortsScreenState extends ConsumerState<PortsScreen> {
           title: 'Port scan',
           onBack: mobileBack(context),
           trailing: Text(
-            s.running ? '${s.scanned}/${s.ports.length}' : s.results.isEmpty ? '' : 'DONE',
+            s.running
+                ? '${s.scanned}/${s.ports.length}'
+                : s.results.isEmpty
+                ? ''
+                : 'DONE',
             style: WireType.label(12).copyWith(color: w.signal),
           ),
         ),
@@ -111,7 +118,11 @@ class _PortsScreenState extends ConsumerState<PortsScreen> {
           children: [
             MobileTargetRow(controller: _target, onSubmitted: (_) => _scan(), enabled: !s.running),
             Container(
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: w.ink, width: kWireBorder),
+                ),
+              ),
               child: WireSegmented<PortPreset>(
                 bordered: false,
                 height: WireLayout.minHit,
@@ -127,19 +138,43 @@ class _PortsScreenState extends ConsumerState<PortsScreen> {
             ),
             if (s.error != null) WireErrorBlock(reason: s.error!, size: 56),
             Container(
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: w.ink, width: kWireBorder),
+                ),
+              ),
               child: WireSplitRow(
                 children: [
-                  WireStat(label: 'Open', value: '${s.open.length}', valueSize: 40, tone: WireTone.signal, padding: const EdgeInsets.fromLTRB(14, 10, 14, 10)),
-                  WireStat(label: 'Filter', value: '${s.filtered.length}', valueSize: 40, padding: const EdgeInsets.fromLTRB(14, 10, 14, 10)),
-                  WireStat(label: 'Time', value: seconds, valueSize: 40, padding: const EdgeInsets.fromLTRB(14, 10, 14, 10)),
+                  WireStat(
+                    label: 'Open',
+                    value: '${s.open.length}',
+                    valueSize: 40,
+                    tone: WireTone.signal,
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                  ),
+                  WireStat(
+                    label: 'Filter',
+                    value: '${s.filtered.length}',
+                    valueSize: 40,
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                  ),
+                  WireStat(
+                    label: 'Time',
+                    value: seconds,
+                    valueSize: 40,
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                  ),
                 ],
               ),
             ),
             if (s.ports.isNotEmpty)
               Container(
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: w.ink, width: kWireBorder),
+                  ),
+                ),
                 child: _PortMap(state: s, gap: 1),
               ),
             for (final r in [...s.open, ...s.filtered.take(20)])
@@ -185,13 +220,38 @@ class _PortsScreenState extends ConsumerState<PortsScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: w.ink, width: kWireBorder),
+                ),
+              ),
               child: WireSplitRow(
                 children: [
-                  WireStat(label: 'Scanned', value: '${s.scanned}', valueSize: 64, padding: const EdgeInsets.fromLTRB(20, 14, 20, 14)),
-                  WireStat(label: 'Open', value: '${s.open.length}', valueSize: 64, tone: WireTone.signal, padding: const EdgeInsets.fromLTRB(20, 14, 20, 14)),
-                  WireStat(label: 'Filtered', value: '${s.filtered.length}', valueSize: 64, padding: const EdgeInsets.fromLTRB(20, 14, 20, 14)),
-                  WireStat(label: 'Time', value: seconds, valueSize: 64, padding: const EdgeInsets.fromLTRB(20, 14, 20, 14)),
+                  WireStat(
+                    label: 'Scanned',
+                    value: '${s.scanned}',
+                    valueSize: 64,
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+                  ),
+                  WireStat(
+                    label: 'Open',
+                    value: '${s.open.length}',
+                    valueSize: 64,
+                    tone: WireTone.signal,
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+                  ),
+                  WireStat(
+                    label: 'Filtered',
+                    value: '${s.filtered.length}',
+                    valueSize: 64,
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+                  ),
+                  WireStat(
+                    label: 'Time',
+                    value: seconds,
+                    valueSize: 64,
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+                  ),
                 ],
               ),
             ),
@@ -270,7 +330,15 @@ class _PortMap extends StatelessWidget {
           filtered = true;
         }
       }
-      colors.add(open ? w.signal : filtered ? w.filtered : pending ? w.mutedRow : null);
+      colors.add(
+        open
+            ? w.signal
+            : filtered
+            ? w.filtered
+            : pending
+            ? w.mutedRow
+            : null,
+      );
     }
     return LayoutBuilder(
       builder: (context, box) {
@@ -283,7 +351,10 @@ class _PortMap extends StatelessWidget {
               Container(
                 width: size,
                 height: size,
-                decoration: BoxDecoration(color: c, border: Border.all(color: w.ink, width: 1)),
+                decoration: BoxDecoration(
+                  color: c,
+                  border: Border.all(color: w.ink, width: 1),
+                ),
               ),
           ],
         );

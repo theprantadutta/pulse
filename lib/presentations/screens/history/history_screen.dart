@@ -85,9 +85,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       topBar: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: WireTopTitle('History', subtitle: '${list.length} SESSIONS · $days DAYS'),
-          ),
+          Expanded(child: WireTopTitle('History', subtitle: '${list.length} SESSIONS · $days DAYS')),
           const WireVRule(),
           SizedBox(
             width: 260,
@@ -115,7 +113,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ? (loading ? const SizedBox.shrink() : _empty())
           : _Table(sessions: list, selectedId: selected?.id),
       panel: selected == null
-          ? Center(child: Text('Select a session', style: WireType.body(13).copyWith(color: w.text3)))
+          ? Center(
+              child: Text('Select a session', style: WireType.body(13).copyWith(color: w.text3)),
+            )
           : _Detail(session: selected),
     );
   }
@@ -143,7 +143,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: w.ink, width: kWireBorder),
+              ),
+            ),
             child: WireSegmented<SessionTool?>(
               bordered: false,
               height: WireLayout.minHit,
@@ -160,7 +164,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ),
           Container(
             height: 46,
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: w.ink, width: kWireBorder),
+              ),
+            ),
             child: WireTargetField(
               controller: _search,
               prefix: 'FILTER>',
@@ -215,6 +223,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      sheetAnimationStyle: kWireSheetAnimation,
       useSafeArea: true,
       builder: (context) => ConstrainedBox(
         constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.85),
@@ -248,7 +257,9 @@ class _ToolMenu extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          border: Border(right: BorderSide(color: context.wire.ink, width: kWireBorder)),
+          border: Border(
+            right: BorderSide(color: context.wire.ink, width: kWireBorder),
+          ),
         ),
         child: Text('${selected?.label ?? 'ALL TOOLS'} ▾', style: WireType.data(13)),
       ),
@@ -297,17 +308,19 @@ class _Table extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (s.label != null)
-                          Text(s.label!.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: WireType.nav(15)),
+                          Text(
+                            s.label!.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: WireType.nav(15),
+                          ),
                         Text(s.target, maxLines: 1, overflow: TextOverflow.ellipsis, style: WireType.data(13)),
                       ],
                     ),
                     Text(s.tool.toUpperCase(), style: WireType.body(13).copyWith(height: 1.2)),
                     Text(_avgText(s), maxLines: 1, style: WireType.data(13)),
                     Text(fmtPct(s.lossPct), style: WireType.body(13).copyWith(height: 1.2)),
-                    WireSparkline(
-                      values: trend,
-                      threshold: s.tool == SessionTool.ping.name ? slow : null,
-                    ),
+                    WireSparkline(values: trend, threshold: s.tool == SessionTool.ping.name ? slow : null),
                   ],
                 ),
               );
@@ -347,9 +360,7 @@ class _Detail extends ConsumerWidget {
 
     Future<void> rerun() async {
       if (s.tool == SessionTool.ping.name) {
-        final params = payload['params'] is Map
-            ? PingParams.fromJson((payload['params'] as Map).cast())
-            : null;
+        final params = payload['params'] is Map ? PingParams.fromJson((payload['params'] as Map).cast()) : null;
         await ref.read(pingBoardProvider.notifier).start(s.target, name: s.label, params: params);
         onDone?.call();
         if (context.mounted) context.go(Routes.ping);
@@ -373,7 +384,11 @@ class _Detail extends ConsumerWidget {
       children: [
         Container(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: w.ink, width: kWireBorder),
+            ),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -391,12 +406,26 @@ class _Detail extends ConsumerWidget {
         ),
         for (var i = 0; i < cells.length; i += 2)
           Container(
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: w.ink, width: kWireBorder),
+              ),
+            ),
             child: WireSplitRow(
               children: [
-                WireStat(label: cells[i].$1, value: cells[i].$2, valueSize: 30, padding: const EdgeInsets.fromLTRB(20, 12, 20, 12)),
+                WireStat(
+                  label: cells[i].$1,
+                  value: cells[i].$2,
+                  valueSize: 30,
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                ),
                 if (i + 1 < cells.length)
-                  WireStat(label: cells[i + 1].$1, value: cells[i + 1].$2, valueSize: 30, padding: const EdgeInsets.fromLTRB(20, 12, 20, 12))
+                  WireStat(
+                    label: cells[i + 1].$1,
+                    value: cells[i + 1].$2,
+                    valueSize: 30,
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                  )
                 else
                   const SizedBox.shrink(),
               ],
@@ -405,9 +434,16 @@ class _Detail extends ConsumerWidget {
         if (replies.isNotEmpty)
           Container(
             height: 120,
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: w.ink, width: kWireBorder),
+              ),
+            ),
             child: WireBarChart.latency(
-              values: [for (final r in replies.length > 60 ? replies.sublist(replies.length - 60) : replies) r.received ? r.rttMs : null],
+              values: [
+                for (final r in replies.length > 60 ? replies.sublist(replies.length - 60) : replies)
+                  r.received ? r.rttMs : null,
+              ],
               threshold: slow,
               gridStep: 30,
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
@@ -415,7 +451,11 @@ class _Detail extends ConsumerWidget {
           ),
         const Spacer(),
         Container(
-          decoration: BoxDecoration(border: Border(top: BorderSide(color: w.ink, width: kWireBorder))),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: w.ink, width: kWireBorder),
+            ),
+          ),
           child: IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,

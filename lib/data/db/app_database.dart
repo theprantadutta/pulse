@@ -52,8 +52,7 @@ class MonitorTargets extends Table {
 /// One background check of a target: a short burst of probes.
 class MonitorChecks extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get targetId =>
-      integer().references(MonitorTargets, #id, onDelete: KeyAction.cascade)();
+  IntColumn get targetId => integer().references(MonitorTargets, #id, onDelete: KeyAction.cascade)();
   DateTimeColumn get at => dateTime()();
   IntColumn get sent => integer()();
   IntColumn get received => integer()();
@@ -66,8 +65,7 @@ class MonitorChecks extends Table {
 
 class Incidents extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get targetId =>
-      integer().references(MonitorTargets, #id, onDelete: KeyAction.cascade)();
+  IntColumn get targetId => integer().references(MonitorTargets, #id, onDelete: KeyAction.cascade)();
 
   /// down | loss | latency
   TextColumn get kind => text()();
@@ -106,8 +104,7 @@ class AlertRules extends Table {
 
 class AlertEvents extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get ruleId =>
-      integer().references(AlertRules, #id, onDelete: KeyAction.cascade)();
+  IntColumn get ruleId => integer().references(AlertRules, #id, onDelete: KeyAction.cascade)();
   DateTimeColumn get at => dateTime()();
   TextColumn get message => text()();
   RealColumn get value => real().nullable()();
@@ -131,29 +128,14 @@ class LanDevices extends Table {
 }
 
 @DriftDatabase(
-  tables: [
-    Sessions,
-    SavedTargets,
-    MonitorTargets,
-    MonitorChecks,
-    Incidents,
-    AlertRules,
-    AlertEvents,
-    LanDevices,
-  ],
+  tables: [Sessions, SavedTargets, MonitorTargets, MonitorChecks, Incidents, AlertRules, AlertEvents, LanDevices],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   /// Opens the on-disk database. [shareAcrossIsolates] lets the UI isolate,
   /// the Android foreground service and WorkManager share one connection.
-  AppDatabase.open()
-    : super(
-        driftDatabase(
-          name: 'pulse',
-          native: const DriftNativeOptions(shareAcrossIsolates: true),
-        ),
-      );
+  AppDatabase.open() : super(driftDatabase(name: 'pulse', native: const DriftNativeOptions(shareAcrossIsolates: true)));
 
   @override
   int get schemaVersion => 2;
@@ -162,12 +144,8 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
-      await customStatement(
-        'CREATE INDEX checks_target_at ON monitor_checks (target_id, at)',
-      );
-      await customStatement(
-        'CREATE INDEX sessions_started ON sessions (started_at)',
-      );
+      await customStatement('CREATE INDEX checks_target_at ON monitor_checks (target_id, at)');
+      await customStatement('CREATE INDEX sessions_started ON sessions (started_at)');
     },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
@@ -186,9 +164,7 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       await (delete(sessions)..where((s) => s.startedAt.isSmallerThanValue(cutoff))).go();
       await (delete(monitorChecks)..where((c) => c.at.isSmallerThanValue(cutoff))).go();
-      await (delete(incidents)
-            ..where((i) => i.endedAt.isNotNull() & i.endedAt.isSmallerThanValue(cutoff)))
-          .go();
+      await (delete(incidents)..where((i) => i.endedAt.isNotNull() & i.endedAt.isSmallerThanValue(cutoff))).go();
       await (delete(alertEvents)..where((e) => e.at.isSmallerThanValue(cutoff))).go();
     });
   }

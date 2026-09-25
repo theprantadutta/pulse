@@ -134,14 +134,22 @@ class _DesktopSummary extends StatelessWidget {
     final w = context.wire;
     final s = state;
     return Container(
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: w.ink, width: kWireBorder),
+        ),
+      ),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
               padding: const EdgeInsets.fromLTRB(28, 12, 28, 12),
-              decoration: BoxDecoration(border: Border(right: BorderSide(color: w.ink, width: kWireBorder))),
+              decoration: BoxDecoration(
+                border: Border(
+                  right: BorderSide(color: w.ink, width: kWireBorder),
+                ),
+              ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -253,7 +261,12 @@ class _DeviceTable extends ConsumerWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text(d.host.vendor ?? '—', maxLines: 1, overflow: TextOverflow.ellipsis, style: WireType.body(13).copyWith(height: 1.2)),
+                    Text(
+                      d.host.vendor ?? '—',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: WireType.body(13).copyWith(height: 1.2),
+                    ),
                     Text(d.type.label, style: WireType.body(13).copyWith(height: 1.2)),
                     Text(d.host.rttMs == null ? 'ARP' : fmtMs(d.host.rttMs), style: WireType.data(13)),
                   ],
@@ -289,7 +302,14 @@ class _DetailPanel extends ConsumerWidget {
       ('Hostname', d.host.hostname ?? '—'),
       ('MAC', d.host.mac ?? (ArpTable.available ? '—' : 'hidden by the OS')),
       ('Vendor', d.host.vendor ?? '—'),
-      ('Open ports', scanning ? 'scanning…' : (ports == null || ports.isEmpty) ? 'none of the common ports' : ports.map((p) => p.port).join(' · ')),
+      (
+        'Open ports',
+        scanning
+            ? 'scanning…'
+            : (ports == null || ports.isEmpty)
+            ? 'none of the common ports'
+            : ports.map((p) => p.port).join(' · '),
+      ),
       ('First seen', d.firstSeen == null ? 'this scan' : DateFormat('MMM d, HH:mm').format(d.firstSeen!)),
     ];
     return Column(
@@ -341,7 +361,11 @@ class _DeviceActions extends ConsumerWidget {
     final w = context.wire;
     final d = device;
     return Container(
-      decoration: BoxDecoration(border: Border(top: BorderSide(color: w.ink, width: kWireBorder))),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: w.ink, width: kWireBorder),
+        ),
+      ),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -355,10 +379,9 @@ class _DeviceActions extends ConsumerWidget {
                 fontSize: 16,
                 height: 52,
                 onPressed: () async {
-                  await ref.read(pingBoardProvider.notifier).start(
-                    d.host.ip,
-                    name: d.host.hostname ?? (d.host.isGateway ? 'Router' : null),
-                  );
+                  await ref
+                      .read(pingBoardProvider.notifier)
+                      .start(d.host.ip, name: d.host.hostname ?? (d.host.isGateway ? 'Router' : null));
                   if (context.mounted) context.go(Routes.ping);
                 },
               ),
@@ -410,7 +433,11 @@ class _MobileSummary extends StatelessWidget {
     final s = state;
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: w.ink, width: kWireBorder),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -423,14 +450,18 @@ class _MobileSummary extends StatelessWidget {
                 child: Text('DEVICES', style: WireType.title(22)),
               ),
               const Spacer(),
-              Text(s.phase == 'probing' ? '${s.probed} / ${s.total}' : s.phase.toUpperCase(), style: WireType.label(12)),
+              Text(
+                s.phase == 'probing' ? '${s.probed} / ${s.total}' : s.phase.toUpperCase(),
+                style: WireType.label(12),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           WireProgress(value: _progress(s), signal: s.running),
           const SizedBox(height: 8),
           Text(
-            s.error ?? '${s.cidr ?? ''}${s.phase == 'probing' && s.current != null ? ' · probing .${s.current!.split('.').last}' : ''}',
+            s.error ??
+                '${s.cidr ?? ''}${s.phase == 'probing' && s.current != null ? ' · probing .${s.current!.split('.').last}' : ''}',
             style: WireType.body(11).copyWith(color: s.error != null ? w.signal : w.text2),
           ),
         ],
@@ -451,12 +482,17 @@ class _MobileList extends ConsumerWidget {
       itemBuilder: (context, i) {
         final d = state.devices[i];
         return WireRow(
-          highlight: d.host.isSelf ? WireRowHighlight.muted : d.isNew ? WireRowHighlight.tint : WireRowHighlight.none,
+          highlight: d.host.isSelf
+              ? WireRowHighlight.muted
+              : d.isNew
+              ? WireRowHighlight.tint
+              : WireRowHighlight.none,
           onTap: () {
             ref.read(lanScanProvider.notifier).select(d.host.ip);
             showModalBottomSheet<void>(
               context: context,
               isScrollControlled: true,
+              sheetAnimationStyle: kWireSheetAnimation,
               useSafeArea: true,
               builder: (context) => ConstrainedBox(
                 constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.8),
@@ -472,7 +508,11 @@ class _MobileList extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${d.displayName}${d.host.isGateway ? ' · GATEWAY' : d.isNew ? ' · NEW' : ''}',
+                      '${d.displayName}${d.host.isGateway
+                          ? ' · GATEWAY'
+                          : d.isNew
+                          ? ' · NEW'
+                          : ''}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: WireType.data(14),

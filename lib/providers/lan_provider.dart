@@ -24,7 +24,13 @@ class LanDevice {
   /// Never seen on this subnet before this scan.
   final bool isNew;
 
-  String get displayName => host.hostname ?? (host.isGateway ? 'Router' : host.isSelf ? 'This device' : 'Unknown');
+  String get displayName =>
+      host.hostname ??
+      (host.isGateway
+          ? 'Router'
+          : host.isSelf
+          ? 'This device'
+          : 'Unknown');
   String get key => host.mac ?? host.ip;
 }
 
@@ -113,9 +119,7 @@ class LanScanState {
   );
 }
 
-final lanScannerProvider = Provider<LanScanner>(
-  (ref) => LanScanner(prober: ref.watch(pingProberProvider)),
-);
+final lanScannerProvider = Provider<LanScanner>((ref) => LanScanner(prober: ref.watch(pingProberProvider)));
 
 final lanScanProvider = NotifierProvider<LanScanNotifier, LanScanState>(LanScanNotifier.new);
 
@@ -227,27 +231,29 @@ class LanScanNotifier extends Notifier<LanScanState> {
     state = state.copyWith(devices: withFirstSeen);
     final n = state.devices.length;
     final fresh = state.devices.where((d) => d.isNew).length;
-    await ref.read(historyRepositoryProvider).save(
-      tool: SessionTool.lan,
-      target: cidr,
-      startedAt: started,
-      endedAt: now,
-      summary: '$n device${n == 1 ? '' : 's'}${fresh > 0 ? ' · $fresh new' : ''}',
-      payload: {
-        'devices': [
-          for (final d in state.devices)
-            {
-              'ip': d.host.ip,
-              'mac': d.host.mac,
-              'name': d.host.hostname,
-              'vendor': d.host.vendor,
-              'type': d.type.label,
-              'rtt': d.host.rttMs,
-              'new': d.isNew,
-            },
-        ],
-      },
-    );
+    await ref
+        .read(historyRepositoryProvider)
+        .save(
+          tool: SessionTool.lan,
+          target: cidr,
+          startedAt: started,
+          endedAt: now,
+          summary: '$n device${n == 1 ? '' : 's'}${fresh > 0 ? ' · $fresh new' : ''}',
+          payload: {
+            'devices': [
+              for (final d in state.devices)
+                {
+                  'ip': d.host.ip,
+                  'mac': d.host.mac,
+                  'name': d.host.hostname,
+                  'vendor': d.host.vendor,
+                  'type': d.type.label,
+                  'rtt': d.host.rttMs,
+                  'new': d.isNew,
+                },
+            ],
+          },
+        );
   }
 
   void select(String ip) {
@@ -260,7 +266,9 @@ class LanScanNotifier extends Notifier<LanScanState> {
     if (state.scanningPorts.contains(ip)) return;
     state = state.copyWith(scanningPorts: {...state.scanningPorts, ip});
     final open = <PortResult>[];
-    await for (final r in const PortScanner(timeout: Duration(milliseconds: 600)).scan(InternetAddress(ip), kCommonPorts)) {
+    await for (final r in const PortScanner(
+      timeout: Duration(milliseconds: 600),
+    ).scan(InternetAddress(ip), kCommonPorts)) {
       if (r.state == PortState.open) open.add(r);
     }
     open.sort((a, b) => a.port.compareTo(b.port));

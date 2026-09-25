@@ -118,29 +118,31 @@ class SpeedNotifier extends Notifier<SpeedState> {
     state = SpeedState(server: state.server, autoSelected: state.autoSelected, phase: SpeedPhase.ping);
     final samples = <SpeedSample>[];
     final done = Completer<void>();
-    _sub = _test!.run(state.server).listen(
-      (u) {
-        if (u.sample != null) samples.add(u.sample!);
-        state = state.copyWith(
-          phase: u.phase,
-          liveMbps: u.liveMbps,
-          pingMs: u.pingMs,
-          jitterMs: u.jitterMs,
-          downMbps: u.downMbps,
-          upMbps: u.upMbps,
-          samples: List.of(samples),
-          progress: u.progress,
-          colo: u.colo,
+    _sub = _test!
+        .run(state.server)
+        .listen(
+          (u) {
+            if (u.sample != null) samples.add(u.sample!);
+            state = state.copyWith(
+              phase: u.phase,
+              liveMbps: u.liveMbps,
+              pingMs: u.pingMs,
+              jitterMs: u.jitterMs,
+              downMbps: u.downMbps,
+              upMbps: u.upMbps,
+              samples: List.of(samples),
+              progress: u.progress,
+              colo: u.colo,
+            );
+          },
+          onError: (Object e) {
+            state = state.copyWith(phase: SpeedPhase.done, error: 'Speed test failed: $e');
+            if (!done.isCompleted) done.complete();
+          },
+          onDone: () {
+            if (!done.isCompleted) done.complete();
+          },
         );
-      },
-      onError: (Object e) {
-        state = state.copyWith(phase: SpeedPhase.done, error: 'Speed test failed: $e');
-        if (!done.isCompleted) done.complete();
-      },
-      onDone: () {
-        if (!done.isCompleted) done.complete();
-      },
-    );
     await done.future;
     if (state.phase == SpeedPhase.done && state.error == null && state.downMbps != null) {
       await _save(started);
@@ -157,24 +159,28 @@ class SpeedNotifier extends Notifier<SpeedState> {
 
   Future<void> _save(DateTime started) async {
     final s = state;
-    final server = s.server.isCloudflare ? 'Cloudflare ${s.colo ?? ''}'.trim() : '${s.server.name} ${s.server.location}';
-    await ref.read(historyRepositoryProvider).save(
-      tool: SessionTool.speed,
-      target: server,
-      startedAt: started,
-      endedAt: DateTime.now(),
-      avgMs: s.pingMs,
-      summary: '${s.downMbps!.toStringAsFixed(0)} ↓ · ${s.upMbps?.toStringAsFixed(0) ?? '—'} ↑',
-      trend: [for (final x in s.samples.where((x) => !x.upload)) x.mbps].take(12).toList(),
-      payload: {
-        'down': s.downMbps,
-        'up': s.upMbps,
-        'ping': s.pingMs,
-        'jitter': s.jitterMs,
-        'server': s.server.id,
-        'colo': s.colo,
-      },
-    );
+    final server = s.server.isCloudflare
+        ? 'Cloudflare ${s.colo ?? ''}'.trim()
+        : '${s.server.name} ${s.server.location}';
+    await ref
+        .read(historyRepositoryProvider)
+        .save(
+          tool: SessionTool.speed,
+          target: server,
+          startedAt: started,
+          endedAt: DateTime.now(),
+          avgMs: s.pingMs,
+          summary: '${s.downMbps!.toStringAsFixed(0)} ↓ · ${s.upMbps?.toStringAsFixed(0) ?? '—'} ↑',
+          trend: [for (final x in s.samples.where((x) => !x.upload)) x.mbps].take(12).toList(),
+          payload: {
+            'down': s.downMbps,
+            'up': s.upMbps,
+            'ping': s.pingMs,
+            'jitter': s.jitterMs,
+            'server': s.server.id,
+            'colo': s.colo,
+          },
+        );
   }
 }
 

@@ -55,16 +55,14 @@ class _PingScreenState extends ConsumerState<PingScreen> {
       _targetFocus.requestFocus();
       return;
     }
-    final id = await ref.read(pingBoardProvider.notifier).start(
-      host,
-      name: _name.text,
-      params: ref.read(pingDraftProvider).params,
-    );
+    final id = await ref
+        .read(pingBoardProvider.notifier)
+        .start(host, name: _name.text, params: ref.read(pingDraftProvider).params);
     if (!mounted) return;
     if (id == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('At most $kMaxLivePings live pings at once — stop one first.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('At most $kMaxLivePings live pings at once — stop one first.')));
       return;
     }
     _name.clear();
@@ -159,7 +157,11 @@ class _PingScreenState extends ConsumerState<PingScreen> {
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: w.ink, width: kWireBorder),
+              ),
+            ),
             child: Text('PARAMETERS', style: WireType.title(26)),
           ),
           const Expanded(child: SingleChildScrollView(child: PingParametersPanel())),
@@ -205,9 +207,18 @@ class _PingScreenState extends ConsumerState<PingScreen> {
               ),
             ),
           ),
-          WireTopChip(label: 'COUNT ${s.params.countLabel}', onTap: () => _edit(from: s)),
-          WireTopChip(label: 'INT ${(s.params.intervalMs / 1000).toStringAsFixed(1)}s', onTap: () => _edit(from: s)),
-          WireTopChip(label: 'T/O ${s.params.timeoutSec}s', onTap: () => _edit(from: s)),
+          WireTopChip(
+            label: 'COUNT ${s.params.countLabel}',
+            onTap: () => _edit(from: s),
+          ),
+          WireTopChip(
+            label: 'INT ${(s.params.intervalMs / 1000).toStringAsFixed(1)}s',
+            onTap: () => _edit(from: s),
+          ),
+          WireTopChip(
+            label: 'T/O ${s.params.timeoutSec}s',
+            onTap: () => _edit(from: s),
+          ),
           WireTopChip(label: '+ NEW', onTap: () => _edit()),
           if (s.running)
             WireButton(
@@ -239,7 +250,11 @@ class _PingScreenState extends ConsumerState<PingScreen> {
             height: 232,
             child: s.unreachable
                 ? Container(
-                    decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: w.ink, width: kWireBorder),
+                      ),
+                    ),
                     child: WireErrorBlock(
                       reason: s.error ?? 'Every recent probe to ${s.host} came back unreachable.',
                       size: 120,
@@ -247,14 +262,22 @@ class _PingScreenState extends ConsumerState<PingScreen> {
                     ),
                   )
                 : Container(
-                    decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: w.ink, width: kWireBorder),
+                      ),
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Container(
                           width: 316,
                           padding: const EdgeInsets.fromLTRB(32, 20, 24, 12),
-                          decoration: BoxDecoration(border: Border(right: BorderSide(color: w.ink, width: kWireBorder))),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              right: BorderSide(color: w.ink, width: kWireBorder),
+                            ),
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -273,15 +296,15 @@ class _PingScreenState extends ConsumerState<PingScreen> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Container(
-                                decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(color: w.ink, width: kWireBorder),
+                                  ),
+                                ),
                                 child: PingStatStrip(session: s),
                               ),
                               Expanded(
-                                child: WireBarChart.latency(
-                                  values: chartValues(s, 30),
-                                  threshold: slow,
-                                  slots: 30,
-                                ),
+                                child: WireBarChart.latency(values: chartValues(s, 30), threshold: slow, slots: 30),
                               ),
                             ],
                           ),
@@ -299,11 +322,9 @@ class _PingScreenState extends ConsumerState<PingScreen> {
                 Expanded(
                   flex: 2,
                   child: PingRecentTargets(
-                    onPick: (host, name) => ref.read(pingBoardProvider.notifier).start(
-                      host,
-                      name: name,
-                      params: ref.read(pingDraftProvider).params,
-                    ),
+                    onPick: (host, name) => ref
+                        .read(pingBoardProvider.notifier)
+                        .start(host, name: name, params: ref.read(pingDraftProvider).params),
                   ),
                 ),
               ],
@@ -322,10 +343,7 @@ class _PingScreenState extends ConsumerState<PingScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: WireTopTitle(
-              'All pings',
-              subtitle: '${board.liveCount} LIVE · ${board.sessions.length} TOTAL',
-            ),
+            child: WireTopTitle('All pings', subtitle: '${board.liveCount} LIVE · ${board.sessions.length} TOTAL'),
           ),
           const WireVRule(),
           WireTopChip(label: '+ NEW PING', onTap: () => _edit()),
@@ -409,7 +427,11 @@ class _MobileStart extends ConsumerWidget {
         children: [
           Container(
             height: 52,
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: w.ink, width: kWireBorder),
+              ),
+            ),
             child: WireTargetField(
               controller: state._target,
               focusNode: state._targetFocus,
@@ -422,7 +444,11 @@ class _MobileStart extends ConsumerWidget {
           ),
           Container(
             height: 48,
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: w.ink, width: kWireBorder),
+              ),
+            ),
             child: WireTargetField(
               controller: state._name,
               prefix: 'NAME>',
@@ -485,7 +511,11 @@ class _MobileLive extends ConsumerWidget {
           Container(
             constraints: const BoxConstraints(minHeight: 48),
             padding: const EdgeInsets.only(left: 14),
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: w.ink, width: kWireBorder),
+              ),
+            ),
             child: Row(
               children: [
                 Text('TARGET>', style: WireType.label()),
@@ -500,7 +530,11 @@ class _MobileLive extends ConsumerWidget {
           ),
           if (s.unreachable)
             Container(
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: w.ink, width: kWireBorder),
+                ),
+              ),
               child: WireErrorBlock(
                 reason: s.error ?? 'Every recent probe came back unreachable.',
                 size: 64,
@@ -512,12 +546,20 @@ class _MobileLive extends ConsumerWidget {
               height: 180,
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
               alignment: Alignment.bottomLeft,
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: w.ink, width: kWireBorder),
+                ),
+              ),
               child: WireHeroNumber(value: hero.value, unit: hero.unit, size: 170),
             ),
           Container(
             height: 100,
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: w.ink, width: kWireBorder),
+              ),
+            ),
             child: WireBarChart.latency(
               values: chartValues(s, 20),
               threshold: slow,
@@ -527,10 +569,19 @@ class _MobileLive extends ConsumerWidget {
             ),
           ),
           Container(
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: w.ink, width: kWireBorder),
+              ),
+            ),
             child: WireSplitRow(
               children: [
-                WireStat(label: 'Avg', value: fmtMs(st.avg), valueSize: 32, padding: const EdgeInsets.fromLTRB(14, 10, 14, 10)),
+                WireStat(
+                  label: 'Avg',
+                  value: fmtMs(st.avg),
+                  valueSize: 32,
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                ),
                 WireStat(
                   label: 'Loss',
                   value: fmtPct(st.lossPct),
@@ -542,11 +593,25 @@ class _MobileLive extends ConsumerWidget {
             ),
           ),
           Container(
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: w.ink, width: kWireBorder),
+              ),
+            ),
             child: WireSplitRow(
               children: [
-                WireStat(label: 'Max', value: fmtMs(st.max), valueSize: 32, padding: const EdgeInsets.fromLTRB(14, 10, 14, 10)),
-                WireStat(label: 'Jitter', value: fmtMs(st.jitter), valueSize: 32, padding: const EdgeInsets.fromLTRB(14, 10, 14, 10)),
+                WireStat(
+                  label: 'Max',
+                  value: fmtMs(st.max),
+                  valueSize: 32,
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                ),
+                WireStat(
+                  label: 'Jitter',
+                  value: fmtMs(st.jitter),
+                  valueSize: 32,
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                ),
               ],
             ),
           ),
@@ -589,6 +654,7 @@ Future<void> showPingConfigSheet(BuildContext context, {PingSession? from}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    sheetAnimationStyle: kWireSheetAnimation,
     useSafeArea: true,
     barrierColor: context.wire.filtered.withValues(alpha: 0.7),
     builder: (context) => _ConfigSheet(from: from),
@@ -617,16 +683,14 @@ class _ConfigSheetState extends ConsumerState<_ConfigSheet> {
   Future<void> _start() async {
     final host = _target.text.trim();
     if (host.isEmpty) return;
-    final id = await ref.read(pingBoardProvider.notifier).start(
-      host,
-      name: _name.text,
-      params: ref.read(pingDraftProvider).params,
-    );
+    final id = await ref
+        .read(pingBoardProvider.notifier)
+        .start(host, name: _name.text, params: ref.read(pingDraftProvider).params);
     if (!mounted) return;
     if (id == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('At most $kMaxLivePings live pings at once — stop one first.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('At most $kMaxLivePings live pings at once — stop one first.')));
       return;
     }
     Navigator.of(context).pop();
@@ -644,16 +708,15 @@ class _ConfigSheetState extends ConsumerState<_ConfigSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Center(
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 10),
-                width: 44,
-                height: 4,
-                color: w.ink,
-              ),
+              child: Container(margin: const EdgeInsets.symmetric(vertical: 10), width: 44, height: 4, color: w.ink),
             ),
             Container(
               padding: const EdgeInsets.fromLTRB(18, 0, 6, 8),
-              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: w.ink, width: kWireBorder),
+                ),
+              ),
               child: Row(
                 children: [
                   Expanded(child: Text('CONFIGURE', style: WireType.title(28))),
@@ -678,7 +741,11 @@ class _ConfigSheetState extends ConsumerState<_ConfigSheet> {
                 children: [
                   Container(
                     padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
-                    decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: w.ink, width: kWireBorder),
+                      ),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

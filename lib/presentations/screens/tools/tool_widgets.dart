@@ -43,9 +43,7 @@ class ToolTargetBar extends StatelessWidget {
             hint: hint,
             enabled: !running,
             onSubmitted: (_) => onRun(),
-            trailing: subtitle == null
-                ? null
-                : Text(subtitle!, style: WireType.body(13).copyWith(color: w.text3)),
+            trailing: subtitle == null ? null : Text(subtitle!, style: WireType.body(13).copyWith(color: w.text3)),
           ),
         ),
         const WireVRule(),
@@ -131,7 +129,11 @@ class MobileTargetRow extends StatelessWidget {
     final w = context.wire;
     return Container(
       height: 50,
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: w.ink, width: kWireBorder))),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: w.ink, width: kWireBorder),
+        ),
+      ),
       child: WireTargetField(
         controller: controller,
         fontSize: 17,
@@ -157,7 +159,11 @@ class PanelActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = context.wire;
     return Container(
-      decoration: BoxDecoration(border: Border(top: BorderSide(color: w.ink, width: kWireBorder))),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: w.ink, width: kWireBorder),
+        ),
+      ),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,

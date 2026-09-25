@@ -40,8 +40,18 @@ class _FakeProber implements PingProber {
 }
 
 const _names = [
-  'Personal PC', 'Office PC', 'Library PC', 'Router', 'NAS', 'Printer',
-  'Game server', 'Media box', 'Camera', 'Laptop', 'Dead host', 'Phone',
+  'Personal PC',
+  'Office PC',
+  'Library PC',
+  'Router',
+  'NAS',
+  'Printer',
+  'Game server',
+  'Media box',
+  'Camera',
+  'Laptop',
+  'Dead host',
+  'Phone',
 ];
 
 void main() {
@@ -76,10 +86,9 @@ void main() {
 
   Future<void> runPings(WidgetTester tester, ProviderContainer c) async {
     await tester.runAsync(() async {
-      await c.read(pingBoardProvider.notifier).startMany(
-        [for (var i = 0; i < _names.length; i++) (host: i == 10 ? '10.0.0.99' : '10.0.0.${i + 10}', name: _names[i])],
-        params: const PingParams(intervalMs: 200, count: 40, timeoutSec: 1),
-      );
+      await c.read(pingBoardProvider.notifier).startMany([
+        for (var i = 0; i < _names.length; i++) (host: i == 10 ? '10.0.0.99' : '10.0.0.${i + 10}', name: _names[i]),
+      ], params: const PingParams(intervalMs: 200, count: 40, timeoutSec: 1));
       await Future<void>.delayed(const Duration(milliseconds: 3000));
       await c.read(pingBoardProvider.notifier).stop(c.read(pingBoardProvider).sessions[3].id);
     });
@@ -101,7 +110,12 @@ void main() {
 
       c.read(pingBoardProvider.notifier).focus(c.read(pingBoardProvider).sessions[1].id);
       await renderToPng(tester, 'ping_live_desktop_${b.name}', app(c, const PingScreen(), b));
-      await renderToPng(tester, 'ping_live_mobile_${b.name}', app(c, const PingScreen(), b), size: const Size(390, 780));
+      await renderToPng(
+        tester,
+        'ping_live_mobile_${b.name}',
+        app(c, const PingScreen(), b),
+        size: const Size(390, 780),
+      );
 
       c.read(pingBoardProvider.notifier).focus(c.read(pingBoardProvider).sessions[10].id);
       await renderToPng(tester, 'ping_unreachable_desktop_${b.name}', app(c, const PingScreen(), b));
@@ -111,7 +125,12 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 500));
       });
       await renderToPng(tester, 'history_desktop_${b.name}', app(c, const HistoryScreen(), b));
-      await renderToPng(tester, 'history_mobile_${b.name}', app(c, const HistoryScreen(), b), size: const Size(390, 780));
+      await renderToPng(
+        tester,
+        'history_mobile_${b.name}',
+        app(c, const HistoryScreen(), b),
+        size: const Size(390, 780),
+      );
       await tester.pumpWidget(const SizedBox());
       await tester.runAsync(() async {
         c.dispose();
@@ -124,7 +143,12 @@ void main() {
   testWidgets('configure with saved targets', (tester) async {
     final c = await tester.runAsync(seed);
     await renderToPng(tester, 'ping_configure_desktop', app(c!, const PingScreen(), Brightness.light));
-    await renderToPng(tester, 'ping_start_mobile', app(c, const PingScreen(), Brightness.light), size: const Size(390, 780));
+    await renderToPng(
+      tester,
+      'ping_start_mobile',
+      app(c, const PingScreen(), Brightness.light),
+      size: const Size(390, 780),
+    );
     await tester.pumpWidget(const SizedBox());
     await tester.runAsync(() async {
       c.dispose();

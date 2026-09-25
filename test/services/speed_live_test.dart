@@ -18,8 +18,10 @@ void main() {
       last = u;
     }
     // ignore: avoid_print
-    print('colo=${last!.colo} ping=${last.pingMs?.toStringAsFixed(1)} jitter=${last.jitterMs?.toStringAsFixed(1)} '
-        'down=${last.downMbps?.toStringAsFixed(1)} up=${last.upMbps?.toStringAsFixed(1)}');
+    print(
+      'colo=${last!.colo} ping=${last.pingMs?.toStringAsFixed(1)} jitter=${last.jitterMs?.toStringAsFixed(1)} '
+      'down=${last.downMbps?.toStringAsFixed(1)} up=${last.upMbps?.toStringAsFixed(1)}',
+    );
     expect(last.phase, SpeedPhase.done);
     expect(last.downMbps, greaterThan(0));
     expect(last.upMbps, greaterThan(0));

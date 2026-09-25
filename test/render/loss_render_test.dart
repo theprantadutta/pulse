@@ -25,9 +25,19 @@ LossRun _run() {
     }
     final burst = i % 40 > 36;
     final x = r.nextDouble();
-    final s = burst && x > 0.3 ? PacketState.lost : x > 0.94 ? PacketState.late : PacketState.ok;
+    final s = burst && x > 0.3
+        ? PacketState.lost
+        : x > 0.94
+        ? PacketState.late
+        : PacketState.ok;
     packets.add(s);
-    rtts.add(s == PacketState.lost ? null : s == PacketState.late ? 180 : 70 + x * 30);
+    rtts.add(
+      s == PacketState.lost
+          ? null
+          : s == PacketState.late
+          ? 180
+          : 70 + x * 30,
+    );
   }
   return LossRun(packets: packets, rtts: rtts);
 }
@@ -51,7 +61,11 @@ void main() {
   });
   Widget app(Brightness b) => ProviderScope(
     overrides: [lossProvider.overrideWith(_Fake.new)],
-    child: MaterialApp(debugShowCheckedModeBanner: false, theme: buildWireTheme(b), home: const Scaffold(body: LossScreen())),
+    child: MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: buildWireTheme(b),
+      home: const Scaffold(body: LossScreen()),
+    ),
   );
   testWidgets('loss screens', (tester) async {
     await renderToPng(tester, 'loss_desktop_light', app(Brightness.light), size: const Size(1060, 736));
