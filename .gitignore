@@ -48,3 +48,7 @@ app.*.map.json
 .env
 # Kotlin compiler daemon sessions
 android/.kotlin/
+
+# Code-signing material (kept in %USERPROFILE%\.pulse-signing, never in the repo)
+*.pfx
+*.cer

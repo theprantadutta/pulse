@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "startup_task.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -25,6 +26,7 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  RegisterStartupTaskChannel(flutter_controller_->engine()->messenger(), GetHandle());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   // window_manager shows the window once Dart has sized it (launch window).
@@ -50,6 +52,10 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  if (HandleStartupTaskMessage(message, wparam, lparam)) {
+    return 0;
+  }
+
   // Give Flutter, including plugins, an opportunity to handle window messages.
   if (flutter_controller_) {
     std::optional<LRESULT> result =

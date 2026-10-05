@@ -81,7 +81,16 @@ class BootNotifier extends Notifier<BootState> {
             await host.initTray();
             await host.setCloseToTray(ref.read(settingsProvider).closeToTray);
             final wantLogin = ref.read(settingsProvider).launchAtStartup;
-            if (await LaunchAtLogin.isEnabled() != wantLogin) await LaunchAtLogin.setEnabled(wantLogin);
+            final actual = await LaunchAtLogin.isEnabled();
+            if (actual != wantLogin) {
+              if (await LaunchAtLogin.isManagedBySystem) {
+                // The user can switch it in Task Manager / System Settings;
+                // follow what the OS says instead of overriding it.
+                await ref.read(settingsProvider.notifier).update((s) => s.copyWith(launchAtStartup: actual));
+              } else {
+                await LaunchAtLogin.setEnabled(wantLogin);
+              }
+            }
           },
         ),
       (status: 'Starting monitor…', run: (ref) async => ref.read(monitorRunnerProvider.notifier).start()),

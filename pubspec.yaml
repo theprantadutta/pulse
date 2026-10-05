@@ -3,7 +3,7 @@ description: "Pulse — network diagnostics for desktop and mobile."
 
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 2.0.0+2
 
 environment:
   sdk: ^3.12.0
@@ -91,10 +91,26 @@ flutter:
         - asset: assets/fonts/WireGlyphs.ttf
 
 msix_config:
+  # Store identity (identity_name, publisher, publisher_display_name) comes
+  # from Partner Center > Product identity; see CLAUDE.md "Microsoft Store".
   display_name: Pulse
   publisher_display_name: Pranta Dutta
   identity_name: com.pranta.pulse
-  msix_version: 1.0.0.0
+  msix_version: 2.0.0.0
+  description: Network diagnostics and monitoring - ping, traceroute, port scan, speed test, LAN scan and alerts.
   languages: en-us
-  capabilities: "internetClient,privateNetworkClientServer,location"
   logo_path: assets/brand/icon/master/pulse_icon_light_1024.png
+  capabilities: internetClient,privateNetworkClientServer,location
+  output_name: pulse
+  # Launch at login for the packaged app (registry Run keys are virtualised
+  # inside a package). Must match kTaskId in windows/runner/startup_task.cpp.
+  startup_task:
+    task_id: PulseStartup
+    enabled: false
+    parameters: --autostart
+  # Lets toast notifications activate the app. clsid = the guid passed to
+  # WindowsInitializationSettings in lib/services/background/notifications.dart.
+  toast_activator:
+    clsid: 6f1c2c4e-8a2b-4c61-9d5e-2b7a0f3e91c4
+    arguments: -ToastActivated
+    display_name: Pulse

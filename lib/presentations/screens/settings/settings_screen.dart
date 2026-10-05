@@ -23,6 +23,10 @@ import '../../../services/net/ping_prober.dart';
 import '../../../services/update_checker.dart';
 import '../tools/tool_widgets.dart';
 
+const kPrivacyUrl = 'https://legal.pranta.dev/pulse/privacy';
+const kTermsUrl = 'https://legal.pranta.dev/pulse/terms';
+const kDeveloper = (name: 'Pranta Dutta', email: 'prantadutta1997@gmail.com');
+
 enum SettingsSection {
   appearance('Appearance'),
   ping('Ping defaults'),
@@ -334,6 +338,8 @@ class _SectionBody extends ConsumerWidget {
                   try {
                     await LaunchAtLogin.setEnabled(v);
                     await set((x) => x.copyWith(launchAtStartup: v));
+                  } on LaunchAtLoginBlocked catch (e) {
+                    messenger.showSnackBar(SnackBar(content: Text(e.message)));
                   } on Object catch (e) {
                     messenger.showSnackBar(SnackBar(content: Text('Could not change login item: $e')));
                   }
@@ -479,6 +485,22 @@ class _SectionBody extends ConsumerWidget {
                 style: WireType.body(12).copyWith(color: context.wire.text2),
               ),
             ),
+            _ValueRow(
+              pad: pad,
+              title: 'Privacy policy',
+              description: 'legal.pranta.dev/pulse/privacy',
+              value: 'OPEN',
+              dense: dense,
+              onTap: () => launchUrl(Uri.parse(kPrivacyUrl)),
+            ),
+            _ValueRow(
+              pad: pad,
+              title: 'Terms of use',
+              description: 'legal.pranta.dev/pulse/terms',
+              value: 'OPEN',
+              dense: dense,
+              onTap: () => launchUrl(Uri.parse(kTermsUrl)),
+            ),
           ],
         );
 
@@ -502,6 +524,9 @@ class _SectionBody extends ConsumerWidget {
                 'Network diagnostics for desktop and mobile. Apache-2.0.',
                 style: WireType.body(12).copyWith(color: context.wire.text2),
               ),
+              const SizedBox(height: 10),
+              Text('MADE BY', style: WireType.label()),
+              Text('${kDeveloper.name} · ${kDeveloper.email}', style: WireType.data(13)),
               const SizedBox(height: 16),
               Wrap(
                 spacing: 10,
@@ -512,6 +537,24 @@ class _SectionBody extends ConsumerWidget {
                     height: 40,
                     fontSize: 15,
                     onPressed: () => launchUrl(Uri.parse('https://github.com/${UpdateChecker.repo}')),
+                  ),
+                  WireButton(
+                    label: 'Privacy policy',
+                    height: 40,
+                    fontSize: 15,
+                    onPressed: () => launchUrl(Uri.parse(kPrivacyUrl)),
+                  ),
+                  WireButton(
+                    label: 'Terms',
+                    height: 40,
+                    fontSize: 15,
+                    onPressed: () => launchUrl(Uri.parse(kTermsUrl)),
+                  ),
+                  WireButton(
+                    label: 'Email',
+                    height: 40,
+                    fontSize: 15,
+                    onPressed: () => launchUrl(Uri(scheme: 'mailto', path: kDeveloper.email, query: 'subject=Pulse')),
                   ),
                   WireButton(
                     label: 'Licenses',
