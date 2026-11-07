@@ -29,7 +29,7 @@ bool FlutterWindow::OnCreate() {
   RegisterStartupTaskChannel(flutter_controller_->engine()->messenger(), GetHandle());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
-  // window_manager shows the window once Dart has sized it (launch window).
+  // DesktopHost shows the window once Dart has sized it (launch window).
   flutter_controller_->engine()->SetNextFrameCallback([&]() {});
 
   // Flutter can complete the first frame before the "show window" callback is

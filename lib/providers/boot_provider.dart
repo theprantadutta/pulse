@@ -78,8 +78,8 @@ class BootNotifier extends Notifier<BootState> {
             host
               ..onTogglePause = runner.togglePaused
               ..onHint = (message) => PulseNotifications.show(id: 1, title: 'Pulse', body: message, sound: false);
-            await host.initTray();
-            await host.setCloseToTray(ref.read(settingsProvider).closeToTray);
+            host.initTray();
+            host.setCloseToTray(ref.read(settingsProvider).closeToTray);
             final wantLogin = ref.read(settingsProvider).launchAtStartup;
             final actual = await LaunchAtLogin.isEnabled();
             if (actual != wantLogin) {

@@ -14,6 +14,6 @@ void main(List<String> args) async {
   launchedAtLogin = args.contains(LaunchAtLogin.flag);
   await dotenv.load(fileName: '.env', isOptional: true);
   final prefs = await SharedPreferences.getInstance();
-  if (DesktopHost.supported) await DesktopHost.instance.initWindow(hidden: launchedAtLogin);
+  if (DesktopHost.supported) DesktopHost.instance.initWindow(hidden: launchedAtLogin);
   runApp(ProviderScope(overrides: [sharedPreferencesProvider.overrideWithValue(prefs)], child: const PulseApp()));
 }

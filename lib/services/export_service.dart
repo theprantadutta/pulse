@@ -33,8 +33,6 @@ class ExportService {
       bytes: bytes,
       mimeType: fileName.endsWith('.csv') ? 'text/csv' : 'text/plain',
       dialogTitle: 'Export from Pulse',
-      allowedExtensions: [p.extension(fileName).replaceFirst('.', '')],
-      type: FileType.custom,
     );
     if (uri == null) return null;
     // Desktop dialogs return a location without writing; write it ourselves.

@@ -16,7 +16,7 @@ G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
 // Called when first Flutter frame received.
 static void first_frame_cb(MyApplication* self, FlView* view) {
-  // window_manager shows the window once Dart has sized it (launch window).
+  // DesktopHost shows the window once Dart has sized it (launch window).
 }
 
 // Implements GApplication::activate.

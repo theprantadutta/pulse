@@ -32,7 +32,7 @@ class _LaunchScreenState extends ConsumerState<LaunchScreen> {
   Widget build(BuildContext context) {
     ref.listen(bootProvider, (prev, next) async {
       if (!next.done || (prev?.done ?? false)) return;
-      if (DesktopHost.supported) await DesktopHost.instance.openAppWindow();
+      if (DesktopHost.supported) DesktopHost.instance.openAppWindow();
       if (context.mounted) context.go(widget.next);
     });
     final boot = ref.watch(bootProvider);

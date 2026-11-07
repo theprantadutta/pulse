@@ -326,7 +326,7 @@ class _SectionBody extends ConsumerWidget {
                 value: s.closeToTray,
                 onChanged: (v) async {
                   await set((x) => x.copyWith(closeToTray: v));
-                  await DesktopHost.instance.setCloseToTray(v);
+                  DesktopHost.instance.setCloseToTray(v);
                 },
               ),
               _ToggleRow(

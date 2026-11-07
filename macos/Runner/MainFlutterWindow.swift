@@ -1,7 +1,6 @@
 import Cocoa
 import FlutterMacOS
 import ServiceManagement
-import window_manager
 
 class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {
@@ -16,10 +15,15 @@ class MainFlutterWindow: NSWindow {
     super.awakeFromNib()
   }
 
-  // window_manager shows the window once Dart has sized it (launch window).
+  private var hiddenAtLaunch = false
+
+  // DesktopHost shows the window once Dart has sized it (launch window).
   override public func order(_ place: NSWindow.OrderingMode, relativeTo otherWin: Int) {
     super.order(place, relativeTo: otherWin)
-    hiddenWindowAtLaunch()
+    if !hiddenAtLaunch {
+      hiddenAtLaunch = true
+      setIsVisible(false)
+    }
   }
 }
 
