@@ -29,6 +29,9 @@ All seven steps are done (see `git log`). Every screen 01–14 is rebuilt on rea
   (MonitorEngine, notifications, foreground service), `lib/services/desktop/` (window + tray, launch at login).
 - Providers: `lib/providers/*` (one per tool; `pingBoardProvider` = multi-ping; `monitorRunnerProvider` decides where
   monitoring runs: tray on desktop, foreground service on Android/iOS when "Run in background" is on, else in-app).
+- Layout frames (`WireLayout`): mobile < 840 dp (phones, portrait tablets), rail 840–1023 (landscape tablets),
+  sidebar ≥ 1024. Phones (shortest side < 600 dp) are locked to portrait in `main.dart`.
+  `test/render/device_render_test.dart` renders every screen at Galaxy A24 / Galaxy Tab A9 sizes.
 - DB schema v2 (saved_targets + sessions.label). Bump `schemaVersion` + add an `onUpgrade` step for changes.
 
 ### Test checklist for real devices (office PC: Android phone + Windows)

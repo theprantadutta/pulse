@@ -281,14 +281,22 @@ class _Table extends ConsumerWidget {
     WireCol('Trend', width: 110),
   ];
 
+  /// Below this width (landscape tablets with the detail panel beside) the
+  /// trend sparkline gives its room to the target column.
+  static const _trendMinWidth = 700.0;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) =>
+      LayoutBuilder(builder: (context, box) => _build(context, ref, showTrend: box.maxWidth >= _trendMinWidth));
+
+  Widget _build(BuildContext context, WidgetRef ref, {required bool showTrend}) {
     final w = context.wire;
     final slow = ref.watch(settingsProvider.select((s) => s.slowThresholdMs)).toDouble();
+    final columns = showTrend ? cols : cols.sublist(0, cols.length - 1);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const WireTableHeader(columns: cols, gap: 10),
+        WireTableHeader(columns: columns, gap: 10),
         Expanded(
           child: ListView.builder(
             itemCount: sessions.length,
@@ -300,7 +308,7 @@ class _Table extends ConsumerWidget {
                 onTap: () => ref.read(selectedSessionIdProvider.notifier).select(s.id),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
                 child: WireColumns(
-                  columns: cols,
+                  columns: columns,
                   gap: 10,
                   cells: [
                     Text(fmtWhen(s.startedAt), style: WireType.body(13).copyWith(color: w.text2, height: 1.2)),
@@ -320,7 +328,8 @@ class _Table extends ConsumerWidget {
                     Text(s.tool.toUpperCase(), style: WireType.body(13).copyWith(height: 1.2)),
                     Text(_avgText(s), maxLines: 1, style: WireType.data(13)),
                     Text(fmtPct(s.lossPct), style: WireType.body(13).copyWith(height: 1.2)),
-                    WireSparkline(values: trend, threshold: s.tool == SessionTool.ping.name ? slow : null),
+                    if (showTrend)
+                      WireSparkline(values: trend, threshold: s.tool == SessionTool.ping.name ? slow : null),
                   ],
                 ),
               );

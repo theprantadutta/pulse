@@ -203,12 +203,10 @@ class WireSegmented<T> extends StatelessWidget {
               color: c.bg,
               alignment: Alignment.center,
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.fade,
-                softWrap: false,
-                style: style.copyWith(color: c.fg),
+              // Narrow panels (tablets): shrink a long label rather than clip it.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(label, maxLines: 1, softWrap: false, style: style.copyWith(color: c.fg)),
               ),
             ),
           ),

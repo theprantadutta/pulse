@@ -74,7 +74,12 @@ class WireShell extends StatelessWidget {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: overlay,
-      child: Scaffold(backgroundColor: w.background, resizeToAvoidBottomInset: mode == WireMode.mobile, body: body),
+      child: Scaffold(
+        backgroundColor: w.background,
+        // Landscape tablets and desktop use the rail/sidebar frame: keep it out
+        // of the status bar, navigation bar and display cutout.
+        body: mode == WireMode.mobile ? body : SafeArea(child: body),
+      ),
     );
   }
 }

@@ -222,17 +222,27 @@ class _GeoScreenState extends ConsumerState<GeoScreen> {
 
 String _placeTitle(GeoInfo g) => (g.city ?? g.country ?? g.countryCode ?? g.ip).toUpperCase();
 
+/// First non-blank value, else an em dash (lookups return "" for unknown fields).
+String _value(Iterable<String?> candidates) =>
+    candidates.firstWhere((v) => v != null && v.trim().isNotEmpty, orElse: () => null) ?? '—';
+
 List<(String, String)> _rows(GeoInfo g, {bool mobile = false}) {
   String coord(double? v, String pos, String neg) =>
       v == null ? '—' : '${v.abs().toStringAsFixed(mobile ? 2 : 4)} ${v >= 0 ? pos : neg}';
   return [
     ('IP', g.ip),
-    if (!mobile) ('City', [g.city, g.region].whereType<String>().toSet().join(', ')),
-    ('Org', g.org ?? g.isp ?? '—'),
-    ('ASN', g.asn ?? '—'),
-    if (mobile) ('Timezone', utcOffsetLabel(g.timezone) ?? g.timezone ?? '—'),
+    if (!mobile)
+      (
+        'City',
+        _value([
+          [g.city, g.region].whereType<String>().where((v) => v.isNotEmpty).toSet().join(', '),
+        ]),
+      ),
+    ('Org', _value([g.org, g.isp])),
+    ('ASN', _value([g.asn])),
+    if (mobile) ('Timezone', _value([utcOffsetLabel(g.timezone), g.timezone])),
     ('Coords', g.lat == null ? '—' : '${coord(g.lat, 'N', 'S')}, ${coord(g.lon, 'E', 'W')}'),
-    if (!mobile) ('Postal', g.postal ?? '—'),
+    if (!mobile) ('Postal', _value([g.postal])),
     if (!mobile)
       (
         'Hosting',

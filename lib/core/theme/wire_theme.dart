@@ -233,7 +233,16 @@ class WireSpace {
 class WireLayout {
   WireLayout._();
   static const desktop = 1024.0;
-  static const compact = 600.0;
+
+  /// Rail frame from here. Below it (phones, portrait tablets such as a
+  /// 600 dp Galaxy Tab) the mobile frame is used: the desktop page layouts
+  /// need roughly 770 dp of content width beside the rail.
+  static const compact = 840.0;
+
+  /// Compact content width from which a page keeps its right panel beside
+  /// the main area instead of stacking it below (landscape tablets).
+  static const compactBeside = 840.0;
+
   static const topBar = 64.0;
   static const sidebar = 220.0;
   static const rail = 72.0;

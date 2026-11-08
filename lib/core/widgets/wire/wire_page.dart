@@ -7,10 +7,11 @@ enum WireMode {
   /// ≥1024px: sidebar + top bar, right panels beside the main area.
   desktop,
 
-  /// 600–1023px: index-number rail, right panels stacked below.
+  /// 840–1023px: index-number rail, right panels beside (or stacked below
+  /// when the content area is narrower than [WireLayout.compactBeside]).
   compact,
 
-  /// <600px: bordered content container + bottom tab bar.
+  /// <840px: bordered content container + bottom tab bar.
   mobile,
 }
 
@@ -69,47 +70,51 @@ class WireDesktopPage extends StatelessWidget {
       );
     }
 
-    if (compact) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          bar,
-          Expanded(
-            child: CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: SizedBox(height: scrollBody ? null : MediaQuery.sizeOf(context).height * 0.72, child: body),
-                ),
-                SliverToBoxAdapter(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(color: w.ink, width: kWireBorder),
-                      ),
-                    ),
-                    child: panel,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
+    Widget beside(double width) => Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(child: scrollBody ? SingleChildScrollView(child: body) : body),
+        Container(width: kWireBorder, color: w.ink),
+        SizedBox(width: width, child: panel),
+      ],
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         bar,
         Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: scrollBody ? SingleChildScrollView(child: body) : body),
-              Container(width: kWireBorder, color: w.ink),
-              SizedBox(width: panelWidth, child: panel),
-            ],
-          ),
+          child: !compact
+              ? beside(panelWidth)
+              : LayoutBuilder(
+                  builder: (context, box) {
+                    // Wide enough (landscape tablet): keep the panel beside,
+                    // narrowed so the main area keeps most of the width.
+                    if (box.maxWidth >= WireLayout.compactBeside) {
+                      return beside(panelWidth.clamp(280.0, box.maxWidth * 0.38));
+                    }
+                    // Portrait: stack. Panels lay out with Expanded children,
+                    // so each part gets a bounded height inside the scroll.
+                    return CustomScrollView(
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: scrollBody ? body : SizedBox(height: box.maxHeight * 0.62, child: body),
+                        ),
+                        SliverToBoxAdapter(
+                          child: Container(
+                            height: box.maxHeight,
+                            decoration: BoxDecoration(
+                              border: Border(
+                                top: BorderSide(color: w.ink, width: kWireBorder),
+                              ),
+                            ),
+                            child: panel,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
         ),
       ],
     );
