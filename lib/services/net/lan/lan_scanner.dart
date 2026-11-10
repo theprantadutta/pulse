@@ -151,6 +151,7 @@ DeviceType classifyDevice(LanHost h, {List<int> openPorts = const []}) {
   ])) {
     return name.isEmpty ? DeviceType.phone : DeviceType.phone;
   }
+  if (h.isSelf && (Platform.isAndroid || Platform.isIOS)) return DeviceType.phone;
   if (h.isSelf ||
       openPorts.contains(3389) ||
       openPorts.contains(445) ||
@@ -346,7 +347,11 @@ class LanScanner {
   }
 
   Future<String?> _name(LanHost h) async {
-    if (h.isSelf) return Platform.localHostname;
+    if (h.isSelf) {
+      // Android/iOS report "localhost"; keep the "This device" label instead.
+      final local = Platform.localHostname;
+      return local.isEmpty || local.toLowerCase().startsWith('localhost') ? null : local;
+    }
     final results = await Future.wait([Dns.reverse(h.ip), NameProbe.netbios(h.ip), NameProbe.mdns(h.ip)]);
     String? clean(String? n) {
       if (n == null || n.isEmpty) return null;

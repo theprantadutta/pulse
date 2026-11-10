@@ -273,7 +273,14 @@ class _KvRow extends StatelessWidget {
           Text(k.toUpperCase(), style: WireType.label()),
           const SizedBox(width: 16),
           Expanded(
-            child: SelectableText(v, textAlign: TextAlign.right, maxLines: 1, style: WireType.data(dense ? 13 : 14)),
+            // Long org names wrap rather than clip mid-character.
+            child: SelectableText(
+              v,
+              textAlign: TextAlign.right,
+              minLines: 1,
+              maxLines: 2,
+              style: WireType.data(dense ? 13 : 14),
+            ),
           ),
         ],
       ),

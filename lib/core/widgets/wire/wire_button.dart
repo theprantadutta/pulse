@@ -98,12 +98,16 @@ class WireButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (busy) ...[WireBusyGlyph(color: c.fg, size: fontSize * 0.6), const SizedBox(width: 8)],
+              // Narrow cells (phones): shrink a long label rather than cut it.
               Flexible(
-                child: Text(
-                  text,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: WireType.nav(fontSize).copyWith(color: c.fg),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    text,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: WireType.nav(fontSize).copyWith(color: c.fg),
+                  ),
                 ),
               ),
             ],

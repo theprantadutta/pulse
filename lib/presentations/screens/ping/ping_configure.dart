@@ -473,7 +473,12 @@ class _QuickCell extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(name.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: WireType.title(22)),
+          // Phone-width cells: shrink "GOOGLE DNS" a little rather than cut it.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(name.toUpperCase(), maxLines: 1, softWrap: false, style: WireType.title(22)),
+          ),
           const SizedBox(height: 4),
           Text(
             sub,
