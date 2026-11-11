@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../theme/pulse_motion.dart';
 import '../../theme/pulse_theme.dart';
+import 'pulse_controls.dart';
 import 'pulse_icons.dart';
 import 'pulse_layout.dart';
 
@@ -132,7 +133,12 @@ class _PhoneAppBar extends StatelessWidget {
     return SizedBox(
       height: large ? 72 : 64,
       child: Padding(
-        padding: EdgeInsets.only(left: back != null ? 4 : 16, right: 8),
+        // Icon buttons carry their own inset inside the 48 dp target; a
+        // labelled button (e.g. the speed-test server pill) needs the page margin.
+        padding: EdgeInsets.only(
+          left: back != null ? 4 : 16,
+          right: actions.isEmpty || actions.last is PulseIconButton ? 8 : 16,
+        ),
         child: Row(
           children: [
             if (back != null) ...[PulseBackButton(onPressed: back!), const SizedBox(width: 4)],
