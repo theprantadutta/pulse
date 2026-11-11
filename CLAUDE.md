@@ -17,6 +17,9 @@ It replaced the earlier "Wire" design (branch `redesign/wire`, now merged histor
 - **Shell:** `lib/presentations/navigation/pulse_shell.dart`. compact < 600 dp: NavigationBar (Ping · Network · Tools ·
   History); ≥ 600: 96 dp rail (logo, "+" → `/ping?add=1`, 4 destinations, Settings at the bottom); ≥ 840 tool routes
   get the Tools pane. Tool catalogue (badge shape/colour, last result) in `tools_catalog.dart`.
+  Navigation rule: tabs/rail/Tools pane use `context.go`; drill-ins (tool tiles, LAN from Network, Alerts, rule
+  editor, Settings) use `context.push` so back returns to the opener. System back with nothing to pop goes to
+  `parentRoute()` (destinations.dart) instead of closing the app.
 - **Splash:** `main.dart` holds the native splash (`FlutterNativeSplash.preserve`); `SplashScreen` is the only place
   that calls `remove()`, after its first frame. The native images in `assets/brand/splash/` are drawn with
   `PulseLogo`'s exact geometry at 168 dp (672 px @4x) on the theme surface, so the hand-off is invisible. Regenerate
