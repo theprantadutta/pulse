@@ -99,8 +99,14 @@ class _AddTargetSheetState extends ConsumerState<_AddTargetSheet> {
       return;
     }
     setState(() => _saving = true);
-    await ref.read(monitorTargetsRepositoryProvider).add(h, _name.text.trim());
-    if (mounted) Navigator.of(context).pop();
+    try {
+      await ref.read(monitorTargetsRepositoryProvider).add(h, _name.text.trim());
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) setState(() => _error = "Couldn't add the target: $e");
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -282,7 +288,7 @@ class _TargetSheetState extends ConsumerState<_TargetSheet> {
                   onChanged: (v) => setState(() => _dirty = v.trim() != t.name),
                   onSubmitted: (v) async {
                     await repo.update(t.id, name: v.trim());
-                    setState(() => _dirty = false);
+                    if (mounted) setState(() => _dirty = false);
                   },
                 ),
               ),
@@ -293,7 +299,7 @@ class _TargetSheetState extends ConsumerState<_TargetSheet> {
                 onPressed: _dirty
                     ? () async {
                         await repo.update(t.id, name: _name.text.trim());
-                        setState(() => _dirty = false);
+                        if (mounted) setState(() => _dirty = false);
                       }
                     : null,
               ),
