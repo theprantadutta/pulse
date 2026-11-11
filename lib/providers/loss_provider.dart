@@ -83,13 +83,16 @@ class LossState {
   final int ratePerSec;
   final LossRun run;
 
-  /// Parallel run against 1.1.1.1 for comparison.
+  /// Parallel run against [compareHost] for comparison.
   final LossRun? compare;
   final bool running;
   final DateTime? startedAt;
   final String? error;
 
   int get total => durationMin * 60 * ratePerSec;
+
+  /// Host the comparison run pings: 1.1.1.1, or 8.8.8.8 when the target is 1.1.1.1.
+  String get compareHost => target == '1.1.1.1' || address == '1.1.1.1' ? '8.8.8.8' : '1.1.1.1';
   Duration get elapsed => startedAt == null ? Duration.zero : DateTime.now().difference(startedAt!);
 
   LossState copyWith({
@@ -117,7 +120,12 @@ class LossState {
   );
 }
 
-/// One-word verdict plus a plain-language explanation.
+/// Verdict word plus a plain-language explanation (SCREENS.md 09):
+/// * `stable`: no loss and steady latency.
+/// * `mostly stable`: below 1% loss, single drops only.
+/// * `unstable`: up to 5% loss, or isolated drops.
+/// * `degraded`: above 5% loss, or bursts of 3+ lost packets in a row.
+/// * `measuring`: fewer than 10 replies so far.
 ({String word, String text}) lossVerdict(LossState s) {
   final r = s.run;
   if (r.sent < 10) return (word: 'measuring', text: 'Collecting enough packets to judge the link…');
@@ -130,38 +138,40 @@ class LossState {
     final mean = gaps.reduce((a, b) => a + b) / gaps.length;
     final sd = math.sqrt(gaps.map((g) => math.pow(g - mean, 2)).reduce((a, b) => a + b) / gaps.length);
     if (sd / mean < 0.35) {
-      pattern = 'Loss comes in bursts every ~${mean.round()} s — typical of Wi-Fi interference, not the server.';
+      pattern = 'Loss comes in bursts every ~${mean.round()} s, typical of Wi-Fi interference rather than the server.';
     } else {
-      pattern = 'Loss comes in irregular bursts — look at Wi-Fi signal or a congested uplink.';
+      pattern = 'Loss comes in irregular bursts; check the Wi-Fi signal or a congested uplink.';
     }
   } else if (r.lost > 0) {
     pattern = r.longestBurst <= 1
-        ? 'Drops are isolated single packets — mild congestion along the path.'
+        ? 'Drops are isolated single packets, which points to mild congestion along the path.'
         : 'A short outage dropped ${r.longestBurst} packets in a row.';
   }
   String? compareText;
   final c = s.compare;
+  final other = s.compareHost;
   if (c != null && c.sent >= 10) {
     if (c.lossPct < 0.5 && loss >= 1) {
-      compareText = '1.1.1.1 is clean at ${c.lossPct.toStringAsFixed(1)}% — the loss is specific to ${s.target}.';
+      compareText = '$other is clean at ${c.lossPct.toStringAsFixed(1)}%, so the loss is specific to ${s.target}.';
     } else if (c.lossPct >= 1) {
-      compareText = '1.1.1.1 also loses ${c.lossPct.toStringAsFixed(1)}% — the problem is on your side (Wi-Fi or ISP).';
+      compareText =
+          '$other also loses ${c.lossPct.toStringAsFixed(1)}%, so the problem is on your side (Wi-Fi or ISP).';
     } else {
-      compareText = '1.1.1.1 is clean too.';
+      compareText = '$other is clean too.';
     }
   }
-  final word = loss == 0 && latePct < 1
+  final word = loss > 5 || r.longestBurst >= 3
+      ? 'degraded'
+      : loss == 0 && latePct < 5
       ? 'stable'
-      : loss < 1 && latePct < 5
-      ? 'good'
-      : loss < 5
-      ? 'unstable'
-      : 'poor';
+      : loss < 1 && r.longestBurst <= 1
+      ? 'mostly stable'
+      : 'unstable';
   final base = switch (word) {
     'stable' => 'No loss and latency is steady.',
-    'good' => 'Only occasional drops.',
+    'mostly stable' => loss == 0 ? 'No loss, but some replies were slow.' : 'Only occasional single drops.',
     'unstable' => pattern ?? 'Noticeable loss for games and calls.',
-    _ => pattern ?? 'Heavy loss — calls and games will stutter.',
+    _ => ['Bursty loss, likely a congested or failing link.', if (bursts.length >= 3) ?pattern].join(' '),
   };
   final late = latePct >= 5 ? ' ${latePct.toStringAsFixed(0)}% of replies were late (>150 ms).' : '';
   return (word: word, text: [base + late, ?compareText].join(' '));
@@ -221,7 +231,9 @@ class LossNotifier extends Notifier<LossState> {
       final i = seq++;
       prober.probe(address, timeout: const Duration(seconds: 2)).then((r) => _record(gen, i, r, compare: false));
       if (state.compare != null) {
-        prober.probe('1.1.1.1', timeout: const Duration(seconds: 2)).then((r) => _record(gen, i, r, compare: true));
+        prober
+            .probe(state.compareHost, timeout: const Duration(seconds: 2))
+            .then((r) => _record(gen, i, r, compare: true));
       }
     });
     // Keeps the elapsed clock moving between replies.
@@ -247,7 +259,7 @@ class LossNotifier extends Notifier<LossState> {
     if (!compare && !next.packets.contains(PacketState.pending)) _finish();
   }
 
-  /// Starts pinging 1.1.1.1 alongside the target from now on.
+  /// Starts pinging [LossState.compareHost] alongside the target from now on.
   void compareToCloudflare() {
     if (!state.running || state.compare != null) return;
     // Packets sent before the comparison started stay pending, so they are

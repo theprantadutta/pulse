@@ -184,8 +184,11 @@ class SpeedNotifier extends Notifier<SpeedState> {
   }
 }
 
+/// One finished speed test from History.
+typedef SpeedResult = ({DateTime at, double? down, double? up, double? ping, String server});
+
 /// Past speed results, newest first.
-final speedHistoryProvider = StreamProvider<List<({DateTime at, double? down, double? up})>>((ref) {
+final speedHistoryProvider = StreamProvider<List<SpeedResult>>((ref) {
   final db = ref.watch(databaseProvider);
   final q = db.select(db.sessions)
     ..where((s) => s.tool.equals(SessionTool.speed.name))
@@ -198,6 +201,8 @@ final speedHistoryProvider = StreamProvider<List<({DateTime at, double? down, do
           at: r.startedAt,
           down: (HistoryRepository.payloadOf(r)['down'] as num?)?.toDouble(),
           up: (HistoryRepository.payloadOf(r)['up'] as num?)?.toDouble(),
+          ping: (HistoryRepository.payloadOf(r)['ping'] as num?)?.toDouble(),
+          server: r.target,
         ),
     ],
   );
