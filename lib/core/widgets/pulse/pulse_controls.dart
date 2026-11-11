@@ -109,7 +109,9 @@ class PulseButton extends StatelessWidget {
                   border: Border.all(color: colors.border!),
                   borderRadius: BorderRadius.circular(size.height / 2),
                 ),
-          alignment: Alignment.center,
+          // Only fill when asked: in a Wrap, Row or empty state a centred
+          // Container would otherwise stretch to every pixel it is offered.
+          alignment: expand ? Alignment.center : null,
           child: content,
         ),
       ),
@@ -267,6 +269,7 @@ class PulseChip extends StatelessWidget {
       child: SizedBox(
         height: small ? 40 : 48,
         child: Center(
+          widthFactor: 1,
           child: PulsePressable(
             onTap: onTap,
             radius: radius,
