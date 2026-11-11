@@ -1,20 +1,20 @@
-import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/format.dart';
-import '../../../core/widgets/wire/wire.dart';
-import '../../../core/widgets/wire/wire_page.dart';
+import '../../../core/widgets/pulse/pulse.dart';
 import '../../../providers/geo_provider.dart';
 import '../../../providers/ping_provider.dart';
+import '../../../providers/settings_provider.dart';
 import '../../../services/net/geo_ip.dart';
 import '../../navigation/destinations.dart';
+import 'world_map.dart';
 
-/// 06 — Geo IP.
+/// 11 Geo IP: where a host lives, how far away it is and who hosts it, on an
+/// offline vector map with the route from your public-IP location.
 class GeoScreen extends ConsumerStatefulWidget {
   const GeoScreen({super.key, this.initialTarget});
   final String? initialTarget;
@@ -29,554 +29,622 @@ class _GeoScreenState extends ConsumerState<GeoScreen> {
   @override
   void initState() {
     super.initState();
+    _query.addListener(_onText);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !ref.read(settingsProvider).publicIpLookups) return;
       final geo = ref.read(geoProvider.notifier);
+      final s = ref.read(geoProvider);
       if (widget.initialTarget != null) {
         geo.locate(widget.initialTarget!);
-      } else if (ref.read(geoProvider).target == null && !ref.read(geoProvider).loading) {
-        geo.locateMe();
+      } else if (s.target == null && !s.loading && s.error == null) {
+        _myIp();
       }
     });
   }
 
   @override
   void dispose() {
-    _query.dispose();
+    _query
+      ..removeListener(_onText)
+      ..dispose();
     super.dispose();
   }
 
-  void _locate() => ref.read(geoProvider.notifier).locate(_query.text);
+  String _lastText = '';
+  void _onText() {
+    // Only the "Locate" affordance depends on the text; rebuild when it flips.
+    if (_query.text.trim() != _lastText) setState(() => _lastText = _query.text.trim());
+  }
+
+  void _locate() {
+    if (_query.text.trim().isEmpty) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    ref.read(geoProvider.notifier).locate(_query.text);
+  }
 
   Future<void> _myIp() async {
     await ref.read(geoProvider.notifier).locateMe();
-    _query.text = ref.read(geoProvider).query;
+    if (mounted && ref.read(geoProvider).query.isNotEmpty) _query.text = ref.read(geoProvider).query;
   }
+
+  Future<void> _ping(GeoState s) async {
+    await ref.read(pingBoardProvider.notifier).start(s.query, name: s.target?.city);
+    if (mounted) context.go(Routes.ping);
+  }
+
+  void _trace(GeoState s) => context.go('${Routes.traceroute}?target=${Uri.encodeComponent(s.query)}');
 
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(geoProvider);
-    final w = context.wire;
-    return WireAdaptive(
-      mobile: (context) => WireMobilePage(
-        header: WireMobileHeader(
-          title: 'Geo IP',
-          onBack: GoRouter.maybeOf(context)?.canPop() == true ? () => context.pop() : null,
-          trailing: WirePressable(
-            onTap: _myIp,
-            tone: WireTone.ink,
-            semanticLabel: 'My IP',
-            builder: (context, c, st) => Container(
-              color: c.bg,
-              height: WireLayout.mobileHeader,
-              alignment: Alignment.center,
-              child: Text('MY IP', style: WireType.label(12).copyWith(color: st.isEmpty ? w.signal : c.fg)),
-            ),
+    final lookupsOn = ref.watch(settingsProvider.select((x) => x.publicIpLookups));
+    final v = _GeoView(
+      state: s,
+      lookupsOn: lookupsOn,
+      onLocate: _locate,
+      onMyIp: _myIp,
+      onPing: () => _ping(s),
+      onTrace: () => _trace(s),
+    );
+    final canAct = lookupsOn && !s.loading;
+    if (context.isCompact) {
+      return PulsePage(
+        title: 'Geo IP',
+        backTo: Routes.tools,
+        actions: [
+          PulseButton(
+            label: 'My IP',
+            style: PulseButtonStyle.text,
+            size: PulseButtonSize.small,
+            onPressed: canAct ? _myIp : null,
           ),
-        ),
-        body: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            Container(
-              height: 50,
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: w.ink, width: kWireBorder),
-                ),
-              ),
-              child: WireTargetField(
-                controller: _query,
-                prefix: 'LOOKUP>',
-                hint: 'domain or IP',
-                fontSize: 17,
-                onSubmitted: (_) => _locate(),
-              ),
-            ),
-            Container(
-              height: 220,
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: w.ink, width: kWireBorder),
-                ),
-              ),
-              child: _GeoMap(state: s, compact: true),
-            ),
-            if (s.error != null)
-              WireErrorBlock(
-                title: s.error!.contains('private') ? 'PRIVATE' : 'UNREACHABLE',
-                reason: s.error!,
-                size: 56,
-              )
-            else if (s.target != null) ...[
-              Container(
-                color: w.signal,
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        _placeTitle(s.target!),
-                        style: WireType.display(48, width: 65).copyWith(color: w.onSignal),
-                      ),
-                    ),
-                    Text(
-                      [
-                        if (s.distanceKm != null) '${NumberFormat('#,###').format(s.distanceKm!.round())} KM AWAY',
-                        if (s.rttMs != null) '${fmtMs(s.rttMs)} MS',
-                      ].join(' · '),
-                      style: WireType.label().copyWith(color: w.onSignal),
-                    ),
-                  ],
-                ),
-              ),
-              const WireRule(),
-              for (final (k, v) in _rows(s.target!, mobile: true)) _KvRow(k: k, v: v, dense: true),
-            ] else if (s.loading)
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text('Locating ${s.query}…', style: WireType.body(13)),
-              ),
-          ],
-        ),
-        action: WireButton.bar(label: 'Locate', busy: s.loading, onPressed: s.loading ? null : _locate),
+        ],
+        children: [_field(s, compact: true), ...v.phone(context)],
+      );
+    }
+    return PulsePage(
+      title: 'Geo IP',
+      titleWidget: Row(
+        children: [
+          Text('Geo IP', style: context.type.headlineMedium),
+          const SizedBox(width: 16),
+          Expanded(child: _field(s, compact: false)),
+        ],
       ),
-      desktop: (context) => WireDesktopPage(
-        panelWidth: 380,
-        topBar: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: WireTargetField(
-                controller: _query,
-                prefix: 'LOOKUP>',
-                hint: 'domain or IP',
-                onSubmitted: (_) => _locate(),
-                trailing: s.resolvedIp != null && s.resolvedIp != s.query
-                    ? Text('→ ${s.resolvedIp}', style: WireType.body(13).copyWith(color: w.text3))
-                    : null,
-              ),
-            ),
-            const WireVRule(),
-            WireCell(
-              onTap: _myIp,
-              sides: WireSides.onlyRight,
-              alignment: Alignment.center,
-              child: Text('MY IP', style: WireType.data(13)),
-            ),
-            WireButton(
-              label: 'Locate',
-              variant: WireButtonVariant.inverse,
-              bordered: false,
-              busy: s.loading,
-              fontSize: 17,
-              height: WireLayout.topBar,
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              onPressed: s.loading ? null : _locate,
-            ),
-          ],
+      actions: [
+        PulseButton(label: 'My IP', style: PulseButtonStyle.tonal, onPressed: canAct ? _myIp : null),
+        PulseButton(
+          label: s.loading ? 'Locating…' : 'Locate',
+          size: PulseButtonSize.large,
+          onPressed: canAct ? _locate : null,
         ),
-        body: Stack(
-          children: [
-            Positioned.fill(child: _GeoMap(state: s)),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: w.background,
-                  border: Border(
-                    top: BorderSide(color: w.ink, width: kWireBorder),
-                  ),
-                ),
-                child: WireSplitRow(
-                  children: [
-                    WireStat(
-                      label: 'Distance',
-                      value: s.distanceKm == null ? '—' : '${NumberFormat('#,###').format(s.distanceKm!.round())} KM',
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                    ),
-                    WireStat(
-                      label: 'RTT',
-                      value: s.rttMs == null ? '—' : '${fmtMs(s.rttMs)} MS',
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                    ),
-                    WireStat(
-                      label: 'Hops',
-                      value: s.hops?.toString() ?? '—',
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                    ),
-                  ],
-                ),
+      ],
+      body: v.tablet(context),
+    );
+  }
+
+  Widget _field(GeoState s, {required bool compact}) {
+    final text = _query.text.trim();
+    final stale = text.isNotEmpty && text != s.query;
+    final ip = s.resolvedIp != null && s.resolvedIp != s.query && !stale ? s.resolvedIp : null;
+    return PulseTargetField(
+      controller: _query,
+      hint: 'Domain or IP',
+      onSubmitted: (_) => _locate(),
+      trailing: ip == null ? null : (compact ? ip : '→ $ip'),
+      trailingWidget: compact && stale && !s.loading
+          ? Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: PulseIconButton(
+                icon: PulseIcons.pin,
+                tooltip: 'Locate',
+                style: PulseIconButtonStyle.pink,
+                visualSize: 40,
+                iconSize: 20,
+                onPressed: _locate,
               ),
-            ),
-          ],
-        ),
-        panel: _Panel(state: s),
-      ),
+            )
+          : null,
     );
   }
 }
 
-String _placeTitle(GeoInfo g) => (g.city ?? g.country ?? g.countryCode ?? g.ip).toUpperCase();
+/// Builds the phone and tablet bodies from the provider state.
+class _GeoView {
+  const _GeoView({
+    required this.state,
+    required this.lookupsOn,
+    required this.onLocate,
+    required this.onMyIp,
+    required this.onPing,
+    required this.onTrace,
+  });
 
-/// First non-blank value, else an em dash (lookups return "" for unknown fields).
-String _value(Iterable<String?> candidates) =>
-    candidates.firstWhere((v) => v != null && v.trim().isNotEmpty, orElse: () => null) ?? '—';
+  final GeoState state;
+  final bool lookupsOn;
+  final VoidCallback onLocate, onMyIp, onPing, onTrace;
 
-List<(String, String)> _rows(GeoInfo g, {bool mobile = false}) {
-  String coord(double? v, String pos, String neg) =>
-      v == null ? '—' : '${v.abs().toStringAsFixed(mobile ? 2 : 4)} ${v >= 0 ? pos : neg}';
+  GeoInfo? get target => state.target;
+
+  /// The lookup was for this device's own public IP.
+  bool get isSelf => target != null && state.me != null && target!.ip == state.me!.ip;
+
+  MapPoint? get youPoint {
+    final me = state.me;
+    if (me?.lat == null || me?.lon == null) return null;
+    final where = _nonBlank([me!.city, me.country, me.countryCode]) ?? me.ip;
+    return MapPoint(me.lat!, me.lon!, 'You · $where');
+  }
+
+  MapPoint? get targetPoint {
+    final g = target;
+    if (g?.lat == null || g?.lon == null || isSelf) return null;
+    return MapPoint(g!.lat!, g.lon!, _place(g));
+  }
+
+  Widget _map(BuildContext context, {required bool interactive}) =>
+      GeoRouteMap(you: youPoint, target: lookupsOn ? targetPoint : null, interactive: interactive);
+
+  // ---- Phone ---------------------------------------------------------------
+
+  List<Widget> phone(BuildContext context) {
+    final g = target;
+    return [
+      if (!lookupsOn) ...[
+        const SizedBox(height: 12),
+        const _LookupsOff(),
+      ] else ...[
+        if (state.error != null) ...[const SizedBox(height: 12), _error()],
+        const SizedBox(height: 12),
+        SizedBox(height: 250, child: _map(context, interactive: false)),
+        if (state.loading) ...[const SizedBox(height: 14), _Locating(query: state.query)],
+        if (g != null) ...[
+          const SizedBox(height: 14),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              children: [
+                Expanded(child: _PlaceTitle(g: g)),
+                const SizedBox(width: 8),
+                PulseIconButton(
+                  icon: PulseIcons.pulse,
+                  tooltip: 'Ping this',
+                  style: PulseIconButtonStyle.tonal,
+                  visualSize: 48,
+                  onPressed: onPing,
+                ),
+                const SizedBox(width: 6),
+                PulseIconButton(
+                  icon: PulseIcons.route,
+                  tooltip: 'Trace route',
+                  style: PulseIconButtonStyle.pink,
+                  visualSize: 48,
+                  onPressed: onTrace,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: _pills(height: 30)),
+          const SizedBox(height: 12),
+          _DetailList(rows: _rows(g, full: false), rowHeight: 46),
+          const SizedBox(height: 10),
+          _SourceNote(source: g.source),
+        ] else if (!state.loading && state.error == null) ...[
+          const SizedBox(height: 8),
+          _Idle(onMyIp: onMyIp),
+        ],
+      ],
+    ];
+  }
+
+  // ---- Tablet --------------------------------------------------------------
+
+  Widget tablet(BuildContext context) => LayoutBuilder(
+    builder: (context, box) {
+      final pad = context.pagePadding;
+      if (box.maxWidth < 720) {
+        // Portrait tablets / narrow windows: one scrolling column.
+        return ListView(
+          padding: EdgeInsets.fromLTRB(pad, 0, pad, pad),
+          children: [
+            for (final (i, w) in [
+              SizedBox(height: 340, child: _map(context, interactive: false)),
+              ..._side(context, scrolls: false),
+            ].indexed)
+              PulseEntrance(index: i, child: w),
+          ],
+        );
+      }
+      return Padding(
+        padding: EdgeInsets.fromLTRB(pad, 0, pad, pad),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(flex: 55, child: PulseEntrance(child: _map(context, interactive: true))),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 45,
+              child: CustomScrollView(
+                slivers: [
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final (i, w) in _side(context, scrolls: true).indexed)
+                          w is Spacer ? w : PulseEntrance(index: i + 1, child: w),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+
+  /// Right-hand column (or the part below the map on narrow tablets).
+  List<Widget> _side(BuildContext context, {required bool scrolls}) {
+    final g = target;
+    const gap = SizedBox(height: 12);
+    if (!lookupsOn) return [if (!scrolls) gap, const _LookupsOff()];
+    return [
+      if (!scrolls) gap,
+      if (state.error != null) ...[_error(), gap],
+      if (g != null) ...[
+        _HeroCard(g: g, self: isSelf),
+        gap,
+        _pills(height: 32),
+        gap,
+        _DetailList(rows: _rows(g, full: true), rowHeight: 44),
+        if (scrolls) const Spacer() else gap,
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: PulseButton(
+                label: 'Ping this',
+                icon: PulseIcons.pulse,
+                style: PulseButtonStyle.tonal,
+                expand: true,
+                onPressed: onPing,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: PulseButton(label: 'Trace route', icon: PulseIcons.route, expand: true, onPressed: onTrace),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _SourceNote(source: g.source),
+      ] else if (state.loading)
+        _HeroCard.locating(query: state.query)
+      else if (state.error == null)
+        PulseCard(child: _Idle(onMyIp: onMyIp)),
+    ];
+  }
+
+  // ---- Shared bits ---------------------------------------------------------
+
+  Widget _error() {
+    final e = state.error!;
+    final title = e.contains('private')
+        ? 'Private address'
+        : e.startsWith('DNS')
+        ? 'Could not resolve ${state.query}'
+        : 'Lookup failed';
+    return PulseErrorBanner(title: title, message: e, onRetry: state.query.isEmpty ? onMyIp : onLocate);
+  }
+
+  Widget _pills({required double height}) {
+    final km = state.distanceKm;
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        if (isSelf)
+          PulsePill('This device', tone: PulsePillTone.lime, height: height)
+        else if (km != null)
+          PulsePill('${NumberFormat('#,###').format(km.round())} km', tone: PulsePillTone.lime, height: height),
+        if (state.rttMs != null)
+          PulsePill('${fmtMs(state.rttMs)} ms', tone: PulsePillTone.lavender, height: height)
+        else if (!isSelf)
+          PulsePill('No ping reply', tone: PulsePillTone.outline, height: height),
+        if (state.hops != null) PulsePill('${state.hops} hops', height: height),
+      ],
+    );
+  }
+}
+
+String? _nonBlank(Iterable<String?> values) {
+  for (final v in values) {
+    if (v != null && v.trim().isNotEmpty) return v.trim();
+  }
+  return null;
+}
+
+String _place(GeoInfo g) => _nonBlank([g.city, g.country, g.countryCode]) ?? g.ip;
+
+String _meta(GeoInfo g) => [
+  _nonBlank([g.countryCode, g.country]),
+  _nonBlank([g.timezone]),
+  utcOffsetLabel(g.timezone),
+].whereType<String>().join(' · ');
+
+String _coords(GeoInfo g) {
+  if (g.lat == null || g.lon == null) return '—';
+  String c(double v, String pos, String neg) => '${v.abs().toStringAsFixed(4)} ${v >= 0 ? pos : neg}';
+  return '${c(g.lat!, 'N', 'S')}, ${c(g.lon!, 'E', 'W')}';
+}
+
+String _hosting(GeoInfo g) => switch ((g.hosting, g.mobile)) {
+  (null, _) => '—',
+  (true, _) => 'Yes · datacenter',
+  (false, true) => 'No · mobile network',
+  _ => 'No · residential',
+};
+
+/// (label, value, copy button).
+List<(String, String, bool)> _rows(GeoInfo g, {required bool full}) {
+  final city = [g.city, g.region].whereType<String>().where((v) => v.trim().isNotEmpty).toSet().join(', ');
   return [
-    ('IP', g.ip),
-    if (!mobile)
-      (
-        'City',
-        _value([
-          [g.city, g.region].whereType<String>().where((v) => v.isNotEmpty).toSet().join(', '),
-        ]),
-      ),
-    ('Org', _value([g.org, g.isp])),
-    ('ASN', _value([g.asn])),
-    if (mobile) ('Timezone', _value([utcOffsetLabel(g.timezone), g.timezone])),
-    ('Coords', g.lat == null ? '—' : '${coord(g.lat, 'N', 'S')}, ${coord(g.lon, 'E', 'W')}'),
-    if (!mobile) ('Postal', _value([g.postal])),
-    if (!mobile)
-      (
-        'Hosting',
-        g.hosting == null
-            ? '—'
-            : g.hosting!
-            ? 'Yes · datacenter'
-            : g.mobile == true
-            ? 'No · mobile network'
-            : 'No · residential',
-      ),
+    ('IP', g.ip, true),
+    if (full) ('City', city.isEmpty ? '—' : city, false),
+    ('Org', _nonBlank([g.org, g.isp]) ?? '—', false),
+    ('ASN', _nonBlank([g.asn]) ?? '—', false),
+    ('Coordinates', _coords(g), g.lat != null),
+    if (full) ('Postal', _nonBlank([g.postal]) ?? '—', false),
+    ('Hosting', _hosting(g), false),
   ];
 }
 
-class _KvRow extends StatelessWidget {
-  const _KvRow({required this.k, required this.v, this.dense = false});
-  final String k;
-  final String v;
-  final bool dense;
+class _PlaceTitle extends StatelessWidget {
+  const _PlaceTitle({required this.g});
+  final GeoInfo g;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(_place(g), maxLines: 1, style: context.type.headlineLarge),
+      ),
+      Text(
+        _meta(g),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: context.type.bodyMedium!.copyWith(color: context.colors.onSurfaceVariant),
+      ),
+    ],
+  );
+}
+
+/// Pink "Located in" hero with a slowly spinning decorative cookie.
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({required GeoInfo this.g, this.self = false}) : query = null;
+  const _HeroCard.locating({required String this.query}) : g = null, self = false;
+
+  final GeoInfo? g;
+  final String? query;
+  final bool self;
 
   @override
   Widget build(BuildContext context) {
-    return WireRow(
-      padding: EdgeInsets.symmetric(horizontal: dense ? 14 : 20, vertical: dense ? 10 : 11),
-      minHeight: 40,
-      child: Row(
-        children: [
-          Text(k.toUpperCase(), style: WireType.label()),
-          const SizedBox(width: 16),
-          Expanded(
-            // Long org names wrap rather than clip mid-character.
-            child: SelectableText(
-              v,
-              textAlign: TextAlign.right,
-              minLines: 1,
-              maxLines: 2,
-              style: WireType.data(dense ? 13 : 14),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Panel extends ConsumerWidget {
-  const _Panel({required this.state});
-  final GeoState state;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final w = context.wire;
-    final s = state;
-    final g = s.target;
-    if (s.error != null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          WireErrorBlock(title: s.error!.contains('private') ? 'PRIVATE' : 'UNREACHABLE', reason: s.error!, size: 64),
-        ],
-      );
-    }
-    if (g == null) {
-      return Center(
-        child: Text(
-          s.loading ? 'Locating ${s.query}…' : 'Look up a domain or IP.',
-          style: WireType.body(13).copyWith(color: w.text3),
-        ),
-      );
-    }
-    final meta = [g.countryCode, g.timezone?.toUpperCase(), utcOffsetLabel(g.timezone)].whereType<String>().join(' · ');
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          color: w.signal,
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('LOCATED IN', style: WireType.label().copyWith(color: w.onSignal)),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  _placeTitle(g),
-                  style: WireType.display(54, width: 65, height: 0.95).copyWith(color: w.onSignal),
-                ),
-              ),
-              Text(meta, style: WireType.label(12).copyWith(color: w.onSignal)),
-            ],
-          ),
-        ),
-        const WireRule(),
-        Expanded(
-          child: ListView(
-            children: [
-              for (final (k, v) in _rows(g)) _KvRow(k: k, v: v),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                child: Text('via ${g.source}', style: WireType.body(11).copyWith(color: w.text3)),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(color: w.ink, width: kWireBorder),
-            ),
-          ),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: WireButton(
-                    label: 'Ping this',
-                    bordered: false,
-                    sides: WireSides.onlyRight,
-                    fontSize: 16,
-                    height: 52,
-                    onPressed: () async {
-                      await ref.read(pingBoardProvider.notifier).start(s.query, name: g.city);
-                      if (context.mounted) context.go(Routes.ping);
-                    },
-                  ),
-                ),
-                Expanded(
-                  child: WireButton(
-                    label: 'Trace route',
-                    bordered: false,
-                    fontSize: 16,
-                    height: 52,
-                    onPressed: () => context.go('${Routes.traceroute}?target=${Uri.encodeComponent(s.query)}'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Grayscale OSM map with square markers; inverted in the Ink theme.
-class _GeoMap extends StatefulWidget {
-  const _GeoMap({required this.state, this.compact = false});
-  final GeoState state;
-  final bool compact;
-
-  @override
-  State<_GeoMap> createState() => _GeoMapState();
-}
-
-class _GeoMapState extends State<_GeoMap> {
-  final _controller = MapController();
-  bool _ready = false;
-
-  LatLng? _point(GeoInfo? g) => g?.lat == null || g?.lon == null ? null : LatLng(g!.lat!, g.lon!);
-
-  void _fit() {
-    if (!_ready) return;
-    final a = _point(widget.state.me), b = _point(widget.state.target);
-    final pts = [?a, ?b];
-    if (pts.isEmpty) return;
-    if (pts.length == 1 || (a != null && b != null && a == b)) {
-      _controller.move(pts.first, 5);
-      return;
-    }
-    _controller.fitCamera(
-      CameraFit.coordinates(
-        coordinates: pts,
-        padding: EdgeInsets.fromLTRB(60, 70, 60, widget.compact ? 40 : 160),
-        maxZoom: 9,
-      ),
-    );
-  }
-
-  @override
-  void didUpdateWidget(_GeoMap old) {
-    super.didUpdateWidget(old);
-    if (old.state.target != widget.state.target || old.state.me != widget.state.me) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _fit());
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final w = context.wire;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final gray = <double>[
-      0.2126,
-      0.7152,
-      0.0722,
-      0,
-      0,
-      0.2126,
-      0.7152,
-      0.0722,
-      0,
-      0,
-      0.2126,
-      0.7152,
-      0.0722,
-      0,
-      0,
-      0,
-      0,
-      0,
-      1,
-      0,
-    ];
-    final grayInverted = <double>[
-      -0.2126,
-      -0.7152,
-      -0.0722,
-      0,
-      235,
-      -0.2126,
-      -0.7152,
-      -0.0722,
-      0,
-      235,
-      -0.2126,
-      -0.7152,
-      -0.0722,
-      0,
-      235,
-      0,
-      0,
-      0,
-      1,
-      0,
-    ];
-    final me = _point(widget.state.me);
-    final target = _point(widget.state.target);
-    Widget label(String text, {required bool inverse}) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: inverse ? w.ink : w.background,
-        border: Border.all(color: w.ink, width: kWireBorder),
-      ),
-      child: Text(text, style: WireType.label().copyWith(color: inverse ? w.background : w.ink, height: 1.2)),
-    );
-    return Stack(
-      children: [
-        FlutterMap(
-          mapController: _controller,
-          options: MapOptions(
-            initialCenter: target ?? me ?? const LatLng(20, 0),
-            initialZoom: 2,
-            minZoom: 1,
-            maxZoom: 16,
-            backgroundColor: w.mutedRow,
-            onMapReady: () {
-              _ready = true;
-              _fit();
-            },
-            interactionOptions: const InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
-          ),
+    final c = context.colors;
+    final fg = c.onPrimaryFixed;
+    return Semantics(
+      container: true,
+      liveRegion: g == null,
+      child: Container(
+        decoration: BoxDecoration(color: c.primaryFixedDim, borderRadius: BorderRadius.circular(32)),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
           children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.pranta.pulse',
-              maxNativeZoom: 19,
-              tileBuilder: (context, tile, _) =>
-                  ColorFiltered(colorFilter: ColorFilter.matrix(dark ? grayInverted : gray), child: tile),
+            Positioned(
+              right: -40,
+              top: -50,
+              child: ExcludeSemantics(
+                child: PulseShapeBox(
+                  shape: PulseShape.cookie12,
+                  color: c.primaryFixed.withValues(alpha: .6),
+                  size: 170,
+                  spin: PulseMotion.heroSpin,
+                ),
+              ),
             ),
-            if (me != null && target != null && me != target)
-              PolylineLayer(
-                polylines: [
-                  Polyline(points: [me, target], strokeWidth: kWireBorder, color: w.ink),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 20, 22, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      if (g == null) ...[PulseLiveDot(color: fg, size: 7), const SizedBox(width: 8)],
+                      Flexible(
+                        child: Text(
+                          g == null ? 'Locating' : (self ? 'You are in' : 'Located in'),
+                          style: context.type.labelLarge!.copyWith(color: fg, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      g == null ? query! : _place(g!),
+                      maxLines: 1,
+                      style: pulseText(50, 900, wdth: 125, height: 1.05, tracking: -.02).copyWith(color: fg),
+                    ),
+                  ),
+                  Text(
+                    g == null ? 'Resolving and looking up the address…' : _meta(g!),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.type.bodyMedium!.copyWith(color: fg),
+                  ),
                 ],
               ),
-            MarkerLayer(
-              markers: [
-                if (me != null) ...[
-                  Marker(
-                    point: me,
-                    width: 16,
-                    height: 16,
-                    child: Container(color: w.ink),
-                  ),
-                  Marker(
-                    point: me,
-                    width: 80,
-                    height: 36,
-                    alignment: Alignment.bottomCenter,
-                    child: Align(alignment: Alignment.bottomCenter, child: label('YOU', inverse: false)),
-                  ),
-                ],
-                if (target != null && target != me) ...[
-                  Marker(
-                    point: target,
-                    width: widget.compact ? 18 : 22,
-                    height: widget.compact ? 18 : 22,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: w.signal,
-                        border: Border.all(color: w.ink, width: kWireBorder),
-                      ),
-                    ),
-                  ),
-                  if (!widget.compact)
-                    Marker(
-                      point: target,
-                      width: 90,
-                      height: 40,
-                      alignment: Alignment.bottomCenter,
-                      child: Align(alignment: Alignment.bottomCenter, child: label('TARGET', inverse: true)),
-                    ),
-                ],
-              ],
             ),
           ],
         ),
-        Positioned(
-          top: 8,
-          right: 8,
-          child: GestureDetector(
-            onTap: () => launchUrl(Uri.parse('https://www.openstreetmap.org/copyright')),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: w.background,
-                border: Border.all(color: w.ink, width: 1),
+      ),
+    );
+  }
+}
+
+/// Segmented key/value rows. Long-press any row to copy its value.
+class _DetailList extends StatelessWidget {
+  const _DetailList({required this.rows, required this.rowHeight});
+  final List<(String, String, bool)> rows;
+  final double rowHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final n = rows.length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, (k, v, copy)) in rows.indexed) ...[
+          if (i > 0) const SizedBox(height: PulseLayout.seam),
+          Semantics(
+            label: '$k: $v',
+            excludeSemantics: !copy,
+            child: Material(
+              color: c.surfaceContainer,
+              borderRadius: segmentedRadius(i, n),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onLongPress: v == '—' ? null : () => _copy(context, v),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: rowHeight),
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 16, right: copy ? 2 : 16),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 96,
+                          child: Text(k, style: context.type.bodyMedium!.copyWith(color: c.onSurfaceVariant)),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            v,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                            style: context.type.titleSmall!.copyWith(color: c.onSurface),
+                          ),
+                        ),
+                        if (copy) PulseCopyButton(text: v, label: 'Copy $k'),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-              child: Text('© OpenStreetMap contributors', style: WireType.body(10).copyWith(color: w.ink, height: 1.2)),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
+
+  static void _copy(BuildContext context, String v) {
+    Clipboard.setData(ClipboardData(text: v));
+    ScaffoldMessenger.maybeOf(context)
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('Copied $v'), duration: const Duration(seconds: 2)));
+  }
+}
+
+class _SourceNote extends StatelessWidget {
+  const _SourceNote({required this.source});
+  final String source;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 4),
+    child: Text(
+      'Data: ${source.isEmpty ? 'ip-api.com' : source} · Map: Natural Earth',
+      style: context.type.labelMedium!.copyWith(color: context.colors.onSurfaceVariant, fontWeight: FontWeight.w500),
+    ),
+  );
+}
+
+class _Locating extends StatelessWidget {
+  const _Locating({required this.query});
+  final String query;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    liveRegion: true,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          PulseLiveDot(color: context.colors.primary, size: 8),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              query.isEmpty ? 'Finding your public IP…' : 'Locating $query…',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.type.titleSmall,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _Idle extends StatelessWidget {
+  const _Idle({required this.onMyIp});
+  final VoidCallback onMyIp;
+
+  @override
+  Widget build(BuildContext context) => PulseEmptyState(
+    title: 'Where does it live?',
+    message: 'Look up a domain or IP to see its location, distance from you, network owner and hosting type.',
+    icon: PulseIcons.pin,
+    shape: PulseShape.cookie9,
+    size: 96,
+    action: PulseButton(
+      label: 'Locate my IP',
+      icon: PulseIcons.globe,
+      style: PulseButtonStyle.tonal,
+      onPressed: onMyIp,
+    ),
+  );
+}
+
+class _LookupsOff extends StatelessWidget {
+  const _LookupsOff();
+
+  @override
+  Widget build(BuildContext context) => PulseCard(
+    child: PulseEmptyState(
+      title: 'Public IP lookups are off',
+      message:
+          'Geo IP sends the address you look up to ip-api.com (or ipinfo.io). '
+          'Turn on Public IP lookups in Settings › Privacy to use it.',
+      icon: PulseIcons.shield,
+      shape: PulseShape.clover4,
+      size: 96,
+      action: PulseButton(
+        label: 'Open Settings',
+        icon: PulseIcons.settings,
+        style: PulseButtonStyle.tonal,
+        onPressed: () => context.go(Routes.settings),
+      ),
+    ),
+  );
 }

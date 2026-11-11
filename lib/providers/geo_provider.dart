@@ -136,6 +136,11 @@ class GeoNotifier extends Notifier<GeoState> {
   }
 
   Future<void> locateMe() async {
+    // Finding "my IP" is itself a lookup: never send it when lookups are off.
+    if (!ref.read(settingsProvider).publicIpLookups) {
+      state = state.copyWith(error: 'Public IP lookups are turned off in Settings → Privacy.');
+      return;
+    }
     state = state.copyWith(loading: true, clearError: true);
     final me = await _me();
     if (me == null) {
