@@ -240,7 +240,9 @@ class _RailPainter extends CustomPainter {
             ..strokeWidth = 2
             ..color = background,
         );
-      } else if (h.timedOut) {
+      } else if (h.timedOut || (h.done && h.avg == null)) {
+        // No reply, or a router that names itself but never times (* / * / *):
+        // dashed, like the hop list.
         final rr = (r - .5) * s;
         canvas.drawCircle(center, rr, Paint()..color = background);
         _dashedCircle(canvas, center, rr, tokens.latTimeout);
