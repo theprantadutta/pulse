@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:intl/intl.dart';
@@ -68,6 +69,16 @@ String durationLabel(Duration d) {
 }
 
 String intervalLabel(int sec) => sec < 60 ? '$sec s' : '${sec ~/ 60} min';
+
+/// "every minute, even with the window closed": how often targets are checked
+/// and whether that continues when Pulse isn't on screen on this platform.
+String monitorCadence(int sec, {required bool background}) {
+  final every = 'every ${sec == 60 ? 'minute' : intervalLabel(sec)}';
+  if (!Platform.isAndroid && !Platform.isIOS) return '$every, even with the window closed';
+  if (!background) return '$every while Pulse is open. Turn on Run in background to keep checking';
+  if (Platform.isIOS) return '$every while open, and about every 15 minutes in the background';
+  return '$every, even when Pulse is closed';
+}
 
 /// Monitor check intervals offered in the options sheet (same as Settings).
 const kMonitorIntervals = [30, 60, 300, 900];

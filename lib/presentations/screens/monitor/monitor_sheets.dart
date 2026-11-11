@@ -113,6 +113,7 @@ class _AddTargetSheetState extends ConsumerState<_AddTargetSheet> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final interval = ref.watch(settingsProvider.select((s) => s.monitorIntervalSec));
+    final background = ref.watch(settingsProvider.select((s) => s.monitorInBackground));
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       child: Column(
@@ -120,7 +121,7 @@ class _AddTargetSheetState extends ConsumerState<_AddTargetSheet> {
         children: [
           _SheetHeader(
             title: 'Add target',
-            subtitle: 'Pulse checks it every ${intervalLabel(interval)}, even with the window closed.',
+            subtitle: 'Pulse checks it ${monitorCadence(interval, background: background)}.',
             leading: const PulseShapeBadge(shape: PulseShape.diamond, tone: PulseTone.lavender, icon: PulseIcons.plus),
           ),
           PulseTargetField(
@@ -141,7 +142,7 @@ class _AddTargetSheetState extends ConsumerState<_AddTargetSheet> {
           PulseTargetField(
             controller: _name,
             hint: 'Name (optional)',
-            icon: PulseIcons.tune,
+            icon: PulseIcons.pin,
             keyboardType: TextInputType.text,
             onSubmitted: (_) => _save(),
           ),
@@ -283,7 +284,7 @@ class _TargetSheetState extends ConsumerState<_TargetSheet> {
                 child: PulseTargetField(
                   controller: _name,
                   hint: 'Name',
-                  icon: PulseIcons.tune,
+                  icon: PulseIcons.pin,
                   keyboardType: TextInputType.text,
                   onChanged: (v) => setState(() => _dirty = v.trim() != t.name),
                   onSubmitted: (v) async {

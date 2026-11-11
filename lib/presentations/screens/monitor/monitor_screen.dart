@@ -66,9 +66,8 @@ class MonitorScreen extends ConsumerWidget {
               child: PulseEmptyState(
                 title: 'Nothing watched yet',
                 message:
-                    'Add a host and Pulse checks it every '
-                    '${intervalLabel(ref.watch(settingsProvider.select((s) => s.monitorIntervalSec)))}, '
-                    'even with the window closed.',
+                    'Add a host and Pulse checks it '
+                    '${monitorCadence(ref.watch(settingsProvider.select((s) => s.monitorIntervalSec)), background: ref.watch(settingsProvider.select((s) => s.monitorInBackground)))}.',
                 icon: PulseIcons.monitor,
                 action: PulseButton(label: 'Add target', icon: PulseIcons.plus, onPressed: add),
               ),
@@ -224,7 +223,9 @@ class _StatusStrip extends ConsumerWidget {
     final rows = ref.watch(monitorOverviewProvider).value?.rows ?? const <TargetRow>[];
     final targets = rows.where((r) => r.target.enabled).length;
     final paused = run.mode == MonitorMode.paused;
-    final narrow = MediaQuery.sizeOf(context).width < 380;
+    // Phones: the strip also holds the tune and Pause buttons, so the long
+    // "Running in background · N targets" doesn't fit even at 411 dp.
+    final narrow = MediaQuery.sizeOf(context).width < 600;
     final scaled = MediaQuery.textScalerOf(context).scale(10) > 11.5;
     final label = narrow && scaled
         ? monitorStatusShort(run, targets).split(' · ').first
