@@ -22,6 +22,7 @@ abstract final class PulseBrand {
   static const onLime = Color(0xFF141F00);
   static const logoTile = Color(0xFF4A1D3B); // app icon background
   static const heartbeat = Color(0xFF4A0F2C); // logo ECG line
+  static const notification = Color(0xFF8E3A60); // light primary: notification icon/app-name tint
 }
 
 /// The four accents offered in Settings › Appearance. An accent swaps the fixed

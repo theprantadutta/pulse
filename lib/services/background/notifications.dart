@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../../core/theme/pulse_theme.dart';
+
 /// Local notifications for alert rules and incidents. Safe to use from any
 /// isolate (UI, foreground service, background fetch).
 class PulseNotifications {
@@ -108,7 +110,7 @@ class PulseNotifications {
           importance: Importance.high,
           priority: Priority.high,
           playSound: sound,
-          color: const Color(0xFFE8612C),
+          color: PulseBrand.notification,
           category: AndroidNotificationCategory.alarm,
         ),
         iOS: DarwinNotificationDetails(presentSound: sound, presentAlert: true, presentBanner: true),

@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/shared_preference_keys.dart';
+import '../../core/theme/pulse_theme.dart';
 import '../../data/db/app_database.dart';
 import '../../data/settings_store.dart';
 import '../net/lan/oui.dart';
@@ -158,7 +159,7 @@ class BackgroundMonitor {
       notificationText: summary,
       notificationIcon: const NotificationIcon(
         metaDataName: 'com.pranta.pulse.MONITOR_ICON',
-        backgroundColor: Color(0xFFE8612C),
+        backgroundColor: PulseBrand.notification,
       ),
       notificationButtons: const [NotificationButton(id: 'pause', text: 'Pause')],
       notificationInitialRoute: monitorRoute,
