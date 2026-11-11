@@ -4,6 +4,7 @@ import '../../core/widgets/pulse/pulse.dart';
 import '../../data/models/session_tool.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/monitor_summary_provider.dart';
+import '../../providers/ping_provider.dart';
 import 'destinations.dart';
 
 /// One tool in the Tools hub / Tools pane / History badges. Shape and colour
@@ -128,7 +129,7 @@ class ToolStatus {
   const ToolStatus(this.last, {this.live = false});
   final String last;
 
-  /// Monitor only: monitoring is running with at least one target.
+  /// Something is running now: a live ping, or monitoring with targets.
   final bool live;
 }
 
@@ -136,9 +137,20 @@ class ToolStatus {
 final toolStatusProvider = Provider<Map<PulseTool, ToolStatus>>((ref) {
   final latest = ref.watch(latestSessionsProvider).value ?? const {};
   final monitor = ref.watch(monitorSummaryProvider).value;
+  // Live pings aren't in History until they stop; select a string so the hub
+  // rebuilds only when the set of live hosts changes, not on every reply.
+  final livePing = ref.watch(
+    pingBoardProvider.select((b) {
+      final live = b.sessions.where((s) => s.running).toList();
+      if (live.isEmpty) return null;
+      return live.length == 1 ? live.first.title : '${live.length} hosts';
+    }),
+  );
   return {
     for (final t in kTools)
-      t: t == kMonitorTool
+      t: t == kPingTool && livePing != null
+          ? ToolStatus(livePing, live: true)
+          : t == kMonitorTool
           ? ToolStatus(
               monitor == null || monitor.targets == 0
                   ? t.empty
