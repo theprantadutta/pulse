@@ -118,9 +118,8 @@ class MonitorRunner extends Notifier<MonitorRunState> {
 
   Future<void> togglePaused() => setPaused(!_paused);
 
-  /// Restarts the foreground service after notifications were allowed:
-  /// Android never shows the notification of a service started while they
-  /// were blocked, and only a restart posts it.
+  /// Re-posts the foreground service's notification after notifications were
+  /// allowed: Android drops the one posted while they were blocked.
   Future<void> refreshService() async {
     if (!_started || state.mode != MonitorMode.service) return;
     _interval = 0;

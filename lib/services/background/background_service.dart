@@ -122,15 +122,17 @@ class BackgroundMonitor {
         onlyAlertOnce: true,
       ),
       iosNotificationOptions: const IOSNotificationOptions(showNotification: false, playSound: false),
-      foregroundTaskOptions: ForegroundTaskOptions(
-        eventAction: ForegroundTaskEventAction.repeat(intervalSec * 1000),
-        autoRunOnBoot: true,
-        autoRunOnMyPackageReplaced: true,
-        allowWakeLock: true,
-        allowWifiLock: true,
-      ),
+      foregroundTaskOptions: _taskOptions(intervalSec),
     );
   }
+
+  static ForegroundTaskOptions _taskOptions(int intervalSec) => ForegroundTaskOptions(
+    eventAction: ForegroundTaskEventAction.repeat(intervalSec * 1000),
+    autoRunOnBoot: true,
+    autoRunOnMyPackageReplaced: true,
+    allowWakeLock: true,
+    allowWifiLock: true,
+  );
 
   static Future<bool> get isRunning async => supported && await FlutterForegroundTask.isRunningService;
 
@@ -155,16 +157,19 @@ class BackgroundMonitor {
     );
     const buttons = [NotificationButton(id: 'pause', text: 'Pause')];
     if (await FlutterForegroundTask.isRunningService) {
-      // restartService reuses the notification the service was first started
-      // with (it survives app updates), so refresh it before restarting.
+      // Update in place rather than restartService: a restart swaps the task's
+      // Flutter engine, and the old engine's teardown unregisters plugins the
+      // new one already set up (shared_preferences then throws in onStart and
+      // no cycle ever runs). Updating also refreshes the notification the
+      // service was first started with and re-posts it.
       await FlutterForegroundTask.updateService(
+        foregroundTaskOptions: _taskOptions(intervalSec),
         notificationTitle: title,
         notificationText: summary,
         notificationIcon: icon,
         notificationButtons: buttons,
         notificationInitialRoute: monitorRoute,
       );
-      await FlutterForegroundTask.restartService();
       return;
     }
     await FlutterForegroundTask.startService(
