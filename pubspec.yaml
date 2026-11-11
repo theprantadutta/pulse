@@ -52,6 +52,7 @@ dependencies:
   url_launcher: ^6.3.2
   intl: ^0.20.3
   timezone: ^0.11.1
+  firebase_core: ^5.1.0
 
 dev_dependencies:
   flutter_test:
