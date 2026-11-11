@@ -28,9 +28,8 @@ class PulseApp extends ConsumerWidget {
           // "remove animations": every loop rests and entrances are instant.
           final mq = MediaQuery.of(context);
           final Widget app = motion ? child! : MediaQuery(data: mq.copyWith(disableAnimations: true), child: child!);
-          // go_router and flutter_map still build against
-          // package:flutter/material.dart, whose Theme is a different
-          // InheritedWidget. The bridge forwards our theme to them.
+          // Any dependency still built against package:flutter/material.dart
+          // reads a different Theme InheritedWidget; the bridge forwards ours.
           // ignore: deprecated_member_use
           return MaterialUiCompatibilityBridge(child: app);
         },

@@ -21,9 +21,6 @@ Future<void> loadPulseFonts() async {
   }
 
   await load('RobotoFlex', ['RobotoFlex-Variable.ttf']);
-  await load('Archivo', ['Archivo-Variable.ttf']);
-  await load('SpaceMono', ['SpaceMono-Regular.ttf', 'SpaceMono-Bold.ttf']);
-  await load('WireGlyphs', ['WireGlyphs.ttf']);
 }
 
 /// Pumps [child] at [size] and writes a PNG to `build/renders/<name>.png`.

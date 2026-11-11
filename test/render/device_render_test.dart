@@ -5,9 +5,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:pulse/core/widgets/wire/wire.dart';
 import 'package:pulse/data/db/app_database.dart';
-import 'package:pulse/presentations/navigation/pulse_shell.dart';
 import 'package:pulse/presentations/screens/alerts/alerts_screen.dart';
 import 'package:pulse/presentations/screens/history/history_screen.dart';
 import 'package:pulse/presentations/screens/loss/loss_screen.dart';
@@ -16,6 +14,7 @@ import 'package:pulse/presentations/screens/ping/ping_configure.dart';
 import 'package:pulse/presentations/screens/ping/ping_screen.dart';
 import 'package:pulse/presentations/screens/ports/ports_screen.dart';
 import 'package:pulse/presentations/screens/settings/settings_screen.dart';
+import 'package:pulse/presentations/screens/tools/tools_hub_screen.dart';
 import 'package:pulse/presentations/screens/speed/speed_screen.dart';
 import 'package:pulse/presentations/screens/trace/trace_screen.dart';
 import 'package:pulse/providers/connection_provider.dart';
@@ -37,6 +36,7 @@ const _sizes = <String, Size>{
 
 final _screens = <String, (String, Widget)>{
   'ping': ('/ping', const PingScreen()),
+  'tools': ('/tools', const ToolsHubScreen()),
   'trace': ('/traceroute', const TraceScreen()),
   'ports': ('/ports', const PortsScreen()),
   'speed': ('/speed', const SpeedScreen()),
@@ -64,31 +64,21 @@ void main() {
     );
   }
 
-  Widget app(ProviderContainer c, Size size, String location, Widget child) => UncontrolledProviderScope(
-    container: c,
-    child: MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: buildWireTheme(Brightness.dark),
-      home: MediaQuery(
-        data: MediaQueryData(size: size, padding: const EdgeInsets.only(top: 24, bottom: 20)),
-        child: PulseShell(location: location, child: child),
-      ),
-    ),
-  );
-
   for (final screen in _screens.entries) {
     testWidgets('device ${screen.key}', (tester) async {
       final c = (await tester.runAsync(seed))!;
       final failures = <String>[];
       for (final size in _sizes.entries) {
-        await renderToPng(
-          tester,
-          'device_${screen.key}_${size.key}',
-          app(c, size.value, screen.value.$1, screen.value.$2),
-          size: size.value,
-        );
-        final e = tester.takeException();
-        if (e != null) failures.add('${size.key}: $e');
+        for (final b in Brightness.values) {
+          await renderToPng(
+            tester,
+            'device_${screen.key}_${size.key}_${b.name}',
+            pulseTestApp(c, screen.value.$2, brightness: b, size: size.value, location: screen.value.$1),
+            size: size.value,
+          );
+          final e = tester.takeException();
+          if (e != null) failures.add('${size.key}/${b.name}: $e');
+        }
       }
       await tester.pumpWidget(const SizedBox());
       c.dispose();
