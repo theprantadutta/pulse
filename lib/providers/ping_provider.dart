@@ -395,6 +395,9 @@ class PingBoardNotifier extends Notifier<PingBoard> {
     final index = state.sessions.indexWhere((x) => x.id == id);
     if (index < 0) return null;
     final s = state.sessions[index];
+    // A stopped session doesn't hold a live slot: with the board full,
+    // removing it first would drop the host for good when start() refuses.
+    if (!s.running && state.liveCount >= kMaxLivePings) return null;
     await remove(id);
     return start(host ?? s.host, name: name ?? s.name, params: params ?? s.params, at: index);
   }

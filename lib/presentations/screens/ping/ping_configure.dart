@@ -241,15 +241,15 @@ class _PingSettingsSheet extends ConsumerWidget {
       ),
       footer: Row(
         children: [
-          if (board.sessions.isNotEmpty) ...[
+          if (board.liveCount > 0) ...[
             Expanded(
               child: PulseButton(
-                label: board.sessions.length == 1 ? 'Apply to 1 host' : 'Apply to ${board.sessions.length} hosts',
+                label: board.liveCount == 1 ? 'Apply to 1 live host' : 'Apply to ${board.liveCount} live hosts',
                 style: PulseButtonStyle.tonal,
                 size: PulseButtonSize.large,
                 expand: true,
                 onPressed: () async {
-                  await restartAll(context, ref, params: params);
+                  await restartAll(context, ref, params: params, onlyRunning: true);
                   if (context.mounted) Navigator.of(context).pop();
                 },
               ),
@@ -422,12 +422,24 @@ class _AddHostSheet extends ConsumerStatefulWidget {
 }
 
 class _AddHostSheetState extends ConsumerState<_AddHostSheet> {
-  late final _host = TextEditingController(text: widget.edit?.host ?? widget.host ?? '');
-  late final _name = TextEditingController(text: widget.edit?.name ?? widget.name ?? '');
+  // A new host starts from the last draft (what was typed before, like the
+  // old configure screen); editing starts from the host itself.
+  late final _host = TextEditingController(text: widget.edit?.host ?? widget.host ?? ref.read(pingDraftProvider).host);
+  late final _name = TextEditingController(text: widget.edit?.name ?? widget.name ?? ref.read(pingDraftProvider).name);
   late PingParams? _editParams = widget.edit?.params;
   final _selected = <int>{};
   bool _options = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.edit == null) {
+      // Keep the draft as you type so a dismissed sheet doesn't lose it.
+      _host.addListener(() => ref.read(pingDraftProvider.notifier).setHost(_host.text.trim()));
+      _name.addListener(() => ref.read(pingDraftProvider.notifier).setName(_name.text.trim()));
+    }
+  }
 
   @override
   void dispose() {
@@ -472,7 +484,10 @@ class _AddHostSheetState extends ConsumerState<_AddHostSheet> {
       showPingLimit(context);
       return;
     }
-    ref.read(pingDraftProvider.notifier).setHost(host);
+    // Keep the host for a quick repeat, but don't name the next host the same.
+    ref.read(pingDraftProvider.notifier)
+      ..setHost(host)
+      ..setName('');
     Navigator.of(context).pop();
   }
 

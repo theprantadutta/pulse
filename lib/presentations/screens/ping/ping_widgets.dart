@@ -138,13 +138,22 @@ Future<String?> restartHost(
 
 /// Restarts every host (or only the stopped ones) in place, optionally with
 /// new [params], and keeps the same host focused.
-Future<void> restartAll(BuildContext context, WidgetRef ref, {PingParams? params, bool onlyStopped = false}) async {
+/// Restarts hosts in place: [onlyStopped] resumes paused/finished ones,
+/// [onlyRunning] re-applies settings to live ones without resuming the rest.
+Future<void> restartAll(
+  BuildContext context,
+  WidgetRef ref, {
+  PingParams? params,
+  bool onlyStopped = false,
+  bool onlyRunning = false,
+}) async {
   final n = ref.read(pingBoardProvider.notifier);
   final board = ref.read(pingBoardProvider);
   final focusedId = board.focused?.id;
   String? newFocus;
   for (final s in [...board.sessions]) {
     if (onlyStopped && s.running) continue;
+    if (onlyRunning && !s.running) continue;
     final id = await n.restart(s.id, params: params);
     if (id == null) {
       if (context.mounted) showPingLimit(context);
