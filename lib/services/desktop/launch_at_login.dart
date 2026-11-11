@@ -65,7 +65,9 @@ class LaunchAtLogin {
       if (await isPackaged) {
         final state = await _channel.invokeMethod<int>('setEnabled', {'enabled': on});
         if (on && state == _disabledByUser) {
-          throw LaunchAtLoginBlocked('Startup is turned off for Pulse in Task Manager › Startup apps. Turn it on there.');
+          throw LaunchAtLoginBlocked(
+            'Startup is turned off for Pulse in Task Manager › Startup apps. Turn it on there.',
+          );
         }
         if (on && state == _disabledByPolicy) {
           throw LaunchAtLoginBlocked('Your organisation has turned off startup apps for Pulse.');

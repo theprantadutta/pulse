@@ -42,7 +42,7 @@ class _Fake extends GeoNotifier {
 
 void main() {
   setUpAll(() async {
-    await loadWireFonts();
+    await loadPulseFonts();
     // flutter_map's tile cache asks path_provider for a cache directory.
     final dir = Directory.systemTemp.createTempSync('pulse_tiles');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(

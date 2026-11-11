@@ -102,12 +102,7 @@ class WireButton extends StatelessWidget {
               Flexible(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text(
-                    text,
-                    maxLines: 1,
-                    softWrap: false,
-                    style: WireType.nav(fontSize).copyWith(color: c.fg),
-                  ),
+                  child: Text(text, maxLines: 1, softWrap: false, style: WireType.nav(fontSize).copyWith(color: c.fg)),
                 ),
               ),
             ],

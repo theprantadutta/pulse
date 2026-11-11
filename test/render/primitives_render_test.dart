@@ -124,7 +124,7 @@ class _Gallery extends StatelessWidget {
 void _noop() {}
 
 void main() {
-  setUpAll(loadWireFonts);
+  setUpAll(loadPulseFonts);
 
   for (final b in Brightness.values) {
     testWidgets('primitives gallery ${b.name}', (tester) async {

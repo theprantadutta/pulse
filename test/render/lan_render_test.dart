@@ -34,7 +34,7 @@ class _Fake extends LanScanNotifier {
 }
 
 void main() {
-  setUpAll(loadWireFonts);
+  setUpAll(loadPulseFonts);
 
   final devices = [
     _d('192.168.1.1', null, 'TP-Link Systems Inc', 2, gw: true, mac: '28:87:BA:94:33:3B'),

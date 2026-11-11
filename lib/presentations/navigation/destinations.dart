@@ -1,21 +1,13 @@
-/// Mobile bottom tabs.
+/// Top-level destinations: phone bottom tabs and the tablet rail.
 enum MobileTab { ping, net, tools, history }
-
-/// A top-level destination. The desktop sidebar lists all twelve, numbered.
-class WireDestination {
-  const WireDestination(this.index, this.label, this.path, this.tab);
-  final String index;
-  final String label;
-  final String path;
-
-  /// The mobile tab that stays highlighted while this screen is visible.
-  final MobileTab tab;
-}
 
 class Routes {
   Routes._();
   static const launch = '/launch';
   static const ping = '/ping';
+
+  /// Ping detail for one host: `/ping/host?id=<host id>`.
+  static const pingDetail = '/ping/host';
   static const traceroute = '/traceroute';
   static const ports = '/ports';
   static const speed = '/speed';
@@ -31,21 +23,6 @@ class Routes {
   static const tools = '/tools';
 }
 
-const kDestinations = <WireDestination>[
-  WireDestination('01', 'Ping', Routes.ping, MobileTab.ping),
-  WireDestination('02', 'Traceroute', Routes.traceroute, MobileTab.tools),
-  WireDestination('03', 'Port scan', Routes.ports, MobileTab.tools),
-  WireDestination('04', 'Speed test', Routes.speed, MobileTab.tools),
-  WireDestination('05', 'Packet loss', Routes.loss, MobileTab.tools),
-  WireDestination('06', 'Network', Routes.network, MobileTab.net),
-  WireDestination('07', 'LAN scan', Routes.lan, MobileTab.net),
-  WireDestination('08', 'Geo IP', Routes.geo, MobileTab.tools),
-  WireDestination('09', 'Monitor', Routes.monitor, MobileTab.tools),
-  WireDestination('10', 'Alerts', Routes.alerts, MobileTab.tools),
-  WireDestination('11', 'History', Routes.history, MobileTab.history),
-  WireDestination('12', 'Settings', Routes.settings, MobileTab.tools),
-];
-
 const kTabRoots = <MobileTab, String>{
   MobileTab.ping: Routes.ping,
   MobileTab.net: Routes.network,
@@ -53,18 +30,34 @@ const kTabRoots = <MobileTab, String>{
   MobileTab.history: Routes.history,
 };
 
-/// The destination whose path prefixes [location], if any.
-WireDestination? destinationFor(String location) {
-  WireDestination? best;
-  for (final d in kDestinations) {
-    if (location == d.path || location.startsWith('${d.path}/')) {
-      if (best == null || d.path.length > best.path.length) best = d;
-    }
-  }
-  return best;
+bool _under(String location, String path) => location == path || location.startsWith('$path/');
+
+/// Screens pushed from the Tools hub (the Tools tab stays selected, and on
+/// expanded layouts the Tools pane sits next to them).
+const kToolRoutes = <String>[
+  Routes.traceroute,
+  Routes.ports,
+  Routes.speed,
+  Routes.loss,
+  Routes.lan,
+  Routes.geo,
+  Routes.monitor,
+  Routes.alerts,
+];
+
+bool isToolRoute(String location) => kToolRoutes.any((p) => _under(location, p));
+
+/// The tab (or rail destination) highlighted for [location]. Settings has its
+/// own rail entry, so it returns null there on tablets; on phones Settings
+/// opens from the Tools hub and keeps Tools selected (see [tabFor]).
+MobileTab? railTabFor(String location) {
+  if (_under(location, Routes.settings)) return null;
+  return tabFor(location);
 }
 
 MobileTab tabFor(String location) {
-  if (location.startsWith(Routes.tools)) return MobileTab.tools;
-  return destinationFor(location)?.tab ?? MobileTab.ping;
+  if (_under(location, Routes.ping)) return MobileTab.ping;
+  if (_under(location, Routes.network)) return MobileTab.net;
+  if (_under(location, Routes.history)) return MobileTab.history;
+  return MobileTab.tools;
 }

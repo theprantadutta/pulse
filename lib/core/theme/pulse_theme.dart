@@ -6,7 +6,6 @@
 //   theme: buildPulseTheme(Brightness.light, accent: PulseAccent.of(key))
 //   anywhere: context.pulse.latencyColor(ms), context.colors.primary, context.type
 
-
 import 'package:cupertino_ui/cupertino_ui.dart' show CupertinoPageTransitionsBuilder;
 import 'package:material_ui/material_ui.dart';
 

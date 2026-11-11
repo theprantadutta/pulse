@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../core/theme/wire_theme.dart';
 import '../data/models/app_settings.dart';
 import '../data/settings_store.dart';
 
@@ -28,9 +27,3 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   Future<void> setAccent(String key) => update((s) => s.copyWith(accent: key));
 }
-
-/// The resolved accent colour for the current settings.
-final accentColorProvider = Provider<Color>((ref) {
-  final key = ref.watch(settingsProvider.select((s) => s.accent));
-  return WireColors.accents[key] ?? WireColors.signalOrange;
-});

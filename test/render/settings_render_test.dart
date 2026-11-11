@@ -14,7 +14,7 @@ import 'render_harness.dart';
 
 void main() {
   setUpAll(() async {
-    await loadWireFonts();
+    await loadPulseFonts();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
       const MethodChannel('dev.fluttercommunity.plus/package_info'),
       (call) async => {'appName': 'Pulse', 'packageName': 'com.pranta.pulse', 'version': '2.0.0', 'buildNumber': '12'},

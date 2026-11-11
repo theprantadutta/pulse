@@ -12,28 +12,26 @@ typedef _IcmpCreateFileC = IntPtr Function();
 typedef _IcmpCreateFileDart = int Function();
 typedef _IcmpCloseHandleC = Int32 Function(IntPtr handle);
 typedef _IcmpCloseHandleDart = int Function(int handle);
-typedef _IcmpSendEchoC =
-    Uint32 Function(
-      IntPtr handle,
-      Uint32 destination,
-      Pointer<Uint8> requestData,
-      Uint16 requestSize,
-      Pointer<_IpOptionInformation> options,
-      Pointer<Uint8> replyBuffer,
-      Uint32 replySize,
-      Uint32 timeout,
-    );
-typedef _IcmpSendEchoDart =
-    int Function(
-      int handle,
-      int destination,
-      Pointer<Uint8> requestData,
-      int requestSize,
-      Pointer<_IpOptionInformation> options,
-      Pointer<Uint8> replyBuffer,
-      int replySize,
-      int timeout,
-    );
+typedef _IcmpSendEchoC = Uint32 Function(
+  IntPtr handle,
+  Uint32 destination,
+  Pointer<Uint8> requestData,
+  Uint16 requestSize,
+  Pointer<_IpOptionInformation> options,
+  Pointer<Uint8> replyBuffer,
+  Uint32 replySize,
+  Uint32 timeout,
+);
+typedef _IcmpSendEchoDart = int Function(
+  int handle,
+  int destination,
+  Pointer<Uint8> requestData,
+  int requestSize,
+  Pointer<_IpOptionInformation> options,
+  Pointer<Uint8> replyBuffer,
+  int replySize,
+  int timeout,
+);
 
 final class _IpOptionInformation extends Struct {
   @Uint8()

@@ -50,7 +50,7 @@ class _Net extends NetworkInfoNotifier {
 }
 
 void main() {
-  setUpAll(loadWireFonts);
+  setUpAll(loadPulseFonts);
   Widget app(Brightness b) => ProviderScope(
     overrides: [
       speedProvider.overrideWith(_Fake.new),

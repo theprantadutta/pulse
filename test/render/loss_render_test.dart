@@ -54,7 +54,7 @@ class _Fake extends LossNotifier {
 }
 
 void main() {
-  setUpAll(loadWireFonts);
+  setUpAll(loadPulseFonts);
   test('verdict detects periodic bursts', () {
     final v = lossVerdict(LossState(target: 'x', run: _run()));
     expect(v.text, contains('bursts every ~40 s'));

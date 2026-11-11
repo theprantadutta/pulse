@@ -69,7 +69,7 @@ const _wifi = LinkDetails(
 );
 
 void main() {
-  setUpAll(loadWireFonts);
+  setUpAll(loadPulseFonts);
 
   Future<void> shot(WidgetTester tester, String name, LinkDetails d, Brightness b, Size size) async {
     SharedPreferences.setMockInitialValues({});

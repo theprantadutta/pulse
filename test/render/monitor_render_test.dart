@@ -46,7 +46,7 @@ class _Net implements PingProber {
 }
 
 void main() {
-  setUpAll(loadWireFonts);
+  setUpAll(loadPulseFonts);
 
   Future<(AppDatabase, SharedPreferences)> seed(WidgetTester tester) async {
     final r = await tester.runAsync(() async {

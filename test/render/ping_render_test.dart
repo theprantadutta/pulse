@@ -55,7 +55,7 @@ const _names = [
 ];
 
 void main() {
-  setUpAll(loadWireFonts);
+  setUpAll(loadPulseFonts);
 
   Future<ProviderContainer> seed() async {
     SharedPreferences.setMockInitialValues({});

@@ -2,86 +2,59 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../../core/widgets/wire/wire.dart';
-import '../../../core/widgets/wire/wire_page.dart';
-import '../../../data/models/session_tool.dart';
-import '../../../providers/database_provider.dart';
-import '../../../providers/monitor_summary_provider.dart';
+import '../../../core/widgets/pulse/pulse.dart';
 import '../../navigation/destinations.dart';
+import '../../navigation/tools_catalog.dart';
 
-/// 07 — Tools hub (mobile): every tool as a bordered tile with its last
-/// result. The Monitor tile is signal while monitoring is live.
+/// 05 Tools hub: 8 tool tiles with their last result. Phone: 2-column grid of
+/// 138 dp tiles. Tablet: 4 x 2 grid of large tiles filling the screen.
 class ToolsHubScreen extends ConsumerWidget {
   const ToolsHubScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final w = context.wire;
-    final latest = ref.watch(latestSessionsProvider).value ?? const {};
-    final monitor = ref.watch(monitorSummaryProvider).value;
-
-    String last(SessionTool t, String empty) => latest[t]?.summary.isNotEmpty == true ? latest[t]!.summary : empty;
-
-    final tiles = <_Tile>[
-      _Tile('01', 'Ping', Routes.ping, last(SessionTool.ping, 'No runs yet')),
-      _Tile('02', 'Traceroute', Routes.traceroute, last(SessionTool.trace, 'No runs yet')),
-      _Tile('03', 'Port scan', Routes.ports, last(SessionTool.ports, 'No scans yet')),
-      _Tile('04', 'Speed test', Routes.speed, last(SessionTool.speed, 'No tests yet')),
-      _Tile('05', 'Packet loss', Routes.loss, last(SessionTool.loss, 'No tests yet')),
-      _Tile('06', 'LAN scan', Routes.lan, last(SessionTool.lan, 'No scans yet')),
-      _Tile('07', 'Geo IP', Routes.geo, last(SessionTool.geo, 'No lookups yet')),
-      _Tile(
-        '08',
-        'Monitor',
-        Routes.monitor,
-        monitor == null || monitor.targets == 0
-            ? 'No targets'
-            : '${monitor.targets} target${monitor.targets == 1 ? '' : 's'}'
-                  '${monitor.live ? ' · live' : ' · paused'}',
-        signal: monitor?.live == true && monitor!.targets > 0,
-      ),
-    ];
-
-    return WireMobilePage(
-      header: WireMobileHeader(
-        title: 'Tools',
-        trailing: WirePressable(
-          onTap: () => context.push(Routes.settings),
-          tone: WireTone.ink,
-          semanticLabel: 'Settings',
-          builder: (context, c, s) => Container(
-            color: c.bg,
-            height: WireLayout.mobileHeader,
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
-              'SETTINGS',
-              style: WireType.label(
-                12,
-              ).copyWith(color: s.contains(WidgetState.pressed) || s.contains(WidgetState.hovered) ? c.fg : w.signal),
-            ),
+    final status = ref.watch(toolStatusProvider);
+    final compact = context.isCompact;
+    return PulsePage(
+      title: 'Tools',
+      large: true,
+      subtitle: compact ? null : '8 tools · tap to open',
+      actions: [
+        if (compact)
+          PulseIconButton(icon: PulseIcons.settings, tooltip: 'Settings', onPressed: () => context.go(Routes.settings))
+        else
+          PulseButton(
+            label: 'Settings',
+            icon: PulseIcons.settings,
+            style: PulseButtonStyle.tonal,
+            onPressed: () => context.go(Routes.settings),
           ),
-        ),
-      ),
+      ],
       body: LayoutBuilder(
         builder: (context, box) {
-          final rows = (tiles.length / 2).ceil();
-          final tileHeight = ((box.maxHeight) / rows).clamp(120.0, 240.0);
-          return SingleChildScrollView(
-            child: Column(
-              children: [
-                for (var r = 0; r < rows; r++)
-                  SizedBox(
-                    height: tileHeight,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(child: _ToolTile(tile: tiles[r * 2], right: true)),
-                        Expanded(child: _ToolTile(tile: tiles[r * 2 + 1])),
-                      ],
-                    ),
-                  ),
-              ],
+          final columns = compact ? 2 : (box.maxWidth >= 720 ? 4 : 2);
+          final rows = (kTools.length / columns).ceil();
+          final pad = context.pagePadding;
+          const gap = 12.0;
+          // Tablets fill the height with the grid; phones use 138 dp tiles.
+          final available = box.maxHeight - 4 - pad;
+          final tileHeight = compact ? 138.0 : ((available - gap * (rows - 1)) / rows).clamp(150.0, 320.0);
+          return GridView.builder(
+            padding: EdgeInsets.fromLTRB(pad, 4, pad, pad),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              mainAxisSpacing: compact ? 10 : gap,
+              crossAxisSpacing: compact ? 10 : gap,
+              mainAxisExtent: tileHeight,
+            ),
+            itemCount: kTools.length,
+            itemBuilder: (context, i) => PulseEntrance(
+              index: i,
+              child: ToolTile(
+                tool: kTools[i],
+                status: status[kTools[i]] ?? ToolStatus(kTools[i].empty),
+                large: !compact,
+              ),
             ),
           );
         },
@@ -90,54 +63,85 @@ class ToolsHubScreen extends ConsumerWidget {
   }
 }
 
-class _Tile {
-  const _Tile(this.index, this.name, this.path, this.last, {this.signal = false});
-  final String index;
-  final String name;
-  final String path;
-  final String last;
-  final bool signal;
-}
+/// A tool tile: badge top-left, name and last result at the bottom. Monitor is
+/// pink with a blinking "LIVE" label while monitoring runs.
+class ToolTile extends StatelessWidget {
+  const ToolTile({super.key, required this.tool, required this.status, this.large = false});
 
-class _ToolTile extends StatelessWidget {
-  const _ToolTile({required this.tile, this.right = false});
-  final _Tile tile;
-  final bool right;
+  final PulseTool tool;
+  final ToolStatus status;
+  final bool large;
 
   @override
   Widget build(BuildContext context) {
-    final w = context.wire;
-    return WireCell(
-      onTap: () => context.push(tile.path),
-      tone: tile.signal ? WireTone.signal : WireTone.plain,
-      sides: WireSides(bottom: true, right: right),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      alignment: Alignment.topLeft,
-      semanticLabel: tile.name,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(tile.index, style: WireType.label()),
-          Column(
+    final c = context.colors;
+    final hot = status.live;
+    final fg = hot ? c.onPrimaryFixed : c.onSurface;
+    final sub = hot ? c.onPrimaryFixed : c.onSurfaceVariant;
+    final badgeSize = large ? 72.0 : 44.0;
+    final radius = hot ? (large ? 36.0 : 32.0) : 28.0;
+    return Semantics(
+      button: true,
+      label: '${tool.name}, ${status.last}${hot ? ', live' : ''}',
+      excludeSemantics: true,
+      child: PulsePressable(
+        onTap: () => context.go(tool.route),
+        radius: radius,
+        color: hot ? c.primaryFixedDim : c.surfaceContainer,
+        child: Padding(
+          padding: large ? const EdgeInsets.all(22) : const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(tile.name.toUpperCase(), style: WireType.display(26, width: 70, height: 0.95)),
-              const SizedBox(height: 2),
-              Builder(
-                builder: (context) {
-                  final fg = DefaultTextStyle.of(context).style.color;
-                  return Text(
-                    tile.last,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (hot)
+                    // On the pink tile the badge inverts: dark diamond, pink icon.
+                    PulseContainerBadge(
+                      shape: tool.shape,
+                      icon: tool.icon,
+                      color: c.onPrimaryFixed,
+                      onColor: c.primaryFixedDim,
+                      size: badgeSize,
+                    )
+                  else
+                    PulseShapeBadge(shape: tool.shape, tone: tool.tone, icon: tool.icon, size: badgeSize),
+                  const Spacer(),
+                  if (hot)
+                    Row(
+                      children: [
+                        PulseLiveDot(color: fg, size: 7),
+                        const SizedBox(width: 6),
+                        Text('LIVE', style: pulseText(large ? 13 : 12, 800).copyWith(color: fg)),
+                      ],
+                    )
+                  else if (large)
+                    PulseIcon(PulseIcons.chevR, size: 22, color: c.onSurfaceVariant),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tool.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: WireType.body(11).copyWith(color: fg == w.ink ? w.text2 : fg, height: 1.3),
-                  );
-                },
+                    style: pulseText(large ? 28 : 19, 800, wdth: large ? 115 : 110, height: 1.15).copyWith(color: fg),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    status.last,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.type.bodySmall!.copyWith(fontSize: large ? 15 : 13, color: sub),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

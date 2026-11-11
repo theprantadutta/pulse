@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pulse/core/widgets/wire/wire.dart';
 import 'package:pulse/data/db/app_database.dart';
-import 'package:pulse/presentations/navigation/wire_shell.dart';
+import 'package:pulse/presentations/navigation/pulse_shell.dart';
 import 'package:pulse/presentations/screens/alerts/alerts_screen.dart';
 import 'package:pulse/presentations/screens/history/history_screen.dart';
 import 'package:pulse/presentations/screens/loss/loss_screen.dart';
@@ -48,7 +48,7 @@ final _screens = <String, (String, Widget)>{
 };
 
 void main() {
-  setUpAll(loadWireFonts);
+  setUpAll(loadPulseFonts);
 
   Future<ProviderContainer> seed() async {
     SharedPreferences.setMockInitialValues({});
@@ -71,7 +71,7 @@ void main() {
       theme: buildWireTheme(Brightness.dark),
       home: MediaQuery(
         data: MediaQueryData(size: size, padding: const EdgeInsets.only(top: 24, bottom: 20)),
-        child: WireShell(location: location, child: child),
+        child: PulseShell(location: location, child: child),
       ),
     ),
   );

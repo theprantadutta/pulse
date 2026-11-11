@@ -60,9 +60,8 @@ class _PingScreenState extends ConsumerState<PingScreen> {
         .start(host, name: _name.text, params: ref.read(pingDraftProvider).params);
     if (!mounted) return;
     if (id == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('At most $kMaxLivePings live pings at once — stop one first.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('At most $kMaxLivePings live pings at once — stop one first.')));
       return;
     }
     _name.clear();
@@ -688,9 +687,8 @@ class _ConfigSheetState extends ConsumerState<_ConfigSheet> {
         .start(host, name: _name.text, params: ref.read(pingDraftProvider).params);
     if (!mounted) return;
     if (id == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('At most $kMaxLivePings live pings at once — stop one first.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('At most $kMaxLivePings live pings at once — stop one first.')));
       return;
     }
     Navigator.of(context).pop();

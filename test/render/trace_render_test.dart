@@ -43,7 +43,7 @@ class _Fake extends TraceNotifier {
 }
 
 void main() {
-  setUpAll(loadWireFonts);
+  setUpAll(loadPulseFonts);
   Widget app(Brightness b) => ProviderScope(
     overrides: [traceProvider.overrideWith(_Fake.new)],
     child: MaterialApp(

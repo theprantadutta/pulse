@@ -36,7 +36,7 @@ class _Fake extends PortScanNotifier {
 }
 
 void main() {
-  setUpAll(loadWireFonts);
+  setUpAll(loadPulseFonts);
   Widget app(Brightness b) => ProviderScope(
     overrides: [portScanProvider.overrideWith(_Fake.new)],
     child: MaterialApp(
