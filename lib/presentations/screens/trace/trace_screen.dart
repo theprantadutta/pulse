@@ -268,21 +268,29 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
       );
     }
 
+    // Width left for this screen next to the rail (and the Tools pane on
+    // expanded layouts). Below 760 the field gets its own row instead of
+    // being squeezed between the title and the Trace button.
+    final contentWidth =
+        MediaQuery.sizeOf(context).width - PulseLayout.rail - (context.isExpanded ? PulseLayout.pane : 0);
+    final inlineField = contentWidth >= 760;
     return PulsePage(
       title: 'Traceroute',
-      titleWidget: Row(
-        children: [
-          Text('Traceroute', style: context.type.headlineMedium),
-          const SizedBox(width: 16),
-          Expanded(child: field),
-        ],
-      ),
+      titleWidget: inlineField
+          ? Row(
+              children: [
+                Text('Traceroute', style: context.type.headlineMedium),
+                const SizedBox(width: 16),
+                Expanded(child: field),
+              ],
+            )
+          : null,
       actions: [PulseButton(label: runLabel, icon: runIcon, size: PulseButtonSize.large, onPressed: _toggle)],
       body: LayoutBuilder(
         builder: (context, box) {
           final pad = context.pagePadding;
           if (box.maxWidth < 760) {
-            final items = column(fullList: true).skip(1).toList();
+            final items = column(fullList: true).skip(inlineField ? 1 : 0).toList();
             return ListView(
               padding: EdgeInsets.fromLTRB(pad, 0, pad, 24),
               children: [for (var i = 0; i < items.length; i++) PulseEntrance(index: i, child: items[i])],

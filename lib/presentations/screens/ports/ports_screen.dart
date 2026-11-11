@@ -366,8 +366,13 @@ class _TabletStats extends StatelessWidget {
   final String seconds;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) => _row(context, box.maxWidth < 720));
+
+  /// [tight]: four cards in a narrow tablet column (landscape Tab A9 next to
+  /// the Tools pane) get smaller badges so the labels stay readable.
+  Widget _row(BuildContext context, bool tight) {
     final c = context.colors;
+    final b = tight ? 40.0 : 56.0;
     Widget card(int i, Widget badge, String label, String value, {String? unit}) => Expanded(
       child: PulseEntrance(
         index: i,
@@ -375,11 +380,11 @@ class _TabletStats extends StatelessWidget {
           label: '$label $value ${unit ?? ''}',
           excludeSemantics: true,
           child: PulseCard(
-            padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+            padding: tight ? const EdgeInsets.fromLTRB(10, 12, 8, 12) : const EdgeInsets.fromLTRB(14, 14, 12, 14),
             child: Row(
               children: [
                 badge,
-                const SizedBox(width: 14),
+                SizedBox(width: tight ? 8 : 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,7 +404,7 @@ class _TabletStats extends StatelessWidget {
                           live: true,
                           unitScale: .6,
                           unitGap: 6,
-                          style: pulseText(30, 900, wdth: 115, height: 1.05),
+                          style: pulseText(tight ? 24 : 30, 900, wdth: 115, height: 1.05),
                         ),
                       ),
                     ],
@@ -420,7 +425,7 @@ class _TabletStats extends StatelessWidget {
             icon: PulseIcons.grid,
             color: c.surfaceContainerHighest,
             onColor: c.onSurface,
-            size: 56,
+            size: b,
           ),
           'Scanned',
           '$scanned',
@@ -429,11 +434,11 @@ class _TabletStats extends StatelessWidget {
         const SizedBox(width: 12),
         card(
           1,
-          const PulseShapeBadge(
+          PulseShapeBadge(
             shape: PulseShape.cookie9,
             tone: PulseTone.pink,
             icon: PulseIcons.port,
-            size: 56,
+            size: b,
             spin: PulseMotion.smallSpin,
           ),
           'Open',
@@ -442,14 +447,14 @@ class _TabletStats extends StatelessWidget {
         const SizedBox(width: 12),
         card(
           2,
-          const PulseShapeBadge(shape: PulseShape.clover4, tone: PulseTone.lavender, icon: PulseIcons.shield, size: 56),
+          PulseShapeBadge(shape: PulseShape.clover4, tone: PulseTone.lavender, icon: PulseIcons.shield, size: b),
           'Filtered',
           '$filtered',
         ),
         const SizedBox(width: 12),
         card(
           3,
-          const PulseShapeBadge(shape: PulseShape.square, tone: PulseTone.lime, icon: PulseIcons.timer, size: 56),
+          PulseShapeBadge(shape: PulseShape.square, tone: PulseTone.lime, icon: PulseIcons.timer, size: b),
           'Time',
           seconds,
           unit: seconds == '—' ? null : 's',
