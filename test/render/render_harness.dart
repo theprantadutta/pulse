@@ -61,6 +61,7 @@ Widget pulseTestApp(
   Size size = kPhone,
   String location = '/ping',
   bool shell = true,
+  double textScale = 1,
 }) => UncontrolledProviderScope(
   container: container,
   child: MaterialApp(
@@ -72,6 +73,7 @@ Widget pulseTestApp(
         padding: size.shortestSide < 600 ? const EdgeInsets.only(top: 40, bottom: 20) : EdgeInsets.zero,
         // Freeze ambient loops so renders are deterministic.
         disableAnimations: true,
+        textScaler: TextScaler.linear(textScale),
       ),
       child: shell ? PulseShell(location: location, child: child) : child,
     ),
