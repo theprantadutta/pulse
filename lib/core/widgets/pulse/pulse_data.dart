@@ -147,9 +147,12 @@ class PulseContainerBadge extends StatelessWidget {
 /// Soft blob behind hero shapes: secondaryContainer, border-radius morph plus a
 /// 30° rotation over 9 s.
 class PulseMorphBlob extends StatefulWidget {
-  const PulseMorphBlob({super.key, required this.size, this.color});
+  const PulseMorphBlob({super.key, required this.size, this.color, this.animate = true});
   final double size;
   final Color? color;
+
+  /// False rests the morph (paused hero).
+  final bool animate;
 
   @override
   State<PulseMorphBlob> createState() => _PulseMorphBlobState();
@@ -161,7 +164,17 @@ class _PulseMorphBlobState extends State<PulseMorphBlob> with SingleTickerProvid
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (PulseMotion.reduced(context)) {
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(PulseMorphBlob old) {
+    super.didUpdateWidget(old);
+    if (old.animate != widget.animate) _sync();
+  }
+
+  void _sync() {
+    if (PulseMotion.reduced(context) || !widget.animate) {
       _c.stop();
     } else if (!_c.isAnimating) {
       _c.repeat(reverse: true);
@@ -293,7 +306,12 @@ class PulseHeroMetric extends StatelessWidget {
         child: Stack(
           alignment: Alignment.topLeft,
           children: [
-            if (blob) Positioned(right: 0, bottom: 0, child: PulseMorphBlob(size: size * .78)),
+            if (blob)
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: PulseMorphBlob(size: size * .78, animate: live && !paused),
+              ),
             Positioned(left: 0, top: 0, child: shapeBox),
           ],
         ),
