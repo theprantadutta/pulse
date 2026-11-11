@@ -2,503 +2,675 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../../core/format.dart';
-import '../../../core/widgets/wire/wire.dart';
-import '../../../core/widgets/wire/wire_page.dart';
-import '../../../data/db/app_database.dart';
+import '../../../core/widgets/pulse/pulse.dart';
 import '../../../providers/monitor_provider.dart';
+import '../../../providers/settings_provider.dart';
 import '../../navigation/destinations.dart';
-import '../tools/tool_widgets.dart';
+import 'monitor_sheets.dart';
+import 'monitor_widgets.dart';
 
-/// 12 — Monitor.
+/// 12 Monitor: uptime of every watched host over 24 h / 7 d / 30 d, the
+/// current latency, a block strip per target, and incidents.
+///
+/// Phone: status strip, uptime cookie + stat column, range group, targets.
+/// Tablet: header with status strip, range group and "Add target"; stats row;
+/// targets on the left and an Incidents card on the right.
 class MonitorScreen extends ConsumerWidget {
   const MonitorScreen({super.key});
 
+  /// Content width from which the full tablet layout (kit header, two
+  /// columns) fits; narrower tablets / windows get a single column.
+  static const _wideFrom = 820.0;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final w = context.wire;
-    final run = ref.watch(monitorRunnerProvider);
-    final range = ref.watch(monitorRangeProvider);
-    final overview = ref.watch(monitorOverviewProvider).value;
-    final incidents = ref.watch(incidentsProvider).value ?? const [];
+    final async = ref.watch(monitorOverviewProvider);
+    final overview = async.value;
     final rows = overview?.rows ?? const <TargetRow>[];
-    final runner = ref.read(monitorRunnerProvider.notifier);
+    final compact = context.isCompact;
 
-    Widget empty() => WireEmptyState(
-      title: 'Nothing watched',
-      message: 'Add a host and Pulse checks it every ${_every(ref)} — even with the window closed.',
-      actionLabel: 'Add target',
-      actionGlyph: '+',
-      onAction: () => showAddTargetDialog(context, ref),
-      compact: context.isMobileLayout,
-    );
+    void alerts() => context.go(Routes.alerts);
+    void add() => showAddTargetSheet(context);
 
-    return WireAdaptive(
-      mobile: (context) => WireMobilePage(
-        header: WireMobileHeader(
-          title: 'Monitor',
-          onBack: mobileBack(context),
-          trailing: WirePressable(
-            onTap: () => showAddTargetDialog(context, ref),
-            tone: WireTone.ink,
-            semanticLabel: 'Add target',
-            builder: (context, c, s) => Container(
-              color: c.bg,
-              height: WireLayout.mobileHeader,
-              alignment: Alignment.center,
-              child: Text('+ ADD', style: WireType.label(12).copyWith(color: s.isEmpty ? w.signal : c.fg)),
+    final bell = PulseIconButton(icon: PulseIcons.bell, tooltip: 'Alert rules', onPressed: alerts);
+
+    if (overview == null) {
+      return PulsePage(
+        title: 'Monitor',
+        backTo: Routes.tools,
+        actions: [bell],
+        body: Center(
+          child: async.hasError
+              ? Padding(
+                  padding: EdgeInsets.all(context.pagePadding),
+                  child: PulseErrorBanner(
+                    title: 'Couldn\'t read monitoring data',
+                    message: '${async.error}',
+                    onRetry: () => ref.invalidate(monitorOverviewProvider),
+                  ),
+                )
+              : const SizedBox(width: 220, child: PulseWavyBar(value: .4, semanticLabel: 'Loading monitor data')),
+        ),
+      );
+    }
+
+    if (rows.isEmpty) {
+      return PulsePage(
+        title: 'Monitor',
+        backTo: Routes.tools,
+        actions: [bell],
+        body: Center(
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: PulseEmptyState(
+                title: 'Nothing watched yet',
+                message:
+                    'Add a host and Pulse checks it every '
+                    '${intervalLabel(ref.watch(settingsProvider.select((s) => s.monitorIntervalSec)))}, '
+                    'even with the window closed.',
+                icon: PulseIcons.monitor,
+                action: PulseButton(label: 'Add target', icon: PulseIcons.plus, onPressed: add),
+              ),
             ),
           ),
         ),
-        body: rows.isEmpty
-            ? empty()
-            : ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  WireSplitRow(
-                    children: [
-                      WireStat(
-                        label: 'Uptime ${range.label}',
-                        value: fmtPct(overview?.uptime),
-                        valueSize: 46,
-                        tone: WireTone.signal,
-                        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                      ),
-                      WireStat(
-                        label: 'Incidents',
-                        value: '${overview?.incidents ?? 0}',
-                        valueSize: 46,
-                        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                      ),
-                    ],
-                  ),
-                  const WireRule(),
-                  _StatusLine(run: run, onToggle: runner.togglePaused),
-                  for (final r in rows) _MobileTargetRow(row: r),
-                ],
-              ),
-        action: WireButton.bar(
-          label: 'Alerts →',
-          variant: WireButtonVariant.inverse,
-          onPressed: () => context.push(Routes.alerts),
-        ),
-      ),
-      desktop: (context) => WireDesktopPage(
-        panelWidth: 320,
-        topBar: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: WireTopTitle(
-                'Monitor',
-                subtitle: '● ${run.label} · ${rows.length} TARGET${rows.length == 1 ? '' : 'S'}',
-              ),
-            ),
-            const WireVRule(),
-            WireTopChip(
-              label: run.mode == MonitorMode.paused ? '▶ RESUME' : '■ PAUSE',
-              onTap: rows.isEmpty ? null : runner.togglePaused,
-            ),
-            for (final r in MonitorRange.values)
-              WireTopChip(
-                label: r.label,
-                selected: r == range,
-                onTap: () => ref.read(monitorRangeProvider.notifier).set(r),
-              ),
-            WireButton(
-              label: 'Add target',
-              glyph: '+',
-              variant: WireButtonVariant.primary,
-              bordered: false,
-              fontSize: 17,
-              height: WireLayout.topBar,
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              onPressed: () => showAddTargetDialog(context, ref),
-            ),
-          ],
-        ),
-        body: rows.isEmpty
-            ? empty()
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(color: w.ink, width: kWireBorder),
-                      ),
-                    ),
-                    child: WireSplitRow(
-                      children: [
-                        WireStat(
-                          label: 'Uptime ${range.label}',
-                          value: fmtPct(overview?.uptime),
-                          valueSize: 64,
-                          tone: WireTone.signal,
-                          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-                        ),
-                        WireStat(
-                          label: 'Avg latency',
-                          value: overview?.avgMs == null ? '—' : '${fmtMs(overview!.avgMs)} MS',
-                          valueSize: 64,
-                          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-                        ),
-                        WireStat(
-                          label: 'Incidents',
-                          value: '${overview?.incidents ?? 0}',
-                          valueSize: 64,
-                          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-                        ),
-                        WireStat(
-                          label: 'Checks',
-                          value: fmtCount(overview?.checks ?? 0),
-                          valueSize: 64,
-                          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-                        ),
-                      ],
-                    ),
-                  ),
-                  WireTableHeader(
-                    columns: _cols,
-                    gap: 14,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  ),
-                  Expanded(
-                    child: ListView(
-                      children: [
-                        for (final r in rows) _DesktopTargetRow(row: r),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                          child: Row(
-                            children: [
-                              Text('■ HEALTHY   ', style: WireType.label()),
-                              Text('■ DEGRADED   ', style: WireType.label().copyWith(color: w.degraded)),
-                              Text('■ DOWN   ', style: WireType.label().copyWith(color: w.signal)),
-                              Text('■ NO DATA', style: WireType.label().copyWith(color: w.text3)),
-                              const Spacer(),
-                              Text(
-                                run.last == null ? '' : 'LAST CHECK ${fmtWhen(run.last!.at)}',
-                                style: WireType.label().copyWith(color: w.text2),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-        panel: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const WireSectionBar('Incidents'),
-            Expanded(
-              child: incidents.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Text(
-                        'No incidents. Outages, loss and latency spikes show up here.',
-                        style: WireType.body(13).copyWith(color: w.text3),
-                      ),
-                    )
-                  : ListView(children: [for (final i in incidents) _IncidentRow(view: i)]),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+      );
+    }
 
-  static const _cols = [
-    WireCol('Target', width: 170),
-    WireCol('Last · blocks', flex: 1),
-    WireCol('Uptime', width: 70),
-    WireCol('Now', width: 80, align: TextAlign.right),
-  ];
-}
-
-String _every(WidgetRef ref) {
-  final s = ref.read(monitorRunnerProvider);
-  return s.mode == MonitorMode.service ? 'minute in the background' : 'minute';
-}
-
-List<Color> _blockColors(BuildContext context, List<BlockState> blocks) {
-  final w = context.wire;
-  return [
-    for (final b in blocks)
-      switch (b) {
-        BlockState.healthy => w.ink,
-        BlockState.degraded => w.degraded,
-        BlockState.down => w.signal,
-        BlockState.empty => w.mutedRow,
-      },
-  ];
-}
-
-class _StatusLine extends StatelessWidget {
-  const _StatusLine({required this.run, required this.onToggle});
-  final MonitorRunState run;
-  final VoidCallback onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    return WireRow(
-      onTap: onToggle,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      divider: kWireBorder,
-      child: Row(
-        children: [
-          Expanded(child: Text('● ${run.label}', style: WireType.label())),
-          Text(run.mode == MonitorMode.paused ? 'RESUME' : 'PAUSE', style: WireType.label()),
+    if (compact) {
+      return PulsePage(
+        title: 'Monitor',
+        backTo: Routes.tools,
+        actions: [
+          bell,
+          PulseButton(label: 'Add', icon: PulseIcons.plus, size: PulseButtonSize.small, onPressed: add),
         ],
-      ),
-    );
-  }
-}
+        children: [
+          const _StatusStrip(),
+          const SizedBox(height: 12),
+          _PhoneStats(overview: overview),
+          const SizedBox(height: 12),
+          const _RangeGroup(),
+          const SizedBox(height: 12),
+          _TargetList(rows: rows, blocks: 24, wide: false),
+          const SizedBox(height: 12),
+          const _Footer(),
+          const SizedBox(height: 4),
+          _IncidentsSection(overview: overview),
+        ],
+      );
+    }
 
-class _DesktopTargetRow extends ConsumerWidget {
-  const _DesktopTargetRow({required this.row});
-  final TargetRow row;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final w = context.wire;
-    final r = row;
-    return WireRow(
-      highlight: r.incident
-          ? WireRowHighlight.tint
-          : r.target.enabled
-          ? WireRowHighlight.none
-          : WireRowHighlight.muted,
-      onTap: () => showTargetMenu(context, ref, r.target),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      child: WireColumns(
-        columns: MonitorScreen._cols,
-        gap: 14,
-        cells: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return LayoutBuilder(
+      builder: (context, box) {
+        final wide = box.maxWidth >= _wideFrom;
+        if (!wide) {
+          // Portrait tablet or narrow window: tablet header, one column.
+          return PulsePage(
+            title: 'Monitor',
+            backTo: Routes.tools,
+            actions: [
+              bell,
+              PulseButton(label: 'Add target', icon: PulseIcons.plus, onPressed: add),
+            ],
             children: [
-              Text(r.target.host, maxLines: 1, overflow: TextOverflow.ellipsis, style: WireType.data(14)),
-              Text(
-                r.target.enabled ? (r.target.name.isEmpty ? '—' : r.target.name) : 'PAUSED',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: WireType.body(11).copyWith(color: w.text2, height: 1.3),
+              Row(
+                children: [
+                  const Expanded(child: _StatusStrip()),
+                  const SizedBox(width: 12),
+                  const SizedBox(width: 220, child: _RangeGroup()),
+                ],
               ),
+              const SizedBox(height: 16),
+              _TabletStats(overview: overview),
+              const SizedBox(height: 14),
+              _TargetList(rows: rows, blocks: 36, wide: true),
+              const SizedBox(height: 12),
+              const _Footer(),
+              const SizedBox(height: 12),
+              _IncidentsCard(overview: overview, fill: false),
+            ],
+          );
+        }
+        return PulsePage(
+          title: 'Monitor',
+          titleWidget: Row(
+            children: [
+              Text('Monitor', style: context.type.headlineMedium),
+              const SizedBox(width: 12),
+              const Flexible(child: _StatusStrip(compactPill: true)),
             ],
           ),
-          WireStatusStrip(colors: _blockColors(context, r.blocks), height: 26),
-          Text(fmtPct(r.uptime), style: WireType.data(13)),
-          Text(
-            r.nowDown ? 'DOWN' : fmtMs(r.nowMs),
-            style: WireType.stat(26).copyWith(color: r.nowDown ? w.signal : w.ink),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MobileTargetRow extends ConsumerWidget {
-  const _MobileTargetRow({required this.row});
-  final TargetRow row;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final w = context.wire;
-    final r = row;
-    return WireRow(
-      highlight: r.incident ? WireRowHighlight.tint : WireRowHighlight.none,
-      onTap: () => showTargetMenu(context, ref, r.target),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          backTo: Routes.tools,
+          actions: [
+            const SizedBox(width: 200, child: _RangeGroup()),
+            PulseButton(label: 'Add target', icon: PulseIcons.plus, size: PulseButtonSize.large, onPressed: add),
+          ],
+          body: LayoutBuilder(
+            builder: (context, inner) {
+              const pad = PulseLayout.tabletPadding;
+              // Short windows scroll instead of squeezing the rows.
+              if (inner.maxHeight < 520) {
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(pad, 0, pad, pad),
                   children: [
-                    Text(r.target.host, style: WireType.data(13)),
-                    Text(
-                      '${r.target.name.isEmpty ? '—' : r.target.name} · ${fmtPct(r.uptime)}',
-                      style: WireType.body(11).copyWith(color: w.text2, height: 1.3),
+                    _TabletStats(overview: overview),
+                    const SizedBox(height: 14),
+                    _TargetList(rows: rows, blocks: 36, wide: true),
+                    const SizedBox(height: 12),
+                    const _Footer(),
+                    const SizedBox(height: 12),
+                    _IncidentsCard(overview: overview, fill: false),
+                  ],
+                );
+              }
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(pad, 0, pad, pad),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    PulseEntrance(child: _TabletStats(overview: overview)),
+                    const SizedBox(height: 14),
+                    Expanded(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(child: _TargetList(rows: rows, blocks: 36, wide: true, fill: true)),
+                                const SizedBox(height: 10),
+                                const Padding(padding: EdgeInsets.only(left: 4), child: _Footer()),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          SizedBox(
+                            width: inner.maxWidth >= 1100 ? 320 : 280,
+                            child: PulseEntrance(index: 2, child: _IncidentsCard(overview: overview, fill: true)),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-              Text(
-                r.nowDown ? 'DOWN' : fmtMs(r.nowMs),
-                style: WireType.stat(24).copyWith(color: r.nowDown ? w.signal : w.ink),
-              ),
-            ],
+              );
+            },
           ),
-          const SizedBox(height: 8),
-          WireStatusStrip(colors: _blockColors(context, r.blocks), height: 14, gap: 1),
-        ],
+        );
+      },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Status strip
+// ---------------------------------------------------------------------------
+
+/// Live dot, "Running · 6 targets", options and a tonal Pause / Resume.
+class _StatusStrip extends ConsumerWidget {
+  const _StatusStrip({this.compactPill = false});
+
+  /// Tablet header variant: a 44 dp pill next to the title.
+  final bool compactPill;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
+    final run = ref.watch(monitorRunnerProvider);
+    final runner = ref.read(monitorRunnerProvider.notifier);
+    final rows = ref.watch(monitorOverviewProvider).value?.rows ?? const <TargetRow>[];
+    final targets = rows.where((r) => r.target.enabled).length;
+    final paused = run.mode == MonitorMode.paused;
+    final narrow = MediaQuery.sizeOf(context).width < 380;
+    final scaled = MediaQuery.textScalerOf(context).scale(10) > 11.5;
+    final label = narrow && scaled
+        ? monitorStatusShort(run, targets).split(' · ').first
+        : compactPill || narrow
+        ? monitorStatusShort(run, targets)
+        : monitorStatusLabel(run, targets);
+    final dot = run.live
+        ? PulseLiveDot(color: c.tertiary, size: 8)
+        : Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: c.outline, width: 1.5),
+            ),
+          );
+    final pause = PulseButton(
+      label: paused ? 'Resume' : 'Pause',
+      icon: paused ? PulseIcons.play : PulseIcons.pause,
+      style: PulseButtonStyle.tonal,
+      size: PulseButtonSize.small,
+      onPressed: runner.togglePaused,
+    );
+    final options = PulseIconButton(
+      icon: PulseIcons.tune,
+      tooltip: 'Monitoring options',
+      visualSize: 40,
+      iconSize: 20,
+      onPressed: () => showMonitorOptionsSheet(context),
+    );
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: Container(
+        height: compactPill ? 52 : null,
+        padding: EdgeInsets.fromLTRB(16, compactPill ? 0 : 6, 6, compactPill ? 0 : 6),
+        decoration: BoxDecoration(
+          color: c.surfaceContainer,
+          borderRadius: BorderRadius.circular(compactPill ? 26 : 24),
+        ),
+        child: Row(
+          mainAxisSize: compactPill ? MainAxisSize.min : MainAxisSize.max,
+          children: [
+            dot,
+            const SizedBox(width: 10),
+            Flexible(
+              fit: compactPill ? FlexFit.loose : FlexFit.tight,
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.type.titleSmall!.copyWith(color: c.onSurface),
+              ),
+            ),
+            const SizedBox(width: 4),
+            options,
+            pause,
+          ],
+        ),
       ),
     );
   }
 }
 
-class _IncidentRow extends StatelessWidget {
-  const _IncidentRow({required this.view});
-  final IncidentView view;
+// ---------------------------------------------------------------------------
+// Range + stats
+// ---------------------------------------------------------------------------
+
+class _RangeGroup extends ConsumerWidget {
+  const _RangeGroup();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => PulseButtonGroup<MonitorRange>(
+    small: true,
+    segments: [for (final r in MonitorRange.values) PulseSegment(r, rangeLabel(r))],
+    selected: ref.watch(monitorRangeProvider),
+    onChanged: ref.read(monitorRangeProvider.notifier).set,
+  );
+}
+
+class _UptimeCookie extends ConsumerWidget {
+  const _UptimeCookie({required this.uptime});
+  final double? uptime;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final range = ref.watch(monitorRangeProvider);
+    return PulsePop(
+      child: PulseShapeStat(
+        shape: PulseShape.cookie12,
+        tone: PulseTone.lime,
+        label: 'Uptime ${rangeTitle(range)}',
+        value: pctLabel(uptime),
+        size: 150,
+        motion: PulseShapeMotion.spin,
+      ),
+    );
+  }
+}
+
+List<PulseStat> _stats(BuildContext context, MonitorOverview o) => [
+  PulseStat('Avg latency', msLabel(o.avgMs), unit: o.avgMs == null ? null : 'ms'),
+  PulseStat('Incidents', '${o.incidents}', color: o.incidents == 0 ? context.colors.tertiary : context.colors.primary),
+  PulseStat('Checks', '${o.checks}'),
+];
+
+class _PhoneStats extends StatelessWidget {
+  const _PhoneStats({required this.overview});
+  final MonitorOverview overview;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      _UptimeCookie(uptime: overview.uptime),
+      const SizedBox(width: 10),
+      Expanded(child: PulseStatRow(vertical: true, valueSize: 22, stats: _stats(context, overview))),
+    ],
+  );
+}
+
+class _TabletStats extends StatelessWidget {
+  const _TabletStats({required this.overview});
+  final MonitorOverview overview;
 
   @override
   Widget build(BuildContext context) {
-    final w = context.wire;
-    final i = view.incident;
-    final dur = view.ongoing ? 'ONGOING' : fmtDuration(i.endedAt!.difference(i.startedAt));
-    return WireRow(
-      highlight: view.ongoing ? WireRowHighlight.tint : WireRowHighlight.none,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final c = context.colors;
+    final stats = _stats(context, overview);
+    return SizedBox(
+      height: 150,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Expanded(child: Text(fmtWhen(i.startedAt), style: WireType.label())),
-              Text(dur, style: WireType.label()),
-            ],
-          ),
-          const SizedBox(height: 3),
-          Text(i.title.toUpperCase(), style: WireType.title(20)),
-          Text(i.description, style: WireType.body(12).copyWith(color: w.text2, height: 1.3)),
+          _UptimeCookie(uptime: overview.uptime),
+          for (final s in stats) ...[
+            const SizedBox(width: 12),
+            Expanded(
+              child: Semantics(
+                label: '${s.label} ${s.value} ${s.unit ?? ''}',
+                excludeSemantics: true,
+                child: PulseCard(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(s.label, style: context.type.labelMedium!.copyWith(color: c.onSurfaceVariant)),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.bottomLeft,
+                        child: PulseNumber(
+                          s.value,
+                          unit: s.unit,
+                          live: true,
+                          unitScale: .85,
+                          unitGap: 8,
+                          color: s.color,
+                          style: pulseText(44, 900, wdth: 115, height: 1),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-/// Add a monitored host.
-Future<void> showAddTargetDialog(BuildContext context, WidgetRef ref, {String host = '', String name = ''}) {
-  final hostC = TextEditingController(text: host);
-  final nameC = TextEditingController(text: name);
-  return showDialog<void>(
-    context: context,
-    builder: (context) {
-      final w = context.wire;
-      Future<void> save() async {
-        final h = hostC.text.trim();
-        if (h.isEmpty || !RegExp(r'^[A-Za-z0-9.\-:%_]+$').hasMatch(h)) return;
-        await ref.read(monitorTargetsRepositoryProvider).add(h, nameC.text.trim());
-        if (context.mounted) Navigator.of(context).pop();
-      }
+// ---------------------------------------------------------------------------
+// Targets
+// ---------------------------------------------------------------------------
 
-      return Dialog(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                color: w.ink,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                child: Text('ADD TARGET', style: WireType.title(26).copyWith(color: w.background)),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
-                child: Text('HOST OR IP', style: WireType.label()),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: WireInput(
-                  controller: hostC,
-                  hint: '8.8.8.8',
-                  autofocus: true,
-                  keyboardType: TextInputType.url,
-                  onSubmitted: (_) => save(),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-                child: Text('NAME', style: WireType.label()),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: WireInput(controller: nameC, hint: 'Google DNS', onSubmitted: (_) => save()),
-              ),
-              const SizedBox(height: 20),
-              PanelActions(
-                actions: [
-                  (label: 'Cancel', primary: false, onTap: () => Navigator.of(context).pop()),
-                  (label: 'Add', primary: true, onTap: save),
-                ],
-              ),
-            ],
-          ),
-        ),
+class _TargetList extends StatelessWidget {
+  const _TargetList({required this.rows, required this.blocks, required this.wide, this.fill = false});
+  final List<TargetRow> rows;
+  final int blocks;
+  final bool wide;
+
+  /// Stretch the rows to fill the available height (tablet).
+  final bool fill;
+
+  @override
+  Widget build(BuildContext context) {
+    final n = rows.length;
+    Widget tile(int i, {double minHeight = 60}) => PulseEntrance(
+      index: i + 1,
+      child: _TargetTile(row: rows[i], index: i, count: n, blocks: blocks, wide: wide, minHeight: minHeight),
+    );
+    if (!fill) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < n; i++) ...[if (i > 0) const SizedBox(height: 3), tile(i, minHeight: wide ? 72 : 60)],
+        ],
       );
-    },
-  );
+    }
+    return LayoutBuilder(
+      builder: (context, box) {
+        final per = ((box.maxHeight - 3 * (n - 1)) / n).clamp(64.0, 92.0);
+        return ListView.separated(
+          padding: EdgeInsets.zero,
+          itemCount: n,
+          separatorBuilder: (_, _) => const SizedBox(height: 3),
+          itemBuilder: (context, i) => SizedBox(
+            height: per,
+            child: tile(i, minHeight: per),
+          ),
+        );
+      },
+    );
+  }
 }
 
-/// Pause / rename / remove a target.
-Future<void> showTargetMenu(BuildContext context, WidgetRef ref, MonitorTarget t) {
-  final repo = ref.read(monitorTargetsRepositoryProvider);
-  final nameC = TextEditingController(text: t.name);
-  return showDialog<void>(
-    context: context,
-    builder: (context) {
-      final w = context.wire;
-      return Dialog(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+class _TargetTile extends StatelessWidget {
+  const _TargetTile({
+    required this.row,
+    required this.index,
+    required this.count,
+    required this.blocks,
+    required this.wide,
+    required this.minHeight,
+  });
+
+  final TargetRow row;
+  final int index, count, blocks;
+  final bool wide;
+  final double minHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final t = row.target;
+    final up = pctLabel(row.uptime);
+    final state = !t.enabled
+        ? 'Paused'
+        : row.nowDown
+        ? 'No reply'
+        : null;
+    final sub = wide
+        ? [if (t.name.isNotEmpty) t.name, ?state].join(' · ')
+        : [if (t.name.isNotEmpty) t.name, state ?? up].join(' · ');
+    final value = !t.enabled
+        ? PulseIcon(PulseIcons.pause, size: 18, color: c.onSurfaceVariant)
+        : row.nowDown
+        ? const DashedRing(size: 16)
+        : PulseNumber(
+            msLabel(row.nowMs),
+            unit: wide && row.nowMs != null ? 'ms' : null,
+            unitScale: .6,
+            live: true,
+            style: pulseNumber(wide ? 26 : 20),
+          );
+    final text = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          t.host,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: context.type.titleMedium!.copyWith(fontSize: wide ? 17 : 15),
+        ),
+        if (sub.isNotEmpty)
+          Text(
+            sub,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: context.type.bodySmall!.copyWith(color: c.onSurfaceVariant, fontSize: wide ? 14 : 13),
+          ),
+      ],
+    );
+    return Opacity(
+      opacity: t.enabled ? 1 : .6,
+      child: SegmentedTile(
+        index: index,
+        count: count,
+        minHeight: minHeight,
+        padding: EdgeInsets.symmetric(horizontal: wide ? 18 : 16, vertical: 8),
+        semanticLabel:
+            '${t.host}${t.name.isEmpty ? '' : ', ${t.name}'}, uptime $up, '
+            '${state ?? 'now ${msLabel(row.nowMs)} milliseconds'}',
+        onTap: () => showTargetSheet(context, t),
+        child: ExcludeSemantics(
+          child: Row(
             children: [
-              Container(
-                color: w.ink,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                child: Text(t.host.toUpperCase(), style: WireType.title(26).copyWith(color: w.background)),
+              SizedBox(width: wide ? 150 : 118, child: text),
+              SizedBox(width: wide ? 16 : 12),
+              Expanded(
+                child: UptimeStrip(blocks: row.blocks, count: blocks, height: wide ? 26 : 22, maxGap: wide ? 3 : 2),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
-                child: Text('NAME', style: WireType.label()),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: WireInput(controller: nameC, hint: 'Name'),
-              ),
-              const SizedBox(height: 20),
-              PanelActions(
-                actions: [
-                  (
-                    label: 'Remove',
-                    primary: false,
-                    onTap: () async {
-                      await repo.delete(t.id);
-                      if (context.mounted) Navigator.of(context).pop();
-                    },
+              if (wide) ...[
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 52,
+                  child: Text(
+                    up,
+                    textAlign: TextAlign.right,
+                    style: context.type.bodyMedium!.copyWith(color: c.onSurfaceVariant),
                   ),
-                  (
-                    label: t.enabled ? 'Pause' : 'Resume',
-                    primary: false,
-                    onTap: () async {
-                      await repo.update(t.id, enabled: !t.enabled);
-                      if (context.mounted) Navigator.of(context).pop();
-                    },
-                  ),
-                  (
-                    label: 'Save',
-                    primary: true,
-                    onTap: () async {
-                      await repo.update(t.id, name: nameC.text.trim());
-                      if (context.mounted) Navigator.of(context).pop();
-                    },
-                  ),
-                ],
+                ),
+              ],
+              SizedBox(width: wide ? 12 : 12),
+              SizedBox(
+                width: wide ? 84 : 42,
+                child: Align(alignment: Alignment.centerRight, child: value),
               ),
             ],
           ),
         ),
-      );
-    },
-  );
+      ),
+    );
+  }
+}
+
+/// Legend plus "checks every 1 min · last check 14:02".
+class _Footer extends ConsumerWidget {
+  const _Footer();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final run = ref.watch(monitorRunnerProvider);
+    final interval = ref.watch(settingsProvider.select((s) => s.monitorIntervalSec));
+    final last = run.last == null ? '' : ' · last ${whenLabel(run.last!.at).toLowerCase()}';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: UptimeLegend(trailing: 'Every ${intervalLabel(interval)}$last'),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Incidents
+// ---------------------------------------------------------------------------
+
+List<IncidentView> _inRange(WidgetRef ref) {
+  final range = ref.watch(monitorRangeProvider);
+  final since = DateTime.now().subtract(range.span);
+  return [
+    for (final i in ref.watch(incidentsProvider).value ?? const <IncidentView>[])
+      if (i.ongoing || i.incident.startedAt.isAfter(since)) i,
+  ];
+}
+
+String _hostOf(MonitorOverview o, IncidentView i) =>
+    o.rows.where((r) => r.target.id == i.incident.targetId).firstOrNull?.target.host ?? i.targetName;
+
+const _noIncidents = 'Outages, loss and latency spikes show up here, with a notification if you turn alerts on.';
+
+/// Tablet: an Incidents card next to the targets.
+class _IncidentsCard extends ConsumerWidget {
+  const _IncidentsCard({required this.overview, required this.fill});
+  final MonitorOverview overview;
+  final bool fill;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final list = _inRange(ref);
+    final header = Row(
+      children: [
+        Expanded(
+          child: Semantics(header: true, child: Text('Incidents', style: context.type.titleLarge)),
+        ),
+        PulseIconButton(icon: PulseIcons.bell, tooltip: 'Alert rules', onPressed: () => context.go(Routes.alerts)),
+      ],
+    );
+    final empty = PulseEmptyState(
+      title: 'No incidents',
+      message: _noIncidents,
+      size: 96,
+      action: PulseButton(
+        label: 'Alert rules',
+        icon: PulseIcons.bell,
+        style: PulseButtonStyle.tonal,
+        size: PulseButtonSize.small,
+        onPressed: () => context.go(Routes.alerts),
+      ),
+    );
+    final items = [
+      for (final i in list)
+        IncidentTile(view: i, host: _hostOf(overview, i), color: context.colors.surfaceContainerHigh, dense: true),
+    ];
+    return PulseCard(
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
+        children: [
+          Padding(padding: const EdgeInsets.only(left: 4), child: header),
+          if (list.isEmpty)
+            fill
+                ? Expanded(
+                    child: Center(child: SingleChildScrollView(child: empty)),
+                  )
+                : empty
+          else if (fill)
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(right: 8),
+                child: PulseSegmentedList(children: items),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: PulseSegmentedList(children: items),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Phone: incidents below the targets.
+class _IncidentsSection extends ConsumerWidget {
+  const _IncidentsSection({required this.overview});
+  final MonitorOverview overview;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final list = _inRange(ref);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        PulseSectionLabel(
+          'Incidents',
+          trailing: PulseButton(
+            label: 'Alert rules',
+            icon: PulseIcons.bell,
+            style: PulseButtonStyle.text,
+            size: PulseButtonSize.small,
+            onPressed: () => context.go(Routes.alerts),
+          ),
+        ),
+        if (list.isEmpty)
+          PulseCard(
+            child: PulseEmptyState(title: 'No incidents', message: _noIncidents, size: 80),
+          )
+        else
+          PulseSegmentedList(
+            children: [for (final i in list) IncidentTile(view: i, host: _hostOf(overview, i))],
+          ),
+      ],
+    );
+  }
 }

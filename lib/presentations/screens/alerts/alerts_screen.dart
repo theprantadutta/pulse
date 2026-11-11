@@ -3,17 +3,22 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../../core/format.dart';
-import '../../../core/widgets/wire/wire.dart';
-import '../../../core/widgets/wire/wire_page.dart';
+import '../../../core/widgets/pulse/pulse.dart';
 import '../../../data/db/app_database.dart';
 import '../../../providers/alerts_provider.dart';
+import '../../../providers/settings_provider.dart';
 import '../../../services/background/notifications.dart';
 import '../../navigation/destinations.dart';
-import '../tools/tool_widgets.dart';
+import '../monitor/monitor_widgets.dart';
 import 'rule_editor.dart';
 
-/// 13 — Alerts.
+export 'rule_editor.dart' show RuleEditor;
+
+/// Alerts: the rules that watch Monitor's checks (latency, loss, down, new LAN
+/// device), mute controls, a test notification and what fired recently.
+///
+/// Phone: one column, "New rule" FAB, the editor opens as its own page.
+/// Tablet: rules on the left, the editor in a card on the right.
 class AlertsScreen extends ConsumerStatefulWidget {
   const AlertsScreen({super.key});
 
@@ -22,7 +27,10 @@ class AlertsScreen extends ConsumerStatefulWidget {
 }
 
 class _AlertsScreenState extends ConsumerState<AlertsScreen> {
+  /// Tablet: the rule in the editor card (null id = new rule).
   RuleDraft? _editing;
+
+  static const _splitFrom = 760.0;
 
   @override
   void initState() {
@@ -33,237 +41,438 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final w = context.wire;
-    final rules = ref.watch(alertRulesProvider).value ?? const <AlertRule>[];
-    final events = ref.watch(alertEventsProvider).value ?? const <FiredAlert>[];
-    final active = ref.watch(activeAlertProvider);
-    final muted = ref.watch(alertsMutedUntilProvider);
-    final repo = ref.read(alertRulesRepositoryProvider);
-    final draft = _editing ?? (rules.isEmpty ? const RuleDraft() : RuleDraft.of(rules.first));
+    final async = ref.watch(alertRulesProvider);
+    final rules = async.value ?? const <AlertRule>[];
+    final on = rules.where((r) => r.enabled).length;
+    final subtitle = '${rules.length} rule${rules.length == 1 ? '' : 's'} · $on on';
 
-    Widget ruleRow(AlertRule r, {bool dense = false}) => WireRow(
-      selected: !dense && draft.id == r.id,
-      highlight: r.firing ? WireRowHighlight.tint : WireRowHighlight.none,
-      divider: dense ? kWireHairline : kWireBorder,
-      onTap: () => dense ? context.push('${Routes.alertRule}?id=${r.id}') : setState(() => _editing = RuleDraft.of(r)),
-      padding: EdgeInsets.symmetric(horizontal: dense ? 14 : 20, vertical: dense ? 10 : 14),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return LayoutBuilder(
+      builder: (context, box) {
+        final split = !context.isCompact && box.maxWidth >= _splitFrom;
+        final draft = _editing ?? (rules.isEmpty ? const RuleDraft() : RuleDraft.of(rules.first));
+
+        void edit(AlertRule? r) {
+          if (split) {
+            setState(() => _editing = r == null ? const RuleDraft() : RuleDraft.of(r));
+          } else {
+            context.go(r == null ? Routes.alertRule : '${Routes.alertRule}?id=${r.id}');
+          }
+        }
+
+        final list = _AlertsList(
+          rules: rules,
+          loading: async.isLoading && !async.hasValue,
+          error: async.hasError ? '${async.error}' : null,
+          selectedId: split ? draft.id : null,
+          onEdit: edit,
+        );
+
+        if (!split) {
+          return PulsePage(
+            title: 'Alerts',
+            subtitle: subtitle,
+            backTo: Routes.monitor,
+            actions: [
+              if (!context.isCompact)
+                PulseButton(label: 'New rule', icon: PulseIcons.plus, onPressed: () => edit(null)),
+            ],
+            fab: context.isCompact
+                ? PulseFab(label: 'New rule', icon: PulseIcons.plus, onPressed: () => edit(null))
+                : null,
+            body: list,
+          );
+        }
+        return PulsePage(
+          title: 'Alerts',
+          subtitle: subtitle,
+          backTo: Routes.monitor,
+          actions: [PulseButton(label: 'New rule', icon: PulseIcons.plus, onPressed: () => edit(null))],
+          body: Padding(
+            padding: const EdgeInsets.fromLTRB(PulseLayout.tabletPadding, 0, PulseLayout.tabletPadding, 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(r.title.toUpperCase(), style: WireType.display(dense ? 20 : 24, width: 72, height: 1)),
-                const SizedBox(height: 3),
-                Text(ruleCondition(r), style: WireType.body(dense ? 11 : 12).copyWith(height: 1.3)),
-                if (!dense)
-                  Text(
-                    [
-                      channelLabel(r.channels),
-                      if (r.firing) 'FIRING NOW' else if (r.lastFiredAt != null) 'FIRED ${fmtWhen(r.lastFiredAt!)}',
-                    ].where((s) => s.isNotEmpty).join(' · '),
-                    style: WireType.label().copyWith(color: w.text2),
+                Expanded(child: list),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: box.maxWidth >= 1000 ? 400 : 360,
+                  child: PulseEntrance(
+                    index: 1,
+                    child: PulseCard(
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              RuleBadge(metric: draft.metric),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Semantics(
+                                  header: true,
+                                  child: Text(
+                                    draft.id == null ? 'New rule' : 'Edit rule',
+                                    style: context.type.titleLarge,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Expanded(
+                            child: RuleEditor(
+                              key: ValueKey(draft.id ?? 'new'),
+                              draft: draft,
+                              onDone: () => setState(() => _editing = null),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
+                ),
               ],
             ),
           ),
-          WireToggle(value: r.enabled, onChanged: (v) => repo.setEnabled(r.id, v), semanticLabel: r.title),
-        ],
-      ),
+        );
+      },
     );
+  }
+}
 
-    Widget fired({bool dense = false}) => events.isEmpty
-        ? Padding(
-            padding: EdgeInsets.all(dense ? 14 : 20),
-            child: Text('Nothing has fired yet.', style: WireType.body(12).copyWith(color: w.text3)),
-          )
-        : Column(
-            children: [
-              for (final e in events.take(dense ? 4 : 6))
-                WireRow(
-                  padding: EdgeInsets.symmetric(horizontal: dense ? 14 : 20, vertical: 8),
-                  child: dense
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(fmtWhen(e.event.at), style: WireType.data(11)),
-                            Text(e.event.message, style: WireType.body(11).copyWith(height: 1.3)),
-                          ],
-                        )
-                      : Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(width: 120, child: Text(fmtWhen(e.event.at), style: WireType.data(12))),
-                            Expanded(child: Text(e.event.message, style: WireType.body(12).copyWith(height: 1.3))),
-                          ],
-                        ),
+/// The scrolling column: firing banner, rules, mute, notifications, fired.
+class _AlertsList extends ConsumerWidget {
+  const _AlertsList({
+    required this.rules,
+    required this.loading,
+    required this.error,
+    required this.selectedId,
+    required this.onEdit,
+  });
+
+  final List<AlertRule> rules;
+  final bool loading;
+  final String? error;
+  final int? selectedId;
+  final void Function(AlertRule? rule) onEdit;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
+    final compact = context.isCompact;
+    final events = ref.watch(alertEventsProvider).value ?? const <FiredAlert>[];
+    final active = ref.watch(activeAlertProvider);
+    final repo = ref.read(alertRulesRepositoryProvider);
+    final settings = ref.watch(settingsProvider);
+    final pad = compact ? context.pagePadding : 0.0;
+
+    Widget spaced(Widget w) => Padding(padding: const EdgeInsets.only(bottom: 12), child: w);
+
+    final children = <Widget>[
+      if (active != null) spaced(_FiringBanner(alert: active, onDismiss: () => repo.dismiss(active.event.id))),
+      if (!settings.notificationsEnabled)
+        spaced(
+          PulseCard(
+            color: c.surfaceContainerHigh,
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+            child: Row(
+              children: [
+                PulseIcon(PulseIcons.bell, size: 22, color: c.onSurfaceVariant),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Notifications are off in Settings, so rules only log to the list below.',
+                    style: context.type.bodySmall!.copyWith(color: c.onSurfaceVariant),
+                  ),
                 ),
-            ],
-          );
-
-    final mutedLabel = muted == null ? 'MUTE 1H' : 'MUTED TO ${DateFormat('HH:mm').format(muted)}';
-    void toggleMute() {
-      final n = ref.read(alertsMutedUntilProvider.notifier);
-      muted == null ? n.muteFor(const Duration(hours: 1)) : n.unmute();
-    }
-
-    return WireAdaptive(
-      mobile: (context) => WireMobilePage(
-        header: WireMobileHeader(
-          title: 'Alerts',
-          onBack: mobileBack(context),
-          trailing: WirePressable(
-            onTap: () => context.push(Routes.alertRule),
-            tone: WireTone.ink,
-            semanticLabel: 'New rule',
-            builder: (context, c, s) => Container(
-              color: c.bg,
-              height: WireLayout.mobileHeader,
-              alignment: Alignment.center,
-              child: Text('+ NEW', style: WireType.label(12).copyWith(color: s.isEmpty ? w.signal : c.fg)),
+                PulseButton(
+                  label: 'Turn on',
+                  style: PulseButtonStyle.text,
+                  size: PulseButtonSize.small,
+                  onPressed: () =>
+                      ref.read(settingsProvider.notifier).update((s) => s.copyWith(notificationsEnabled: true)),
+                ),
+              ],
             ),
           ),
         ),
-        body: ListView(
-          padding: EdgeInsets.zero,
+      if (error != null)
+        spaced(
+          PulseErrorBanner(
+            title: 'Couldn\'t read alert rules',
+            message: error,
+            onRetry: () => ref.invalidate(alertRulesProvider),
+          ),
+        ),
+      const PulseSectionLabel('Rules', padding: EdgeInsets.fromLTRB(4, 4, 0, 8)),
+      if (loading)
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: PulseWavyBar(value: .4, semanticLabel: 'Loading rules'),
+        )
+      else if (rules.isEmpty)
+        PulseCard(
+          child: PulseEmptyState(
+            title: 'No alert rules',
+            message: 'Get told when a target is down, slow or losing packets.',
+            icon: PulseIcons.bell,
+            size: 96,
+            action: compact
+                ? null
+                : PulseButton(label: 'New rule', icon: PulseIcons.plus, onPressed: () => onEdit(null)),
+          ),
+        )
+      else
+        PulseSegmentedList(
           children: [
-            if (active != null) _Banner(alert: active, onDismiss: () => repo.dismiss(active.event.id)),
-            if (rules.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 12),
-                child: WireEmptyState(
-                  title: 'No rules',
-                  message: 'Get told when a target is down, slow or losing packets.',
-                  compact: true,
-                ),
+            for (final r in rules)
+              _RuleTile(
+                rule: r,
+                selected: r.id == selectedId,
+                onTap: () => onEdit(r),
+                onToggle: (v) => repo.setEnabled(r.id, v),
               ),
-            for (final r in rules) ruleRow(r, dense: true),
-            WireRow(
-              onTap: toggleMute,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: Text(mutedLabel, style: WireType.label()),
-            ),
-            const WireSectionBar('Recently fired', padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
-            fired(dense: true),
           ],
         ),
+      const PulseSectionLabel('Notifications'),
+      const _MuteControls(),
+      const SizedBox(height: 3),
+      PulseListItem(
+        title: 'Send a test notification',
+        subtitle: 'Check that alerts reach this device',
+        leading: PulseIcon(PulseIcons.bell, size: 22, color: c.onSurfaceVariant),
+        trailing: const PulseIcon(PulseIcons.chevR, size: 20),
+        onTap: () async {
+          await PulseNotifications.requestPermission();
+          await PulseNotifications.show(
+            id: 0x7e57,
+            title: 'Pulse test alert',
+            body: 'Alerts from your rules arrive like this.',
+            sound: settings.notificationSound,
+          );
+          if (context.mounted) {
+            ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(content: Text('Test notification sent')));
+          }
+        },
       ),
-      desktop: (context) => WireDesktopPage(
-        panelWidth: 420,
-        topBar: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      const PulseSectionLabel('Recently fired'),
+      if (events.isEmpty)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text('Nothing has fired yet.', style: context.type.bodyMedium!.copyWith(color: c.onSurfaceVariant)),
+        )
+      else
+        PulseSegmentedList(
           children: [
-            Expanded(
-              child: WireTopTitle(
-                'Alerts',
-                subtitle:
-                    '${rules.length} RULE${rules.length == 1 ? '' : 'S'} · ${rules.where((r) => r.enabled).length} ACTIVE',
+            for (final e in events.take(8))
+              PulseListItem(
+                leading: RuleBadge(metric: e.rule.metric, muted: e.event.dismissed || !e.rule.firing),
+                title: e.event.message,
+                subtitle: '${whenLabel(e.event.at)} · ${e.rule.title}',
+                minHeight: 60,
               ),
-            ),
-            const WireVRule(),
-            WireTopChip(label: mutedLabel, selected: muted != null, onTap: toggleMute),
-            WireButton(
-              label: 'New rule',
-              glyph: '+',
-              variant: WireButtonVariant.primary,
-              bordered: false,
-              fontSize: 17,
-              height: WireLayout.topBar,
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              onPressed: () => setState(() => _editing = const RuleDraft()),
-            ),
           ],
         ),
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    ];
+
+    return ListView(
+      padding: EdgeInsets.fromLTRB(pad, 4, pad, compact ? PulseLayout.fabClearance + 16 : 24),
+      children: [for (var i = 0; i < children.length; i++) PulseEntrance(index: i, child: children[i])],
+    );
+  }
+}
+
+class _RuleTile extends StatelessWidget {
+  const _RuleTile({required this.rule, required this.selected, required this.onTap, required this.onToggle});
+  final AlertRule rule;
+  final bool selected;
+  final VoidCallback onTap;
+  final ValueChanged<bool> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = rule;
+    final status = r.firing
+        ? 'Firing now'
+        : r.lastFiredAt != null
+        ? 'Fired ${whenLabel(r.lastFiredAt!).toLowerCase()}'
+        : null;
+    return MergeSemantics(
+      child: PulseListItem(
+        title: r.title,
+        subtitle: '${ruleCondition(r)}\n${[channelsLabel(r.channels), ?status].join(' · ')}',
+        subtitleMaxLines: 2,
+        minHeight: 72,
+        selected: selected,
+        leading: RuleBadge(metric: r.metric, muted: !r.enabled),
+        onTap: onTap,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            if (active != null) _Banner(alert: active, onDismiss: () => repo.dismiss(active.event.id)),
-            const WireSectionBar('Rules'),
-            Expanded(
-              child: rules.isEmpty
-                  ? const WireEmptyState(
-                      title: 'No rules',
-                      message: 'Create one on the right — Pulse watches in the background and tells you.',
-                    )
-                  : ListView(children: [for (final r in rules) ruleRow(r)]),
-            ),
-            const WireSectionBar('Recently fired'),
-            fired(),
+            if (r.firing) ...[const PulsePill('Firing', tone: PulsePillTone.pink, dot: true), const SizedBox(width: 8)],
+            Switch(value: r.enabled, onChanged: onToggle),
           ],
-        ),
-        panel: RuleEditor(
-          key: ValueKey(draft.id ?? 'new'),
-          draft: draft,
-          onDone: () => setState(() => _editing = null),
         ),
       ),
     );
   }
 }
 
-class _Banner extends StatelessWidget {
-  const _Banner({required this.alert, required this.onDismiss});
+/// Mute: off → chips for 1 h / 4 h / 8 h; on → "Muted until 15:04" + Unmute.
+class _MuteControls extends ConsumerWidget {
+  const _MuteControls();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
+    final muted = ref.watch(alertsMutedUntilProvider);
+    final n = ref.read(alertsMutedUntilProvider.notifier);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+      decoration: BoxDecoration(
+        color: muted == null ? c.surfaceContainer : c.secondaryContainer,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24), bottom: Radius.circular(6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              PulseIcon(
+                muted == null ? PulseIcons.bell : PulseIcons.pause,
+                size: 22,
+                color: muted == null ? c.onSurfaceVariant : c.onSecondaryContainer,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      muted == null ? 'Mute alerts' : 'Alerts muted',
+                      style: context.type.titleMedium!.copyWith(
+                        color: muted == null ? c.onSurface : c.onSecondaryContainer,
+                      ),
+                    ),
+                    Text(
+                      muted == null
+                          ? 'Checks keep running; notifications wait'
+                          : 'Until ${DateFormat('HH:mm').format(muted)}${muted.day != DateTime.now().day ? ' tomorrow' : ''}',
+                      style: context.type.bodySmall!.copyWith(
+                        color: muted == null ? c.onSurfaceVariant : c.onSecondaryContainer,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (muted != null)
+                PulseButton(
+                  label: 'Unmute',
+                  style: PulseButtonStyle.neutral,
+                  size: PulseButtonSize.small,
+                  onPressed: n.unmute,
+                ),
+            ],
+          ),
+          if (muted == null)
+            Padding(
+              padding: const EdgeInsets.only(left: 32),
+              child: Wrap(
+                spacing: 8,
+                children: [
+                  for (final (h, label) in const [(1, '1 h'), (4, '4 h'), (8, '8 h')])
+                    PulseChip(
+                      label: 'Mute $label',
+                      small: true,
+                      icon: PulseIcons.timer,
+                      onTap: () => n.muteFor(Duration(hours: h)),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A rule that is firing right now (attention = pink container), with Dismiss.
+class _FiringBanner extends StatelessWidget {
+  const _FiringBanner({required this.alert, required this.onDismiss});
   final FiredAlert alert;
   final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {
-    final w = context.wire;
-    return Container(
-      color: w.signal,
-      padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '▲ FIRED ${DateFormat('HH:mm').format(alert.event.at)}',
-                  style: WireType.label().copyWith(color: w.onSignal),
-                ),
-                Text(alert.event.message.toUpperCase(), style: WireType.stat(28).copyWith(color: w.onSignal)),
-                Text(
-                  '${ruleCondition(alert.rule)} · still ongoing',
-                  style: WireType.body(12).copyWith(color: w.onSignal),
-                ),
-              ],
+    final c = context.colors;
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 14, 8, 14),
+        decoration: BoxDecoration(color: c.primaryContainer, borderRadius: BorderRadius.circular(24)),
+        child: Row(
+          children: [
+            RuleBadge(metric: alert.rule.metric, size: 44),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Firing since ${DateFormat('HH:mm').format(alert.event.at)}',
+                    style: context.type.labelMedium!.copyWith(color: c.onPrimaryContainer),
+                  ),
+                  Text(alert.event.message, style: context.type.titleMedium!.copyWith(color: c.onPrimaryContainer)),
+                  Text(
+                    '${ruleCondition(alert.rule)} · still ongoing',
+                    style: context.type.bodySmall!.copyWith(color: c.onPrimaryContainer),
+                  ),
+                ],
+              ),
             ),
-          ),
-          WirePressable(
-            onTap: onDismiss,
-            tone: WireTone.signal,
-            semanticLabel: 'Dismiss',
-            builder: (context, c, s) => Container(
-              color: c.bg,
-              constraints: const BoxConstraints(minHeight: WireLayout.minHit),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              alignment: Alignment.center,
-              child: Text('DISMISS', style: WireType.label().copyWith(color: c.fg)),
+            PulseButton(
+              label: 'Dismiss',
+              style: PulseButtonStyle.text,
+              size: PulseButtonSize.small,
+              onPressed: onDismiss,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Mobile: the rule editor as a pushed screen.
+/// Phones (and deep links): the rule editor as its own page.
 class RuleEditorScreen extends ConsumerWidget {
   const RuleEditorScreen({super.key, this.ruleId});
   final int? ruleId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final rules = ref.watch(alertRulesProvider).value ?? const <AlertRule>[];
-    final rule = ruleId == null ? null : rules.where((r) => r.id == ruleId).firstOrNull;
-    return WireMobilePage(
-      header: WireMobileHeader(title: rule == null ? 'New rule' : 'Edit rule', onBack: mobileBack(context)),
-      body: RuleEditor(
-        compact: true,
-        draft: rule == null ? const RuleDraft() : RuleDraft.of(rule),
-        onDone: () => context.canPop() ? context.pop() : context.go(Routes.alerts),
-      ),
+    final async = ref.watch(alertRulesProvider);
+    final rules = async.value;
+    final rule = ruleId == null ? null : rules?.where((r) => r.id == ruleId).firstOrNull;
+    void done() => context.canPop() ? context.pop() : context.go(Routes.alerts);
+    final waiting = ruleId != null && rules == null;
+    return PulsePage(
+      title: rule == null ? 'New rule' : 'Edit rule',
+      backTo: Routes.alerts,
+      body: waiting
+          ? const Center(
+              child: SizedBox(width: 200, child: PulseWavyBar(value: .4, semanticLabel: 'Loading rule')),
+            )
+          : Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: RuleEditor(
+                  key: ValueKey(rule?.id ?? 'new'),
+                  compact: true,
+                  draft: rule == null ? const RuleDraft() : RuleDraft.of(rule),
+                  onDone: done,
+                ),
+              ),
+            ),
     );
   }
 }
