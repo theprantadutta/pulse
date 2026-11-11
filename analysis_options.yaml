@@ -5,7 +5,7 @@ linter:
 analyzer:
   exclude:
     - build/**
-    - design_handoff_pulse_wire/**
+    - design_handoff_pulse_expressive/**
     - android/**
     - ios/**
     - web/**
