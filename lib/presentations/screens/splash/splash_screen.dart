@@ -97,14 +97,23 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProvider
           // Tablets: the mark grows from the native size to 220 with the spring.
           final scale = 1 + (grow - 1) * PulseMotion.spring.transform((t / .64).clamp(0, 1));
           final text = PulseMotion.emphasizedDecelerate.transform(((t - .32) / .68).clamp(0, 1));
-          final logoBottom = size.height / 2 + logo * scale / 2;
+          // Phones and tablets: exactly centred, like the native splash. Short
+          // windows (desktop launch window) have no native splash to match, so
+          // the mark sits higher to leave room for the text and progress.
+          final centerY = tight ? size.height * .34 : size.height / 2;
+          final logoBottom = centerY + logo * scale / 2;
           return Stack(
             children: [
               // Exactly centred on the full screen, like the native splash.
-              Center(
-                child: Transform.scale(
-                  scale: scale,
-                  child: PulseLogo(size: logo),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: centerY - logo / 2,
+                child: Center(
+                  child: Transform.scale(
+                    scale: scale,
+                    child: PulseLogo(size: logo),
+                  ),
                 ),
               ),
               Positioned(
