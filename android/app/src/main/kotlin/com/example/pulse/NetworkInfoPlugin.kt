@@ -1,10 +1,12 @@
 package com.example.pulse
 
 import android.content.Context
+import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.provider.Settings
 import androidx.annotation.NonNull
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
@@ -36,6 +38,18 @@ class NetworkInfoPlugin : FlutterPlugin, MethodCallHandler {
                     result.success(networkDetails())
                 } catch (e: Exception) {
                     result.error("ERROR", "Failed to read network details", e.toString())
+                }
+            }
+            // The SSID stays "<unknown ssid>" while the device Location toggle
+            // is off, even with the permission granted.
+            "openLocationSettings" -> {
+                try {
+                    context.startActivity(
+                        Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                    result.success(true)
+                } catch (e: Exception) {
+                    result.success(false)
                 }
             }
             else -> result.notImplemented()

@@ -594,23 +594,88 @@ class _SolidButton extends StatelessWidget {
 // Location permission (SSID)
 // ---------------------------------------------------------------------------
 
-class _PermissionCard extends ConsumerWidget {
+/// Why the SSID is hidden: the app lacks location permission, or (Android)
+/// the device-wide Location toggle is off, which hides it even when granted.
+enum _SsidBlock { permission, locationOff }
+
+class _PermissionCard extends ConsumerStatefulWidget {
   const _PermissionCard();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.colors;
-    Future<void> grant() async {
-      if (Platform.isAndroid || Platform.isIOS) {
-        final status = await Permission.locationWhenInUse.request();
-        if (status.isPermanentlyDenied) await openAppSettings();
-      } else if (Platform.isMacOS) {
-        await launchUrl(Uri.parse('x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices'));
-      }
-      ref.read(networkInfoProvider.notifier).refresh();
-    }
+  ConsumerState<_PermissionCard> createState() => _PermissionCardState();
+}
 
+class _PermissionCardState extends ConsumerState<_PermissionCard> with WidgetsBindingObserver {
+  final _mobile = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+  _SsidBlock _block = _SsidBlock.permission;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _check();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Back from system settings: re-read, and refresh the link if it changed.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    final before = _block;
+    _check().then((_) {
+      if (mounted && (_block != before || _block == _SsidBlock.locationOff)) {
+        ref.read(networkInfoProvider.notifier).refresh();
+      }
+    });
+  }
+
+  Future<void> _check() async {
+    if (!_mobile) return;
+    final granted = await Permission.locationWhenInUse.isGranted;
+    final serviceOn = await Permission.locationWhenInUse.serviceStatus.isEnabled;
+    if (!mounted) return;
+    setState(() => _block = granted && !serviceOn ? _SsidBlock.locationOff : _SsidBlock.permission);
+  }
+
+  Future<void> _act() async {
+    if (_mobile) {
+      if (_block == _SsidBlock.locationOff) {
+        final opened = Platform.isAndroid && await NetworkDetailsReader.openLocationSettings();
+        if (!opened) await openAppSettings();
+        return; // didChangeAppLifecycleState refreshes on return.
+      }
+      final status = await Permission.locationWhenInUse.request();
+      if (status.isPermanentlyDenied) await openAppSettings();
+      await _check();
+    } else if (Platform.isMacOS) {
+      await launchUrl(Uri.parse('x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices'));
+    }
+    if (mounted) ref.read(networkInfoProvider.notifier).refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
     final mac = !kIsWeb && Platform.isMacOS;
+    final off = _block == _SsidBlock.locationOff;
+    final (title, body, action) = switch ((mac, off)) {
+      (true, _) => (
+        'Wi-Fi name hidden',
+        'macOS shows the network name only after Pulse gets Location Services access.',
+        'Open',
+      ),
+      (_, true) => (
+        'Location is off',
+        'Turn on Location so the system shares the network name. Pulse never reads where you are.',
+        'Turn on',
+      ),
+      _ => ('Wi-Fi name hidden', 'Allow location access so the system shares the network name.', 'Allow'),
+    };
     return PulseCard(
       color: c.surfaceContainerHigh,
       padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
@@ -622,23 +687,13 @@ class _PermissionCard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Wi-Fi name hidden', style: context.type.titleSmall),
-                Text(
-                  mac
-                      ? 'macOS shows the network name only after Pulse gets Location Services access.'
-                      : 'Allow location access so the system shares the network name.',
-                  style: context.type.bodySmall!.copyWith(color: c.onSurfaceVariant),
-                ),
+                Text(title, style: context.type.titleSmall),
+                Text(body, style: context.type.bodySmall!.copyWith(color: c.onSurfaceVariant)),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          PulseButton(
-            label: mac ? 'Open' : 'Allow',
-            style: PulseButtonStyle.tonal,
-            size: PulseButtonSize.small,
-            onPressed: grant,
-          ),
+          PulseButton(label: action, style: PulseButtonStyle.tonal, size: PulseButtonSize.small, onPressed: _act),
         ],
       ),
     );
