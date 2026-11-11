@@ -314,15 +314,11 @@ class _StatusStrip extends ConsumerWidget {
     final rows = ref.watch(monitorOverviewProvider).value?.rows ?? const <TargetRow>[];
     final targets = rows.where((r) => r.target.enabled).length;
     final paused = run.mode == MonitorMode.paused;
-    // Phones: the strip also holds the tune and Pause buttons, so the long
-    // "Running in background · N targets" doesn't fit even at 411 dp.
-    final narrow = MediaQuery.sizeOf(context).width < 600;
-    final scaled = MediaQuery.textScalerOf(context).scale(10) > 11.5;
-    final label = narrow && scaled
-        ? monitorStatusShort(run, targets).split(' · ').first
-        : compactPill || narrow
-        ? monitorStatusShort(run, targets)
-        : monitorStatusLabel(run, targets);
+    // The strip also holds the tune and Pause buttons, so the long "Running in
+    // background · N targets" only fits on wide layouts: show the longest
+    // label that fits the space left (phones, tablets beside the Tools pane).
+    final short = monitorStatusShort(run, targets);
+    final labels = [if (!compactPill) monitorStatusLabel(run, targets), short, short.split(' · ').first];
     final dot = run.live
         ? PulseLiveDot(color: c.tertiary, size: 8)
         : Container(
@@ -364,12 +360,7 @@ class _StatusStrip extends ConsumerWidget {
             const SizedBox(width: 10),
             Flexible(
               fit: compactPill ? FlexFit.loose : FlexFit.tight,
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.type.titleSmall!.copyWith(color: c.onSurface),
-              ),
+              child: _FittingLabel(labels, style: context.type.titleSmall!.copyWith(color: c.onSurface)),
             ),
             const SizedBox(width: 4),
             options,
@@ -379,6 +370,35 @@ class _StatusStrip extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// One line of text: the first of [labels] that fits the width, else the
+/// last one ellipsized.
+class _FittingLabel extends StatelessWidget {
+  const _FittingLabel(this.labels, {required this.style});
+
+  final List<String> labels;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final scaler = MediaQuery.textScalerOf(context);
+      final direction = Directionality.of(context);
+      final label = labels.firstWhere((l) {
+        final painter = TextPainter(
+          text: TextSpan(text: l, style: style),
+          maxLines: 1,
+          textScaler: scaler,
+          textDirection: direction,
+        )..layout();
+        final fits = painter.width <= constraints.maxWidth;
+        painter.dispose();
+        return fits;
+      }, orElse: () => labels.last);
+      return Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: style);
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------
