@@ -29,7 +29,7 @@ class MonitorScreen extends ConsumerWidget {
     final rows = overview?.rows ?? const <TargetRow>[];
     final compact = context.isCompact;
 
-    void alerts() => context.go(Routes.alerts);
+    void alerts() => context.push(Routes.alerts);
     void add() => showAddTargetSheet(context);
 
     final bell = PulseIconButton(icon: PulseIcons.bell, tooltip: 'Alert rules', onPressed: alerts);
@@ -591,7 +591,7 @@ class _IncidentsCard extends ConsumerWidget {
         Expanded(
           child: Semantics(header: true, child: Text('Incidents', style: context.type.titleLarge)),
         ),
-        PulseIconButton(icon: PulseIcons.bell, tooltip: 'Alert rules', onPressed: () => context.go(Routes.alerts)),
+        PulseIconButton(icon: PulseIcons.bell, tooltip: 'Alert rules', onPressed: () => context.push(Routes.alerts)),
       ],
     );
     final empty = PulseEmptyState(
@@ -603,7 +603,7 @@ class _IncidentsCard extends ConsumerWidget {
         icon: PulseIcons.bell,
         style: PulseButtonStyle.tonal,
         size: PulseButtonSize.small,
-        onPressed: () => context.go(Routes.alerts),
+        onPressed: () => context.push(Routes.alerts),
       ),
     );
     final items = [
@@ -659,7 +659,7 @@ class _IncidentsSection extends ConsumerWidget {
             icon: PulseIcons.bell,
             style: PulseButtonStyle.text,
             size: PulseButtonSize.small,
-            onPressed: () => context.go(Routes.alerts),
+            onPressed: () => context.push(Routes.alerts),
           ),
         ),
         if (list.isEmpty)

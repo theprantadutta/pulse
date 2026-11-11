@@ -376,7 +376,7 @@ class SettingsSectionBody extends ConsumerWidget {
               icon: PulseIcons.tune,
               title: 'Alert rules',
               subtitle: 'Loss, latency and outage thresholds per target',
-              onTap: () => context.go(Routes.alerts),
+              onTap: () => context.push(Routes.alerts),
               chevron: true,
             ),
             (r) => SettingsValueItem(

@@ -76,7 +76,7 @@ class NetworkScreen extends ConsumerWidget {
           ),
       ],
       fab: compact && online
-          ? PulseFab(label: 'Scan network', icon: PulseIcons.lan, onPressed: () => context.go(Routes.lan))
+          ? PulseFab(label: 'Scan network', icon: PulseIcons.lan, onPressed: () => context.push(Routes.lan))
           : null,
       body: body,
     );
@@ -846,7 +846,7 @@ class _ScanCard extends ConsumerWidget {
           bg: PulseBrand.onLime,
           fg: PulseBrand.lime,
           large: true,
-          onTap: () => context.go(Routes.lan),
+          onTap: () => context.push(Routes.lan),
         ),
       ],
     );

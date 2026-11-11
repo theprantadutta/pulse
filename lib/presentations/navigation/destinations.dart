@@ -61,3 +61,16 @@ MobileTab tabFor(String location) {
   if (_under(location, Routes.history)) return MobileTab.history;
   return MobileTab.tools;
 }
+
+/// Where system back goes when nothing was pushed (deep links, `go` from the
+/// rail or Tools pane): tool screens → Tools, Alerts → Monitor, the rule
+/// editor → Alerts, Ping detail → Ping, the other tabs → Ping. Null on Ping:
+/// back leaves the app from there.
+String? parentRoute(String location) {
+  if (_under(location, Routes.alertRule)) return Routes.alerts;
+  if (_under(location, Routes.alerts)) return Routes.monitor;
+  if (_under(location, Routes.pingDetail)) return Routes.ping;
+  if (_under(location, Routes.ping)) return null;
+  if (_under(location, Routes.settings) || isToolRoute(location)) return Routes.tools;
+  return Routes.ping;
+}

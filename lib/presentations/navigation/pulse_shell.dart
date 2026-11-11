@@ -74,7 +74,21 @@ class PulseShell extends StatelessWidget {
         ),
       );
     }
-    return AnnotatedRegion<SystemUiOverlayStyle>(value: overlay, child: frame);
+    // System back with nothing left to pop in the shell navigator walks up to
+    // the screen's parent instead of closing the app (see [parentRoute]).
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        final parent = parentRoute(location);
+        if (parent == null) {
+          SystemNavigator.pop();
+        } else {
+          context.go(parent);
+        }
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(value: overlay, child: frame),
+    );
   }
 }
 

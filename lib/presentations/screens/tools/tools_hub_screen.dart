@@ -21,13 +21,17 @@ class ToolsHubScreen extends ConsumerWidget {
       subtitle: compact ? null : '8 tools · tap to open',
       actions: [
         if (compact)
-          PulseIconButton(icon: PulseIcons.settings, tooltip: 'Settings', onPressed: () => context.go(Routes.settings))
+          PulseIconButton(
+            icon: PulseIcons.settings,
+            tooltip: 'Settings',
+            onPressed: () => context.push(Routes.settings),
+          )
         else
           PulseButton(
             label: 'Settings',
             icon: PulseIcons.settings,
             style: PulseButtonStyle.tonal,
-            onPressed: () => context.go(Routes.settings),
+            onPressed: () => context.push(Routes.settings),
           ),
       ],
       body: LayoutBuilder(
@@ -85,7 +89,7 @@ class ToolTile extends StatelessWidget {
       label: '${tool.name}, ${status.last}${hot ? ', live' : ''}',
       excludeSemantics: true,
       child: PulsePressable(
-        onTap: () => context.go(tool.route),
+        onTap: () => context.push(tool.route),
         radius: radius,
         color: hot ? c.primaryFixedDim : c.surfaceContainer,
         child: Padding(

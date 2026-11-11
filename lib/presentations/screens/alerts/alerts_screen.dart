@@ -55,7 +55,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
           if (split) {
             setState(() => _editing = r == null ? const RuleDraft() : RuleDraft.of(r));
           } else {
-            context.go(r == null ? Routes.alertRule : '${Routes.alertRule}?id=${r.id}');
+            context.push(r == null ? Routes.alertRule : '${Routes.alertRule}?id=${r.id}');
           }
         }
 

@@ -848,7 +848,7 @@ class _HostAlertSheet extends ConsumerWidget {
         expand: true,
         onPressed: () {
           Navigator.of(context).pop();
-          context.go(Routes.alerts);
+          context.push(Routes.alerts);
         },
       ),
       children: [

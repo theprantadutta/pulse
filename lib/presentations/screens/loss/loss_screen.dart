@@ -59,7 +59,7 @@ class _LossScreenState extends ConsumerState<LossScreen> {
     final id = await ref.read(lossProvider.notifier).createLossAlert();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Loss alert created')));
-    context.go('${Routes.alertRule}?id=$id');
+    context.push('${Routes.alertRule}?id=$id');
   }
 
   Future<void> _pick(
