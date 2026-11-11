@@ -3,7 +3,7 @@ import 'package:material_ui/material_ui.dart';
 /// IP family selection for ping-style tools.
 enum IpVersionPref { auto, ipv4, ipv6, both }
 
-enum ExportFormat { csv, txt }
+enum ExportFormat { csv, json, txt }
 
 /// Every user-tunable value, persisted in SharedPreferences.
 @immutable

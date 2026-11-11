@@ -31,7 +31,11 @@ class ExportService {
     final uri = await FilePicker.saveFile(
       fileName: fileName,
       bytes: bytes,
-      mimeType: fileName.endsWith('.csv') ? 'text/csv' : 'text/plain',
+      mimeType: fileName.endsWith('.csv')
+          ? 'text/csv'
+          : fileName.endsWith('.json')
+          ? 'application/json'
+          : 'text/plain',
       dialogTitle: 'Export from Pulse',
     );
     if (uri == null) return null;
