@@ -135,7 +135,16 @@ void main() {
           for (var i = 0; i < rtts.length; i++)
             {
               'n': i + 1,
-              'ip': rtts[i] == null ? null : '10.${i + 1}.0.1',
+              // Home router, two ISP-private hops, then public BD / SG hops.
+              'ip': rtts[i] == null
+                  ? null
+                  : i == 0
+                  ? '192.168.1.1'
+                  : i < 3
+                  ? '10.$i.0.1'
+                  : i < 10
+                  ? '103.4.$i.1'
+                  : '20.205.$i.1',
               'host': i == 0 ? 'router.lan' : null,
               'cc': rtts[i] == null ? null : (i < 10 ? 'BD' : 'SG'),
               'city': i == rtts.length - 1 ? 'Singapore' : null,

@@ -6,6 +6,7 @@ import '../../../data/models/ping_models.dart';
 import '../../../data/models/session_tool.dart';
 import '../../../data/repositories/history_repository.dart';
 import '../../navigation/tools_catalog.dart';
+import '../trace/trace_insights.dart';
 
 /// Tone of a summary tile in the run detail (kit: pink, lime, lavender, then a
 /// neutral container).
@@ -17,17 +18,6 @@ class RunTile {
   final String value;
   final String? unit;
   final RunTileTone tone;
-}
-
-/// One traceroute hop as stored in a session payload.
-class RunHop {
-  const RunHop({required this.n, this.ip, this.host, this.cc, this.city, this.avg, this.reached = false});
-  final int n;
-  final String? ip, host, cc, city;
-  final double? avg;
-  final bool reached;
-
-  bool get timedOut => ip == null;
 }
 
 /// Everything the History list and run detail show for a stored session,
@@ -87,34 +77,16 @@ class RunInfo {
   PingParams? get pingParams =>
       payload['params'] is Map ? PingParams.fromJson((payload['params'] as Map).cast<String, dynamic>()) : null;
 
-  List<RunHop> get hops => [
-    for (final h in _list('hops'))
-      RunHop(
-        n: (h['n'] as num?)?.toInt() ?? 0,
-        ip: h['ip'] as String?,
-        host: h['host'] as String?,
-        cc: h['cc'] as String?,
-        city: h['city'] as String?,
-        reached: h['reached'] == true,
-        avg: () {
-          final p = (h['probes'] as List? ?? const []).whereType<num>().map((v) => v.toDouble()).toList();
-          return p.isEmpty ? null : p.reduce((a, b) => a + b) / p.length;
-        }(),
-      ),
-  ];
+  /// The stored traceroute, rebuilt with the live screen's zones (LAN / ISP /
+  /// country), jump and highlights.
+  late final TraceInsights trace = () {
+    final hops = [for (final h in _list('hops')) traceHopFromJson(h)];
+    final reached = payload['reached'] != false && hops.isNotEmpty && hops.last.reached;
+    return TraceInsights.of(hops, target: session.target, reached: reached, finished: true);
+  }();
 
-  /// "BD → SG" from the hops' country codes (first and last distinct).
-  String get route {
-    final ccs = <String>[];
-    for (final h in hops) {
-      final cc = h.cc;
-      if (cc == null || cc.isEmpty) continue;
-      if (ccs.isEmpty || ccs.last != cc) ccs.add(cc);
-    }
-    if (ccs.isEmpty) return '—';
-    if (ccs.length == 1) return ccs.first;
-    return '${ccs.first} → ${ccs.last}';
-  }
+  /// "BD → SG" (first and last public country), "—" without Geo IP data.
+  String get route => trace.routeLabel ?? '—';
 
   List<Map<String, dynamic>> get openPorts => _list('open');
   List<Map<String, dynamic>> get devices => _list('devices');
@@ -131,7 +103,7 @@ class RunInfo {
       case SessionTool.ping:
         return session.avgMs == null ? 'No reply' : '${fmtMs(session.avgMs)} ms';
       case SessionTool.trace:
-        return session.avgMs == null ? '${hops.length} hops' : '${fmtMs(session.avgMs)} ms';
+        return session.avgMs == null ? '${trace.hops.length} hops' : '${fmtMs(session.avgMs)} ms';
       case SessionTool.speed:
         final down = _num('down'), up = _num('up');
         return '${down?.toStringAsFixed(0) ?? '—'} ↓ ${up?.toStringAsFixed(0) ?? '—'} ↑';
@@ -157,7 +129,7 @@ class RunInfo {
         return loss > 0 ? '${fmtPct(loss)} loss' : '';
       case SessionTool.trace:
         final reached = payload['reached'] != false;
-        return '${hops.length} hops${reached ? '' : ' · not reached'}';
+        return '${trace.hops.length} hops${reached ? '' : ' · not reached'}';
       case SessionTool.speed:
         return '';
       case SessionTool.ports:
@@ -184,7 +156,7 @@ class RunInfo {
     String ms(double? v) => fmtMs(v);
     switch (kind) {
       case SessionTool.trace:
-        final h = hops;
+        final h = trace.hops;
         return [
           RunTile('Total', ms(session.avgMs), unit: session.avgMs == null ? null : 'ms', tone: RunTileTone.pink),
           RunTile('Hops', '${h.length}', tone: RunTileTone.lime),
