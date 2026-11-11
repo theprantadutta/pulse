@@ -22,12 +22,12 @@ class ConnectionSummary {
   bool get online => kind != LinkKind.none;
 
   String get kindLabel => switch (kind) {
-    LinkKind.wifi => 'WIFI',
-    LinkKind.ethernet => 'ETHERNET',
-    LinkKind.cellular => 'CELLULAR',
+    LinkKind.wifi => 'Wi-Fi',
+    LinkKind.ethernet => 'Ethernet',
+    LinkKind.cellular => 'Mobile data',
     LinkKind.vpn => 'VPN',
-    LinkKind.other => 'NETWORK',
-    LinkKind.none => 'OFFLINE',
+    LinkKind.other => 'Network',
+    LinkKind.none => 'Offline',
   };
 
   static const offline = ConnectionSummary(kind: LinkKind.none);

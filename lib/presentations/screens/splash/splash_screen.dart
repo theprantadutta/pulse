@@ -159,6 +159,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProvider
                     children: [
                       PulseWavyBar(value: boot.done ? 1 : boot.progress, width: barWidth, semanticLabel: 'Starting'),
                       const SizedBox(height: 10),
+                      if (tight && boot.version.isNotEmpty) ...[
+                        // Desktop launch window: the version, as the old one showed.
+                        Text(
+                          'Pulse ${boot.version}',
+                          style: context.type.labelSmall!.copyWith(color: c.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 2),
+                      ],
                       Text(
                         boot.error != null ? '${boot.status.replaceAll('…', '')} failed, continuing' : _label(boot),
                         style: context.type.labelMedium!.copyWith(color: c.onSurfaceVariant),

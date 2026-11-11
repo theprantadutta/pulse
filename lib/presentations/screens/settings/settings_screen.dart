@@ -622,8 +622,9 @@ class SettingsSectionBody extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Text(
                 'Public IP lookups power Network, Geo IP and Traceroute locations. Everything else stays on this '
-                'device. Pulse also talks to Cloudflare and Hetzner (speed test), OpenStreetMap (map tiles), '
-                'api6.ipify.org (IPv6 check) and GitHub (update check). No accounts, no analytics.',
+                'device, and the Geo IP map is built in, so no map tiles are fetched. Pulse also talks to Cloudflare '
+                'and Hetzner (speed test), api6.ipify.org (IPv6 check) and GitHub (update check). No accounts, no '
+                'analytics.',
                 style: context.type.bodySmall!.copyWith(color: context.colors.onSurfaceVariant),
               ),
             ),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/widgets/pulse/pulse.dart';
+import '../../providers/connection_provider.dart';
 import 'destinations.dart';
 import 'tools_catalog.dart';
 
@@ -145,6 +146,8 @@ class _Rail extends StatelessWidget {
                       onTap: () => context.go(kTabRoots[tab]!),
                     ),
                   const Spacer(),
+                  const _ConnectionDot(),
+                  const SizedBox(height: 8),
                   _RailItem(
                     label: 'Settings',
                     icon: PulseIcons.settings,
@@ -298,6 +301,61 @@ class ToolsPane extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Online / offline at a glance on every screen (the rail's answer to the old
+/// sidebar footer). The tooltip names the link and local IP; tap opens Network.
+class _ConnectionDot extends ConsumerWidget {
+  const _ConnectionDot();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
+    final conn = ref.watch(connectionProvider).value;
+    final online = conn?.online ?? false;
+    final String label;
+    if (conn == null) {
+      label = 'Checking connection…';
+    } else if (!online) {
+      label = 'No connection';
+    } else {
+      final name = conn.name;
+      label = [
+        conn.kindLabel,
+        if (name != null && name.isNotEmpty) name,
+        if (conn.vpn) 'VPN',
+        ?conn.localIp,
+      ].join(' · ');
+    }
+    final color = conn == null ? c.outline : (online ? c.tertiary : c.error);
+    return Tooltip(
+      message: label,
+      child: Semantics(
+        button: true,
+        label: label,
+        excludeSemantics: true,
+        child: InkWell(
+          onTap: () => context.go(Routes.network),
+          customBorder: const CircleBorder(),
+          child: SizedBox.square(
+            dimension: 48,
+            child: Center(
+              child: online
+                  ? PulseLiveDot(color: color, size: 10)
+                  : Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: color, width: 2),
+                      ),
+                    ),
+            ),
+          ),
+        ),
       ),
     );
   }
