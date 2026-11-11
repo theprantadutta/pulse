@@ -1,15 +1,15 @@
 # dart run flutter_launcher_icons
 flutter_launcher_icons:
-  image_path: "assets/brand/icon/master/pulse_icon_light_1024.png"
+  image_path: "assets/brand/icon/master/pulse_icon_square_1024.png"
 
   android: "ic_launcher"
   min_sdk_android: 21
-  adaptive_icon_background: "#E8612C"
-  adaptive_icon_foreground: "assets/brand/icon/android/adaptive/ic_launcher_foreground_1024.png"
-  adaptive_icon_monochrome: "assets/brand/icon/android/adaptive/ic_launcher_monochrome_1024.png"
+  adaptive_icon_background: "#4A1D3B"
+  adaptive_icon_foreground: "assets/brand/icon/android/adaptive/ic_launcher_foreground.png"
+  adaptive_icon_monochrome: "assets/brand/icon/android/adaptive/ic_launcher_monochrome.png"
 
   ios: true
   remove_alpha_ios: true
-  image_path_ios_dark_transparent: "assets/brand/icon/master/pulse_mark_transparent_1024.png"
 
-# Web, Windows and macOS icons come pixel-exact from assets/brand/icon (see CLAUDE.md).
+# Windows, macOS, web and tray icons are generated pixel-exact into assets/brand/icon
+# and copied into the platform folders (see CLAUDE.md "Brand assets").

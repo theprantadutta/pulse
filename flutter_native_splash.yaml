@@ -1,15 +1,26 @@
 # dart run flutter_native_splash:create
+#
+# The native splash is held (FlutterNativeSplash.preserve in main.dart) until
+# the in-app SplashScreen paints its first frame, which shows PulseLogo at
+# 168 dp in the same spot. The images are drawn with PulseLogo's exact geometry
+# (scratch generator: see CLAUDE.md "Brand assets"), so the hand-off is
+# invisible: the static mark simply starts beating.
+#
+# Grounds are the theme surfaces, the same colour the in-app splash paints.
 flutter_native_splash:
-  color: "#E8612C"
-  image: assets/brand/splash/splash_center_light_768.png
-  color_dark: "#111111"
-  image_dark: assets/brand/splash/splash_center_dark_768.png
+  color: "#FFF7FA"
+  color_dark: "#19121D"
+  # 672 px at 4x = 168 dp, PulseLogo(size: 168).
+  image: assets/brand/splash/splash_logo_672.png
 
+  # 1152 px = 288 dp icon canvas; the 168 dp logo sits inside Android 12's
+  # 192 dp visible circle. No icon background so there is no plate.
   android_12:
-    color: "#E8612C"
-    image: assets/brand/splash/splash_android12_light_1152.png
-    color_dark: "#111111"
-    image_dark: assets/brand/splash/splash_android12_dark_1152.png
+    image: assets/brand/splash/android12_logo_1152.png
+    color: "#FFF7FA"
+    color_dark: "#19121D"
 
+  android: true
+  ios: true
   web: true
   fullscreen: false
