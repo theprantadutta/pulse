@@ -16,8 +16,10 @@ import 'services/desktop/launch_at_login.dart';
 void main(List<String> args) async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
   // Keep the OS splash up until SplashScreen paints the same logo (it calls
-  // FlutterNativeSplash.remove after its first frame).
-  FlutterNativeSplash.preserve(widgetsBinding: binding);
+  // FlutterNativeSplash.remove after its first frame). Only mobile has a
+  // native splash; on desktop the runner shows its window on the first frame
+  // the engine receives, so deferring it would keep the window invisible.
+  if (Platform.isAndroid || Platform.isIOS) FlutterNativeSplash.preserve(widgetsBinding: binding);
   launchedAtLogin = args.contains(LaunchAtLogin.flag);
   await dotenv.load(fileName: '.env', isOptional: true);
   final prefs = await SharedPreferences.getInstance();
