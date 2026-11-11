@@ -148,20 +148,32 @@ class BackgroundMonitor {
   static Future<void> start({required int intervalSec, required String summary}) async {
     if (!supported) return;
     init(intervalSec: intervalSec);
+    const title = 'Pulse · monitoring';
+    const icon = NotificationIcon(
+      metaDataName: 'com.pranta.pulse.MONITOR_ICON',
+      backgroundColor: PulseBrand.notification,
+    );
+    const buttons = [NotificationButton(id: 'pause', text: 'Pause')];
     if (await FlutterForegroundTask.isRunningService) {
+      // restartService reuses the notification the service was first started
+      // with (it survives app updates), so refresh it before restarting.
+      await FlutterForegroundTask.updateService(
+        notificationTitle: title,
+        notificationText: summary,
+        notificationIcon: icon,
+        notificationButtons: buttons,
+        notificationInitialRoute: monitorRoute,
+      );
       await FlutterForegroundTask.restartService();
       return;
     }
     await FlutterForegroundTask.startService(
       serviceId: _serviceId,
       serviceTypes: const [ForegroundServiceTypes.specialUse],
-      notificationTitle: 'Pulse · monitoring',
+      notificationTitle: title,
       notificationText: summary,
-      notificationIcon: const NotificationIcon(
-        metaDataName: 'com.pranta.pulse.MONITOR_ICON',
-        backgroundColor: PulseBrand.notification,
-      ),
-      notificationButtons: const [NotificationButton(id: 'pause', text: 'Pause')],
+      notificationIcon: icon,
+      notificationButtons: buttons,
       notificationInitialRoute: monitorRoute,
       callback: pulseMonitorCallback,
     );

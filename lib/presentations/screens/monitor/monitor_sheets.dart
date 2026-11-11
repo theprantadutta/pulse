@@ -101,7 +101,18 @@ class _AddTargetSheetState extends ConsumerState<_AddTargetSheet> {
     setState(() => _saving = true);
     try {
       await ref.read(monitorTargetsRepositoryProvider).add(h, _name.text.trim());
+      // "Run in background" is on by default, so the first target starts the
+      // foreground service: ask for notifications (and battery exemption) now,
+      // or Android hides its notification and drops alert notifications.
+      final background = BackgroundMonitor.supported && ref.read(settingsProvider).monitorInBackground;
+      final runner = ref.read(monitorRunnerProvider.notifier);
       if (mounted) Navigator.of(context).pop();
+      if (background) {
+        await BackgroundMonitor.requestPermissions();
+        // The service may have started before the answer; restart it so its
+        // notification is posted now that it's allowed.
+        await runner.refreshService();
+      }
     } catch (e) {
       if (mounted) setState(() => _error = "Couldn't add the target: $e");
     } finally {

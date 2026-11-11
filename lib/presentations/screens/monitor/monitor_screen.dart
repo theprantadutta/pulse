@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/widgets/pulse/pulse.dart';
 import '../../../providers/monitor_provider.dart';
 import '../../../providers/settings_provider.dart';
+import '../../../services/background/background_service.dart';
+import '../../../services/background/notifications.dart';
 import '../../navigation/destinations.dart';
 import 'monitor_sheets.dart';
 import 'monitor_widgets.dart';
@@ -86,6 +89,7 @@ class MonitorScreen extends ConsumerWidget {
           PulseButton(label: 'Add', icon: PulseIcons.plus, size: PulseButtonSize.small, onPressed: add),
         ],
         children: [
+          const _NotificationsOffBanner(),
           const _StatusStrip(),
           const SizedBox(height: 12),
           _PhoneStats(overview: overview),
@@ -114,6 +118,7 @@ class MonitorScreen extends ConsumerWidget {
               PulseButton(label: 'Add target', icon: PulseIcons.plus, onPressed: add),
             ],
             children: [
+              const _NotificationsOffBanner(),
               Row(
                 children: [
                   const Expanded(child: _StatusStrip()),
@@ -154,6 +159,7 @@ class MonitorScreen extends ConsumerWidget {
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(pad, 0, pad, pad),
                   children: [
+                    const _NotificationsOffBanner(),
                     _TabletStats(overview: overview),
                     const SizedBox(height: 14),
                     _TargetList(rows: rows, blocks: 36, wide: true),
@@ -169,6 +175,7 @@ class MonitorScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const _NotificationsOffBanner(),
                     PulseEntrance(child: _TabletStats(overview: overview)),
                     const SizedBox(height: 14),
                     Expanded(
@@ -200,6 +207,90 @@ class MonitorScreen extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Notifications blocked (Android / iOS background monitoring)
+// ---------------------------------------------------------------------------
+
+/// Shown while background monitoring runs but notifications are blocked: the
+/// service's status notification is hidden and alerts can't reach the user.
+/// Re-checks when Pulse returns from system settings.
+class _NotificationsOffBanner extends ConsumerStatefulWidget {
+  const _NotificationsOffBanner();
+
+  @override
+  ConsumerState<_NotificationsOffBanner> createState() => _NotificationsOffBannerState();
+}
+
+class _NotificationsOffBannerState extends ConsumerState<_NotificationsOffBanner> with WidgetsBindingObserver {
+  bool _blocked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _check();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _check();
+  }
+
+  Future<void> _check() async {
+    if (!BackgroundMonitor.supported) return;
+    final blocked = !await Permission.notification.isGranted;
+    if (!mounted || blocked == _blocked) return;
+    final allowed = _blocked && !blocked;
+    setState(() => _blocked = blocked);
+    if (allowed) await ref.read(monitorRunnerProvider.notifier).refreshService();
+  }
+
+  Future<void> _allow() async {
+    if (!await PulseNotifications.requestPermission()) await openAppSettings();
+    await _check();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final service = ref.watch(monitorRunnerProvider.select((r) => r.mode == MonitorMode.service));
+    if (!_blocked || !service) return const SizedBox.shrink();
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: PulseCard(
+        color: c.surfaceContainerHigh,
+        padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+        child: Row(
+          children: [
+            PulseIcon(PulseIcons.bell, size: 22, color: c.onSurfaceVariant),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Notifications are off', style: context.type.titleSmall),
+                  Text(
+                    "Monitoring still runs, but alerts and the monitoring status can't be shown.",
+                    style: context.type.bodySmall!.copyWith(color: c.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            PulseButton(label: 'Allow', style: PulseButtonStyle.tonal, size: PulseButtonSize.small, onPressed: _allow),
+          ],
+        ),
+      ),
     );
   }
 }
