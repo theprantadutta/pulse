@@ -1,117 +1,185 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/format.dart';
-import '../../../core/widgets/wire/wire.dart';
+import '../../../core/widgets/pulse/pulse.dart';
 import '../../../data/catalog/target_catalog.dart';
 import '../../../data/db/app_database.dart';
 import '../../../data/models/app_settings.dart';
 import '../../../data/models/ping_models.dart';
+import '../../../providers/alerts_provider.dart';
 import '../../../providers/ping_provider.dart';
 import '../../../providers/settings_provider.dart';
+import '../../../services/background/monitor_engine.dart';
 import '../../../services/net/gateway.dart';
 import '../../../services/net/ping_prober.dart';
+import '../../navigation/destinations.dart';
+import 'ping_widgets.dart';
 
+/// The default gateway (the "Router" host).
 final gatewayProvider = FutureProvider<String?>((ref) => Gateway.ipv4());
 
-/// PARAMETERS: COUNT / INTERVAL / TIMEOUT / PACKET SIZE / IP VERSION.
-class PingParametersPanel extends ConsumerWidget {
-  const PingParametersPanel({super.key, this.showIpVersion = true, this.compact = false});
-  final bool showIpVersion;
-  final bool compact;
+bool _validHost(String host) =>
+    RegExp(r'^[A-Za-z0-9.\-:%_]+$').hasMatch(host) && (!host.contains(':') || InternetAddress.tryParse(host) != null);
+
+// ---------------------------------------------------------------------------
+// Sheet frame
+// ---------------------------------------------------------------------------
+
+Future<T?> _showSheet<T>(BuildContext context, WidgetBuilder builder) =>
+    showModalBottomSheet<T>(context: context, isScrollControlled: true, useSafeArea: true, builder: builder);
+
+/// Title, scrolling body and a pinned footer, sized to the content.
+class _SheetFrame extends StatelessWidget {
+  const _SheetFrame({required this.title, this.subtitle, required this.children, this.footer, this.trailing});
+  final String title;
+  final String? subtitle;
+  final List<Widget> children;
+  final Widget? footer;
+  final Widget? trailing;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final w = context.wire;
-    final p = ref.watch(pingDraftProvider.select((d) => d.params));
-    final draft = ref.read(pingDraftProvider.notifier);
-    Widget row(String label, String hint, Widget control) => Container(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 18 : 20, vertical: compact ? 12 : 14),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: w.ink, width: kWireBorder),
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .9),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 12, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Semantics(header: true, child: Text(title, style: context.type.headlineSmall)),
+                        if (subtitle != null)
+                          Text(
+                            subtitle!,
+                            style: context.type.bodyMedium!.copyWith(color: context.colors.onSurfaceVariant),
+                          ),
+                      ],
+                    ),
+                  ),
+                  ?trailing,
+                ],
+              ),
+            ),
+            Flexible(
+              child: ListView(shrinkWrap: true, padding: const EdgeInsets.fromLTRB(16, 4, 16, 16), children: children),
+            ),
+            if (footer != null) Padding(padding: const EdgeInsets.fromLTRB(16, 4, 16, 16), child: footer),
+          ],
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Ping options editor (count / interval / timeout / packet size / IP version)
+// ---------------------------------------------------------------------------
+
+enum PingOption { count, interval, timeout, size, ipVersion }
+
+/// Every ping option as a connected button group. [only] shows one of them.
+class PingParamsEditor extends StatelessWidget {
+  const PingParamsEditor({super.key, required this.params, required this.onChanged, this.only});
+  final PingParams params;
+  final ValueChanged<PingParams> onChanged;
+  final PingOption? only;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = params;
+    Widget field(String label, String? hint, Widget group) => Padding(
+      padding: const EdgeInsets.only(bottom: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Expanded(child: Text(label, style: WireType.label())),
-              if (!compact) Text(hint, style: WireType.body(11).copyWith(color: w.text3, height: 1.2)),
-            ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 6),
+            child: Row(
+              children: [
+                Expanded(child: Text(label, style: context.type.titleSmall)),
+                if (hint != null)
+                  Text(hint, style: context.type.bodySmall!.copyWith(color: context.colors.onSurfaceVariant)),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          control,
+          group,
         ],
       ),
     );
-    final seg = WireType.data(13);
+    bool show(PingOption o) => only == null || only == o;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        row(
-          'COUNT',
-          'packets',
-          WireSegmented<int>(
-            textStyle: seg,
-            height: compact ? 42 : 38,
-            options: [for (final c in PingParams.counts) (c, c == 0 ? '∞' : '$c')],
-            selected: p.count,
-            onChanged: (v) => draft.setParams(p.copyWith(count: v)),
+        if (show(PingOption.interval))
+          field(
+            'Interval',
+            'time between pings',
+            PulseButtonGroup<int>(
+              small: true,
+              segments: [for (final v in PingParams.intervals) PulseSegment(v, intervalLabel(v))],
+              selected: p.intervalMs,
+              onChanged: (v) => onChanged(p.copyWith(intervalMs: v)),
+            ),
           ),
-        ),
-        row(
-          compact ? 'INTERVAL · SEC' : 'INTERVAL',
-          'seconds',
-          WireSegmented<int>(
-            textStyle: seg,
-            height: compact ? 42 : 38,
-            options: [for (final v in PingParams.intervals) (v, '${v / 1000}'.replaceAll('.0', ''))],
-            selected: p.intervalMs,
-            onChanged: (v) => draft.setParams(p.copyWith(intervalMs: v)),
+        if (show(PingOption.size))
+          field(
+            'Packet size',
+            PingProber.supportsPacketSize ? 'bytes' : 'fixed by iOS',
+            PulseButtonGroup<int>(
+              small: true,
+              segments: [for (final v in PingParams.sizes) PulseSegment(v, '$v B')],
+              selected: p.packetSize,
+              onChanged: PingProber.supportsPacketSize ? (v) => onChanged(p.copyWith(packetSize: v)) : null,
+            ),
           ),
-        ),
-        row(
-          compact ? 'TIMEOUT · SEC' : 'TIMEOUT',
-          'seconds',
-          WireSegmented<int>(
-            textStyle: seg,
-            height: compact ? 42 : 38,
-            options: [for (final v in PingParams.timeouts) (v, '$v')],
-            selected: p.timeoutSec,
-            onChanged: (v) => draft.setParams(p.copyWith(timeoutSec: v)),
+        if (show(PingOption.timeout))
+          field(
+            'Timeout',
+            'wait for a reply',
+            PulseButtonGroup<int>(
+              small: true,
+              segments: [for (final v in PingParams.timeouts) PulseSegment(v, '$v s')],
+              selected: p.timeoutSec,
+              onChanged: (v) => onChanged(p.copyWith(timeoutSec: v)),
+            ),
           ),
-        ),
-        row(
-          compact ? 'PACKET SIZE · BYTES' : 'PACKET SIZE',
-          PingProber.supportsPacketSize ? 'bytes' : 'fixed by iOS',
-          WireSegmented<int>(
-            textStyle: seg,
-            height: compact ? 42 : 38,
-            enabled: PingProber.supportsPacketSize,
-            options: [for (final v in PingParams.sizes) (v, '$v')],
-            selected: p.packetSize,
-            onChanged: (v) => draft.setParams(p.copyWith(packetSize: v)),
+        if (show(PingOption.count))
+          field(
+            'Count',
+            'pings, then stop',
+            PulseButtonGroup<int>(
+              small: true,
+              segments: [for (final v in PingParams.counts) PulseSegment(v, v == 0 ? 'Continuous' : '$v')],
+              selected: p.count,
+              onChanged: (v) => onChanged(p.copyWith(count: v)),
+            ),
           ),
-        ),
-        if (showIpVersion)
-          row(
-            'IP VERSION',
-            'protocol',
-            WireSegmented<IpVersionPref>(
-              textStyle: seg,
-              height: compact ? 42 : 38,
-              options: const [
-                (IpVersionPref.auto, 'AUTO'),
-                (IpVersionPref.ipv4, 'IPv4'),
-                (IpVersionPref.ipv6, 'IPv6'),
-                (IpVersionPref.both, 'BOTH'),
+        if (show(PingOption.ipVersion))
+          field(
+            'IP version',
+            null,
+            PulseButtonGroup<IpVersionPref>(
+              small: true,
+              segments: const [
+                PulseSegment(IpVersionPref.auto, 'Auto'),
+                PulseSegment(IpVersionPref.ipv4, 'IPv4'),
+                PulseSegment(IpVersionPref.ipv6, 'IPv6'),
+                PulseSegment(IpVersionPref.both, 'Both'),
               ],
               selected: p.ipVersion,
-              onChanged: (v) => draft.setParams(p.copyWith(ipVersion: v)),
+              onChanged: (v) => onChanged(p.copyWith(ipVersion: v)),
             ),
           ),
       ],
@@ -119,38 +187,180 @@ class PingParametersPanel extends ConsumerWidget {
   }
 }
 
-class SaveAsDefaultRow extends ConsumerWidget {
-  const SaveAsDefaultRow({super.key});
+/// "Save as default" switch: new pings start with these options.
+class _SaveAsDefault extends ConsumerWidget {
+  const _SaveAsDefault();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final w = context.wire;
     final on = ref.watch(settingsProvider.select((s) => s.saveAsDefault));
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: w.ink, width: kWireBorder),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(child: Text('SAVE AS DEFAULT', style: WireType.label(12))),
-          WireToggle(
-            value: on,
-            semanticLabel: 'Save as default',
-            onChanged: (v) async {
-              await ref.read(settingsProvider.notifier).update((s) => s.copyWith(saveAsDefault: v));
-              if (v) await ref.read(pingDraftProvider.notifier).setParams(ref.read(pingDraftProvider).params);
-            },
-          ),
-        ],
-      ),
+    return PulseSwitchItem(
+      title: 'Save as default',
+      subtitle: 'Remember these options for new pings',
+      value: on,
+      onChanged: (v) async {
+        await ref.read(settingsProvider.notifier).update((s) => s.copyWith(saveAsDefault: v));
+        if (v) await ref.read(pingDraftProvider.notifier).setParams(ref.read(pingDraftProvider).params);
+      },
     );
   }
 }
 
-/// One suggestion row.
+String _optionsSummary(PingParams p) => [
+  'Every ${intervalLabel(p.intervalMs)}',
+  '${p.packetSize} B',
+  'timeout ${p.timeoutSec} s',
+  p.count == 0 ? 'continuous' : '${p.count} pings',
+  if (p.ipVersion != IpVersionPref.auto) ipVersionLabel(p.ipVersion),
+].join(' · ');
+
+// ---------------------------------------------------------------------------
+// Ping settings (defaults for new hosts)
+// ---------------------------------------------------------------------------
+
+/// Home "Ping settings": options for new hosts, save as default, apply to the
+/// hosts already on the board, clear stopped hosts.
+Future<void> showPingSettingsSheet(BuildContext context) => _showSheet(context, (_) => const _PingSettingsSheet());
+
+class _PingSettingsSheet extends ConsumerWidget {
+  const _PingSettingsSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final params = ref.watch(pingDraftProvider.select((d) => d.params));
+    final board = ref.watch(pingBoardProvider);
+    final stopped = board.sessions.length - board.liveCount;
+    return _SheetFrame(
+      title: 'Ping settings',
+      subtitle: 'Used for every host you add',
+      trailing: PulseButton(
+        label: 'Reset',
+        style: PulseButtonStyle.text,
+        size: PulseButtonSize.small,
+        onPressed: () => ref.read(pingDraftProvider.notifier).reset(),
+      ),
+      footer: Row(
+        children: [
+          if (board.sessions.isNotEmpty) ...[
+            Expanded(
+              child: PulseButton(
+                label: board.sessions.length == 1 ? 'Apply to 1 host' : 'Apply to ${board.sessions.length} hosts',
+                style: PulseButtonStyle.tonal,
+                size: PulseButtonSize.large,
+                expand: true,
+                onPressed: () async {
+                  await restartAll(context, ref, params: params);
+                  if (context.mounted) Navigator.of(context).pop();
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: PulseButton(
+              label: 'Done',
+              size: PulseButtonSize.large,
+              expand: true,
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+        ],
+      ),
+      children: [
+        PingParamsEditor(params: params, onChanged: (p) => ref.read(pingDraftProvider.notifier).setParams(p)),
+        const _SaveAsDefault(),
+        if (stopped > 0) ...[
+          const SizedBox(height: 8),
+          PulseListItem(
+            title: stopped == 1 ? 'Clear 1 stopped host' : 'Clear $stopped stopped hosts',
+            subtitle: 'Their results stay in History',
+            leading: PulseIcon(PulseIcons.trash, size: 22, color: context.colors.onSurfaceVariant),
+            onTap: () {
+              ref.read(pingBoardProvider.notifier).clearFinished();
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Per-host options
+// ---------------------------------------------------------------------------
+
+/// Ping detail tune / setting chips: change this host's options. Applying
+/// restarts the host with them (the finished run is saved to History).
+Future<void> showHostOptionsSheet(BuildContext context, PingSession session, {PingOption? only}) =>
+    _showSheet(context, (_) => _HostOptionsSheet(session: session, only: only));
+
+class _HostOptionsSheet extends ConsumerStatefulWidget {
+  const _HostOptionsSheet({required this.session, this.only});
+  final PingSession session;
+  final PingOption? only;
+
+  @override
+  ConsumerState<_HostOptionsSheet> createState() => _HostOptionsSheetState();
+}
+
+class _HostOptionsSheetState extends ConsumerState<_HostOptionsSheet> {
+  late PingParams _params = widget.session.params;
+
+  @override
+  Widget build(BuildContext context) {
+    final changed = _params.toJson().toString() != widget.session.params.toJson().toString();
+    final title = switch (widget.only) {
+      PingOption.interval => 'Interval',
+      PingOption.size => 'Packet size',
+      PingOption.timeout => 'Timeout',
+      PingOption.count => 'Count',
+      PingOption.ipVersion => 'IP version',
+      null => 'Ping options',
+    };
+    return _SheetFrame(
+      title: title,
+      subtitle: widget.session.title,
+      footer: PulseButton(
+        label: !changed && widget.session.running
+            ? 'Done'
+            : (widget.session.running ? 'Apply and restart' : 'Apply and start'),
+        size: PulseButtonSize.large,
+        expand: true,
+        onPressed: () async {
+          if (!changed && widget.session.running) {
+            Navigator.of(context).pop();
+            return;
+          }
+          final router = GoRouter.maybeOf(context);
+          final onDetail = router?.state.uri.path == Routes.pingDetail;
+          final n = ref.read(pingBoardProvider.notifier);
+          Navigator.of(context).pop();
+          final id = await n.restart(widget.session.id, params: _params);
+          if (id != null && onDetail) router!.go('${Routes.pingDetail}?id=${Uri.encodeQueryComponent(id)}');
+        },
+      ),
+      children: [
+        PingParamsEditor(params: _params, only: widget.only, onChanged: (p) => setState(() => _params = p)),
+        if (widget.only != null)
+          PulseButton(
+            label: 'All options',
+            style: PulseButtonStyle.text,
+            icon: PulseIcons.tune,
+            onPressed: () {
+              Navigator.of(context).pop();
+              showHostOptionsSheet(context, widget.session);
+            },
+          ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Add / edit host
+// ---------------------------------------------------------------------------
+
 class _Suggestion {
   const _Suggestion(this.host, this.desc, this.tag, {this.name});
   final String host;
@@ -174,375 +384,334 @@ List<_Suggestion> _suggest(
 
   for (final t in saved) {
     if (t.name.toLowerCase().contains(q) || t.host.toLowerCase().contains(q)) {
-      add(_Suggestion(t.host, t.name, 'SAVED', name: t.name));
+      add(_Suggestion(t.host, t.name, 'Saved', name: t.name));
     }
   }
   for (final r in recent) {
     if (r.host.toLowerCase().contains(q) || (r.name?.toLowerCase().contains(q) ?? false)) {
-      add(_Suggestion(r.host, '${r.name ?? 'recent'} · last ${fmtMs(r.avg)} ms', 'RECENT', name: r.name));
+      add(_Suggestion(r.host, '${r.name ?? 'Recent'} · last ${fmtMs(r.avg)} ms', 'Recent', name: r.name));
     }
   }
   for (final p in kPresetTargets) {
     if (p.host.contains(q) || (p.name?.toLowerCase().contains(q) ?? false) || p.description.toLowerCase().contains(q)) {
-      add(_Suggestion(p.host, p.description, 'PRESET'));
+      add(_Suggestion(p.host, p.description, 'Preset', name: p.name));
     }
   }
   for (final d in kDomainCatalog) {
-    if (d.host.startsWith(q)) add(_Suggestion(d.host, d.description, 'DOMAIN'));
+    if (d.host.startsWith(q)) add(_Suggestion(d.host, d.description, 'Domain'));
   }
   for (final d in kDomainCatalog) {
-    if (d.host.contains(q)) add(_Suggestion(d.host, d.description, 'DOMAIN'));
+    if (d.host.contains(q)) add(_Suggestion(d.host, d.description, 'Domain'));
   }
   return out;
 }
 
-/// Main column of the Configure view: suggestions, quick targets and the
-/// saved (named) targets with multi-select → ping selected.
-class PingConfigureMain extends ConsumerStatefulWidget {
-  const PingConfigureMain({super.key, required this.onPicked, required this.onStarted, this.embedded = false});
+/// Add a host (target, optional name, suggestions, quick targets, recent and
+/// saved targets with multi-select, options) or edit one on the board.
+Future<void> showAddHostSheet(BuildContext context, {PingSession? edit, String? host, String? name}) =>
+    _showSheet(context, (_) => _AddHostSheet(edit: edit, host: host, name: name));
 
-  /// Lays out inside another scroll view (mobile sheet).
-  final bool embedded;
-
-  /// A suggestion or quick target was chosen (fills the target field).
-  final void Function(String host, String? name) onPicked;
-
-  /// Pings were started from this view.
-  final VoidCallback onStarted;
+class _AddHostSheet extends ConsumerStatefulWidget {
+  const _AddHostSheet({this.edit, this.host, this.name});
+  final PingSession? edit;
+  final String? host;
+  final String? name;
 
   @override
-  ConsumerState<PingConfigureMain> createState() => _PingConfigureMainState();
+  ConsumerState<_AddHostSheet> createState() => _AddHostSheetState();
 }
 
-class _PingConfigureMainState extends ConsumerState<PingConfigureMain> {
+class _AddHostSheetState extends ConsumerState<_AddHostSheet> {
+  late final _host = TextEditingController(text: widget.edit?.host ?? widget.host ?? '');
+  late final _name = TextEditingController(text: widget.edit?.name ?? widget.name ?? '');
+  late PingParams? _editParams = widget.edit?.params;
   final _selected = <int>{};
+  bool _options = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _host.dispose();
+    _name.dispose();
+    super.dispose();
+  }
+
+  PingParams get _params => _editParams ?? ref.read(pingDraftProvider).params;
+
+  void _pick(String host, String? name) => setState(() {
+    _host.text = host;
+    _host.selection = TextSelection.collapsed(offset: host.length);
+    if (name != null && _name.text.trim().isEmpty) _name.text = name;
+    _error = null;
+  });
+
+  Future<void> _submit() async {
+    final host = _host.text.trim();
+    if (host.isEmpty) {
+      setState(() => _error = 'Enter a host name or IP address.');
+      return;
+    }
+    if (!_validHost(host)) {
+      setState(() => _error = 'That does not look like a host name or IP address.');
+      return;
+    }
+    final n = ref.read(pingBoardProvider.notifier);
+    if (widget.edit != null) {
+      final router = GoRouter.maybeOf(context);
+      final onDetail = router?.state.uri.path == Routes.pingDetail;
+      final name = _name.text.trim();
+      final params = _params;
+      Navigator.of(context).pop();
+      final id = await n.restart(widget.edit!.id, host: host, name: name, params: params);
+      if (id != null && onDetail) router!.go('${Routes.pingDetail}?id=${Uri.encodeQueryComponent(id)}');
+      return;
+    }
+    final id = await n.start(host, name: _name.text, params: _params);
+    if (!mounted) return;
+    if (id == null) {
+      showPingLimit(context);
+      return;
+    }
+    ref.read(pingDraftProvider.notifier).setHost(host);
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _startSaved(Iterable<SavedTarget> targets) async {
+    final list = targets.toList();
+    final n = await ref.read(pingBoardProvider.notifier).startMany([
+      for (final t in list) (host: t.host, name: t.name),
+    ], params: _params);
+    if (!mounted) return;
+    if (n < list.length) showPingLimit(context);
+    Navigator.of(context).pop();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final w = context.wire;
-    final draft = ref.watch(pingDraftProvider);
+    final c = context.colors;
+    final editing = widget.edit != null;
     final recent = ref.watch(recentTargetsProvider).value ?? const [];
     final saved = ref.watch(savedTargetsProvider).value ?? const <SavedTarget>[];
     final gateway = ref.watch(gatewayProvider).value;
-    final suggestions = _suggest(draft.host, recent, saved);
+    final draftParams = ref.watch(pingDraftProvider.select((d) => d.params));
+    final params = _editParams ?? draftParams;
     _selected.removeWhere((id) => !saved.any((t) => t.id == id));
-
-    final quick = <({String name, String host, String sub})>[
-      (name: 'Google DNS', host: '8.8.8.8', sub: '8.8.8.8'),
-      (name: 'Cloudflare', host: '1.1.1.1', sub: '1.1.1.1'),
-      (name: 'Router', host: gateway ?? '', sub: gateway ?? 'no gateway'),
-      (name: 'AWS Mumbai', host: 'ec2.ap-south-1.amazonaws.com', sub: 'ap-south-1'),
-      (name: 'GitHub', host: 'github.com', sub: 'github.com'),
+    final suggestions = _suggest(_host.text, recent, saved);
+    final quick = <({String name, String host})>[
+      if (gateway != null) (name: 'Router', host: gateway),
+      (name: 'Google DNS', host: '8.8.8.8'),
+      (name: 'Cloudflare', host: '1.1.1.1'),
+      (name: 'GitHub', host: 'github.com'),
+      (name: 'AWS Mumbai', host: 'ec2.ap-south-1.amazonaws.com'),
     ];
 
-    return ListView(
-      shrinkWrap: widget.embedded,
-      physics: widget.embedded ? const NeverScrollableScrollPhysics() : null,
-      padding: EdgeInsets.zero,
+    return _SheetFrame(
+      title: editing ? 'Edit host' : 'Add host',
+      subtitle: editing ? 'Restarts the ping with the new target' : 'Ping a host name or IP address',
+      footer: PulseButton(
+        label: editing ? 'Save and restart' : 'Start ping',
+        icon: editing ? PulseIcons.check : PulseIcons.play,
+        size: PulseButtonSize.large,
+        expand: true,
+        onPressed: _submit,
+      ),
       children: [
-        if (suggestions.isNotEmpty)
-          Container(
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: w.ink, width: kWireBorder),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const WireSectionBar('Suggestions'),
-                for (var i = 0; i < suggestions.length; i++)
-                  WireRow(
-                    highlight: i == 0 ? WireRowHighlight.tint : WireRowHighlight.none,
-                    onTap: () => widget.onPicked(suggestions[i].host, suggestions[i].name),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(suggestions[i].host, style: WireType.data(16)),
-                              Text(suggestions[i].desc, style: WireType.body(12).copyWith(color: w.text3, height: 1.3)),
-                            ],
-                          ),
-                        ),
-                        Text(suggestions[i].tag, style: WireType.label()),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-          child: Text('QUICK TARGETS', style: WireType.label()),
+        PulseTargetField(
+          controller: _host,
+          hint: 'Host or IP, e.g. 1.1.1.1',
+          autofocus: !editing && (widget.host?.isEmpty ?? true),
+          onChanged: (_) => setState(() => _error = null),
+          onSubmitted: (_) => _submit(),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: LayoutBuilder(
-            builder: (context, box) {
-              final cols = box.maxWidth < 480 ? 2 : 3;
-              final rows = (6 / cols).ceil();
-              Widget cell(int i, WireSides sides) {
-                if (i == 5) {
-                  return _QuickCell(
-                    name: '+ Add',
-                    sub: 'save a named target',
-                    sides: sides,
-                    onTap: () => showSavedTargetDialog(context, ref, host: draft.host, name: draft.name),
-                  );
-                }
-                final q = quick[i];
-                return _QuickCell(
-                  name: q.name,
-                  sub: q.sub,
-                  sides: sides,
-                  onTap: q.host.isEmpty ? null : () => widget.onPicked(q.host, q.name),
-                );
-              }
-
-              return WireBox(
-                child: Column(
-                  children: [
-                    for (var r = 0; r < rows; r++)
-                      IntrinsicHeight(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            for (var c = 0; c < cols; c++)
-                              Expanded(
-                                child: cell(r * cols + c, WireSides(right: c < cols - 1, bottom: r < rows - 1)),
-                              ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
+        const SizedBox(height: 8),
+        PulseTargetField(
+          controller: _name,
+          hint: 'Name (optional), e.g. Office PC',
+          icon: PulseIcons.pin,
+          keyboardType: TextInputType.text,
+          onSubmitted: (_) => _submit(),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
-          child: Row(
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Text(_error!, style: context.type.bodySmall!.copyWith(color: c.error)),
+          ),
+        if (suggestions.isNotEmpty) ...[
+          const PulseSectionLabel('Suggestions'),
+          PulseSegmentedList(
+            animate: false,
             children: [
-              Expanded(child: Text('SAVED TARGETS · ${saved.length}', style: WireType.label())),
-              if (saved.isNotEmpty)
-                WirePressable(
-                  onTap: () => setState(() {
-                    if (_selected.length == saved.length) {
-                      _selected.clear();
-                    } else {
-                      _selected.addAll(saved.map((t) => t.id));
-                    }
-                  }),
-                  builder: (context, c, s) => Container(
-                    color: c.bg,
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                    child: Text(
-                      _selected.length == saved.length ? 'SELECT NONE' : 'SELECT ALL',
-                      style: WireType.label().copyWith(color: c.fg),
-                    ),
-                  ),
+              for (final s in suggestions)
+                PulseListItem(
+                  title: s.host,
+                  subtitle: s.desc,
+                  color: c.surfaceContainer,
+                  trailing: PulsePill(s.tag, height: 24),
+                  onTap: () => _pick(s.host, s.name),
                 ),
             ],
           ),
+        ],
+        if (!editing) ...[
+          const PulseSectionLabel('Quick targets'),
+          PulseChipRow(
+            children: [
+              for (final q in quick)
+                PulseChip(
+                  label: q.name,
+                  small: true,
+                  selected: _host.text.trim() == q.host,
+                  onTap: () => _pick(q.host, q.name),
+                ),
+            ],
+          ),
+        ],
+        PulseSectionLabel(
+          'Options',
+          trailing: PulseButton(
+            label: _options ? 'Hide' : 'Change',
+            style: PulseButtonStyle.text,
+            size: PulseButtonSize.small,
+            onPressed: () => setState(() => _options = !_options),
+          ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          child: WireBox(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (saved.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      'Name the machines you check often — "Office PC", "Library PC" — '
-                      'then ping any number of them at once.',
-                      style: WireType.body(13).copyWith(color: w.text2),
-                    ),
+        if (!_options)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(_optionsSummary(params), style: context.type.bodyMedium!.copyWith(color: c.onSurfaceVariant)),
+          )
+        else ...[
+          PingParamsEditor(
+            params: params,
+            onChanged: (p) {
+              if (editing) {
+                setState(() => _editParams = p);
+              } else {
+                ref.read(pingDraftProvider.notifier).setParams(p);
+              }
+            },
+          ),
+          if (!editing) const _SaveAsDefault(),
+        ],
+        if (!editing && recent.isNotEmpty) ...[
+          const PulseSectionLabel('Recent'),
+          PulseSegmentedList(
+            animate: false,
+            children: [
+              for (final r in recent.take(5))
+                PulseListItem(
+                  title: r.name?.isNotEmpty == true ? r.name! : r.host,
+                  subtitle: r.name?.isNotEmpty == true ? r.host : 'Pinged before',
+                  leading: HostBadge(host: r.host, name: r.name, gateway: gateway),
+                  trailing: r.avg == null
+                      ? null
+                      : PulseNumber(fmtMs(r.avg), unit: 'ms', unitScale: .6, style: pulseNumber(16)),
+                  onTap: () => _pick(r.host, r.name),
+                ),
+            ],
+          ),
+        ],
+        if (!editing) ...[
+          PulseSectionLabel(
+            saved.isEmpty ? 'Saved targets' : 'Saved targets · ${saved.length}',
+            trailing: saved.isEmpty
+                ? null
+                : PulseButton(
+                    label: _selected.length == saved.length ? 'Select none' : 'Select all',
+                    style: PulseButtonStyle.text,
+                    size: PulseButtonSize.small,
+                    onPressed: () => setState(() {
+                      if (_selected.length == saved.length) {
+                        _selected.clear();
+                      } else {
+                        _selected.addAll(saved.map((t) => t.id));
+                      }
+                    }),
                   ),
+          ),
+          if (saved.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+              child: Text(
+                'Name the machines you check often, like "Office PC" or "Library PC", then ping any number of them at once.',
+                style: context.type.bodyMedium!.copyWith(color: c.onSurfaceVariant),
+              ),
+            )
+          else
+            PulseSegmentedList(
+              animate: false,
+              children: [
                 for (final t in saved)
-                  WireRow(
+                  PulseListItem(
+                    title: t.name,
+                    subtitle: t.host,
                     selected: _selected.contains(t.id),
+                    padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
+                    leading: Checkbox(
+                      value: _selected.contains(t.id),
+                      onChanged: (_) => setState(() {
+                        _selected.contains(t.id) ? _selected.remove(t.id) : _selected.add(t.id);
+                      }),
+                    ),
                     onTap: () => setState(() {
                       _selected.contains(t.id) ? _selected.remove(t.id) : _selected.add(t.id);
                     }),
-                    padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
-                    child: Row(
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        _Check(on: _selected.contains(t.id)),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(t.name.toUpperCase(), style: WireType.title(20)),
-                              Text(t.host, style: WireType.body(12).copyWith(color: w.text2, height: 1.2)),
-                            ],
-                          ),
+                        PulseIconButton(
+                          icon: PulseIcons.tune,
+                          tooltip: 'Edit ${t.name}',
+                          iconSize: 20,
+                          onPressed: () => showSavedTargetDialog(context, existing: t),
                         ),
-                        _RowAction(
-                          label: 'EDIT',
-                          onTap: () => showSavedTargetDialog(context, ref, existing: t),
-                        ),
-                        _RowAction(
-                          label: '▶',
+                        PulseIconButton(
+                          icon: PulseIcons.play,
                           tooltip: 'Ping ${t.name}',
-                          onTap: () async {
-                            await ref
-                                .read(pingBoardProvider.notifier)
-                                .start(t.host, name: t.name, params: ref.read(pingDraftProvider).params);
-                            widget.onStarted();
-                          },
+                          iconSize: 20,
+                          onPressed: () => _startSaved([t]),
                         ),
                       ],
                     ),
                   ),
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: WireButton(
-                          label: 'Save target',
-                          glyph: '+',
-                          bordered: false,
-                          sides: WireSides.onlyRight,
-                          fontSize: 16,
-                          onPressed: () => showSavedTargetDialog(context, ref, host: draft.host, name: draft.name),
-                        ),
-                      ),
-                      Expanded(
-                        child: WireButton(
-                          label: _selected.isEmpty ? 'Ping selected' : 'Ping ${_selected.length} selected',
-                          glyph: '▶',
-                          bordered: false,
-                          fontSize: 16,
-                          variant: WireButtonVariant.primary,
-                          onPressed: _selected.isEmpty
-                              ? null
-                              : () async {
-                                  final picks = saved.where((t) => _selected.contains(t.id));
-                                  final n = await ref.read(pingBoardProvider.notifier).startMany([
-                                    for (final t in picks) (host: t.host, name: t.name),
-                                  ], params: ref.read(pingDraftProvider).params);
-                                  if (!context.mounted) return;
-                                  if (n < picks.length) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Started $n — at most $kMaxLivePings live pings at once.'),
-                                      ),
-                                    );
-                                  }
-                                  setState(_selected.clear);
-                                  widget.onStarted();
-                                },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: PulseButton(
+                  label: 'Save target',
+                  icon: PulseIcons.plus,
+                  style: PulseButtonStyle.outlined,
+                  expand: true,
+                  onPressed: () => showSavedTargetDialog(context, host: _host.text.trim(), name: _name.text.trim()),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: PulseButton(
+                  label: _selected.isEmpty ? 'Ping selected' : 'Ping ${_selected.length} selected',
+                  icon: PulseIcons.play,
+                  style: PulseButtonStyle.tonal,
+                  expand: true,
+                  onPressed: _selected.isEmpty ? null : () => _startSaved(saved.where((t) => _selected.contains(t.id))),
+                ),
+              ),
+            ],
           ),
-        ),
+        ],
       ],
     );
   }
 }
 
-class _QuickCell extends StatelessWidget {
-  const _QuickCell({required this.name, required this.sub, required this.sides, this.onTap});
-  final String name;
-  final String sub;
-  final WireSides sides;
-  final VoidCallback? onTap;
+// ---------------------------------------------------------------------------
+// Saved target dialog
+// ---------------------------------------------------------------------------
 
-  @override
-  Widget build(BuildContext context) {
-    final w = context.wire;
-    return WireCell(
-      onTap: onTap,
-      sides: sides,
-      padding: const EdgeInsets.all(16),
-      alignment: Alignment.topLeft,
-      semanticLabel: name,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Phone-width cells: shrink "GOOGLE DNS" a little rather than cut it.
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(name.toUpperCase(), maxLines: 1, softWrap: false, style: WireType.title(22)),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            sub,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: WireType.body(12).copyWith(color: w.text3, height: 1.2),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Check extends StatelessWidget {
-  const _Check({required this.on});
-  final bool on;
-
-  @override
-  Widget build(BuildContext context) {
-    final w = context.wire;
-    return Container(
-      width: 22,
-      height: 22,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: on ? w.ink : Colors.transparent,
-        border: Border.all(color: w.ink, width: kWireBorder),
-      ),
-      child: on ? Text('✓', style: WireType.data(13).copyWith(color: w.background, height: 1)) : null,
-    );
-  }
-}
-
-class _RowAction extends StatelessWidget {
-  const _RowAction({required this.label, required this.onTap, this.tooltip});
-  final String label;
-  final VoidCallback onTap;
-  final String? tooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    return WirePressable(
-      onTap: onTap,
-      tooltip: tooltip,
-      semanticLabel: tooltip ?? label,
-      builder: (context, c, s) => Container(
-        constraints: const BoxConstraints(minWidth: WireLayout.minHit, minHeight: WireLayout.minHit),
-        color: c.bg,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Text(label, style: WireType.label(12).copyWith(color: c.fg)),
-      ),
-    );
-  }
-}
-
-/// Add / edit a named target.
-Future<void> showSavedTargetDialog(
-  BuildContext context,
-  WidgetRef ref, {
-  SavedTarget? existing,
-  String host = '',
-  String name = '',
-}) {
+/// Add / edit / delete a named target.
+Future<void> showSavedTargetDialog(BuildContext context, {SavedTarget? existing, String host = '', String name = ''}) {
   return showDialog<void>(
     context: context,
     builder: (context) => _SavedTargetDialog(existing: existing, host: host, name: name),
@@ -578,8 +747,7 @@ class _SavedTargetDialogState extends ConsumerState<_SavedTargetDialog> {
       setState(() => _error = 'Give it a name and a host or IP.');
       return;
     }
-    if (!RegExp(r'^[A-Za-z0-9.\-:%_]+$').hasMatch(host) ||
-        (host.contains(':') && InternetAddress.tryParse(host) == null)) {
+    if (!_validHost(host)) {
       setState(() => _error = 'That does not look like a host name or IP address.');
       return;
     }
@@ -594,98 +762,144 @@ class _SavedTargetDialogState extends ConsumerState<_SavedTargetDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final w = context.wire;
-    return Dialog(
-      insetPadding: const EdgeInsets.all(24),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 440),
+    return AlertDialog(
+      title: Text(widget.existing == null ? 'Save target' : 'Edit target'),
+      content: SizedBox(
+        width: 400,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              color: w.ink,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              child: Text(
-                widget.existing == null ? 'SAVE TARGET' : 'EDIT TARGET',
-                style: WireType.title(26).copyWith(color: w.background),
-              ),
+            PulseTargetField(
+              controller: _name,
+              hint: 'Name, e.g. Office PC',
+              icon: PulseIcons.pin,
+              keyboardType: TextInputType.text,
+              autofocus: true,
+              onSubmitted: (_) => _save(),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
-              child: Text('NAME', style: WireType.label()),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: WireInput(controller: _name, hint: 'Office PC', autofocus: true, onSubmitted: (_) => _save()),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-              child: Text('HOST OR IP', style: WireType.label()),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: WireInput(
-                controller: _host,
-                hint: '192.168.1.20',
-                keyboardType: TextInputType.url,
-                onSubmitted: (_) => _save(),
-              ),
-            ),
+            const SizedBox(height: 8),
+            PulseTargetField(controller: _host, hint: 'Host or IP, e.g. 192.168.1.20', onSubmitted: (_) => _save()),
             if (_error != null)
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                child: Text(_error!, style: WireType.body(12).copyWith(color: w.signal)),
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(_error!, style: context.type.bodySmall!.copyWith(color: context.colors.error)),
               ),
-            const SizedBox(height: 20),
-            Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: w.ink, width: kWireBorder),
-                ),
-              ),
-              child: IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (widget.existing != null)
-                      Expanded(
-                        child: WireButton(
-                          label: 'Delete',
-                          bordered: false,
-                          sides: WireSides.onlyRight,
-                          fontSize: 16,
-                          onPressed: () async {
-                            await ref.read(savedTargetsRepositoryProvider).delete(widget.existing!.id);
-                            if (context.mounted) Navigator.of(context).pop();
-                          },
-                        ),
-                      ),
-                    Expanded(
-                      child: WireButton(
-                        label: 'Cancel',
-                        bordered: false,
-                        sides: WireSides.onlyRight,
-                        fontSize: 16,
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ),
-                    Expanded(
-                      child: WireButton(
-                        label: 'Save',
-                        variant: WireButtonVariant.primary,
-                        bordered: false,
-                        fontSize: 16,
-                        onPressed: _save,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           ],
         ),
       ),
+      actions: [
+        if (widget.existing != null)
+          TextButton(
+            onPressed: () async {
+              await ref.read(savedTargetsRepositoryProvider).delete(widget.existing!.id);
+              if (context.mounted) Navigator.of(context).pop();
+            },
+            child: const Text('Delete'),
+          ),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        FilledButton(onPressed: _save, child: const Text('Save')),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Alerts for a host
+// ---------------------------------------------------------------------------
+
+/// Quick alert rules for one host. Rules run on Monitor checks, so turning
+/// one on also adds the host to Monitor.
+Future<void> showHostAlertSheet(BuildContext context, PingSession session) =>
+    _showSheet(context, (_) => _HostAlertSheet(session: session));
+
+/// Whether any enabled alert rule watches [host].
+final hostHasAlertProvider = Provider.family<bool, String>((ref, host) {
+  final rules = ref.watch(alertRulesProvider).value ?? const <AlertRule>[];
+  return rules.any((r) => r.enabled && r.target.toLowerCase() == host.toLowerCase());
+});
+
+class _HostAlertSheet extends ConsumerWidget {
+  const _HostAlertSheet({required this.session});
+  final PingSession session;
+
+  static const _presets = <({String metric, double threshold, int seconds, String title, String sub})>[
+    (metric: AlertMetric.loss, threshold: 5, seconds: 60, title: 'Packet loss', sub: 'Loss over 5% for 1 min'),
+    (metric: AlertMetric.down, threshold: 0, seconds: 60, title: 'Host down', sub: 'No reply for 1 min'),
+    (metric: AlertMetric.latency, threshold: 100, seconds: 30, title: 'High latency', sub: 'RTT over 100 ms for 30 s'),
+  ];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final host = session.host;
+    final rules = (ref.watch(alertRulesProvider).value ?? const <AlertRule>[])
+        .where((r) => r.target.toLowerCase() == host.toLowerCase())
+        .toList();
+    final repo = ref.read(alertRulesRepositoryProvider);
+    AlertRule? ruleFor(String metric) => rules.where((r) => r.metric == metric).firstOrNull;
+    final others = rules.where((r) => !_presets.any((p) => p.metric == r.metric)).toList();
+    return _SheetFrame(
+      title: 'Alerts',
+      subtitle: session.title,
+      footer: PulseButton(
+        label: 'Manage alert rules',
+        style: PulseButtonStyle.tonal,
+        size: PulseButtonSize.large,
+        expand: true,
+        onPressed: () {
+          Navigator.of(context).pop();
+          context.go(Routes.alerts);
+        },
+      ),
+      children: [
+        PulseSegmentedList(
+          animate: false,
+          children: [
+            for (final p in _presets)
+              Builder(
+                builder: (context) {
+                  final rule = ruleFor(p.metric);
+                  final on = rule?.enabled ?? false;
+                  return PulseSwitchItem(
+                    title: p.title,
+                    subtitle: rule == null ? p.sub : ruleCondition(rule),
+                    value: on,
+                    onChanged: (v) async {
+                      if (rule == null) {
+                        await repo.save(
+                          RuleDraft(
+                            title: '${p.title} · ${session.title}',
+                            target: host,
+                            metric: p.metric,
+                            threshold: p.threshold,
+                            forSeconds: p.seconds,
+                          ),
+                        );
+                      } else {
+                        await repo.setEnabled(rule.id, v);
+                      }
+                    },
+                  );
+                },
+              ),
+            for (final r in others)
+              PulseSwitchItem(
+                title: r.title,
+                subtitle: ruleCondition(r),
+                value: r.enabled,
+                onChanged: (v) => repo.setEnabled(r.id, v),
+              ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
+          child: Text(
+            'Alerts run on Monitor checks, so turning one on adds $host to Monitor. '
+            'It keeps being checked in the background, even after you stop this ping.',
+            style: context.type.bodySmall!.copyWith(color: context.colors.onSurfaceVariant),
+          ),
+        ),
+      ],
     );
   }
 }

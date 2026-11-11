@@ -210,8 +210,9 @@ class PingBoardNotifier extends Notifier<PingBoard> {
   }
 
   /// Starts a new live ping. Returns the session id, or null when the
-  /// concurrent limit is reached.
-  Future<String?> start(String host, {String? name, PingParams? params}) async {
+  /// concurrent limit is reached. [at] inserts it at that board position
+  /// instead of appending (restarts keep their place).
+  Future<String?> start(String host, {String? name, PingParams? params, int? at}) async {
     host = host.trim();
     if (host.isEmpty) return null;
     if (state.liveCount >= kMaxLivePings) return null;
@@ -230,7 +231,9 @@ class PingBoardNotifier extends Notifier<PingBoard> {
     );
     final runner = _Runner(session);
     _runners[id] = runner;
-    state = state.copyWith(sessions: [...state.sessions, session], focusedId: id);
+    final sessions = [...state.sessions];
+    sessions.insert(at == null ? sessions.length : at.clamp(0, sessions.length), session);
+    state = state.copyWith(sessions: sessions, focusedId: id);
 
     final family = switch (p.ipVersion) {
       IpVersionPref.ipv4 => ProbeFamily.ipv4,
@@ -386,11 +389,14 @@ class PingBoardNotifier extends Notifier<PingBoard> {
     );
   }
 
-  /// Restarts a finished session with the same host, name and params.
-  Future<String?> restart(String id) async {
-    final s = state.sessions.firstWhere((x) => x.id == id);
+  /// Restarts a session in the same board position with the same host, name
+  /// and params, or with the ones given (per-host settings, edit host).
+  Future<String?> restart(String id, {String? host, String? name, PingParams? params}) async {
+    final index = state.sessions.indexWhere((x) => x.id == id);
+    if (index < 0) return null;
+    final s = state.sessions[index];
     await remove(id);
-    return start(s.host, name: s.name, params: s.params);
+    return start(host ?? s.host, name: name ?? s.name, params: params ?? s.params, at: index);
   }
 
   void rename(String id, String name) {

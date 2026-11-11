@@ -10,6 +10,7 @@ import '../screens/lan/lan_screen.dart';
 import '../screens/loss/loss_screen.dart';
 import '../screens/monitor/monitor_screen.dart';
 import '../screens/network/network_screen.dart';
+import '../screens/ping/ping_detail_screen.dart';
 import '../screens/ping/ping_screen.dart';
 import '../screens/ports/ports_screen.dart';
 import '../screens/settings/settings_screen.dart';
@@ -81,6 +82,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) => PulseShell(location: state.uri.path, child: child),
         routes: [
           _route(Routes.ping, (s) => const PingScreen()),
+          _route(Routes.pingDetail, (s) => PingDetailScreen(id: s.uri.queryParameters['id'])),
           _route(Routes.traceroute, (s) => TraceScreen(initialTarget: s.uri.queryParameters['target'])),
           _route(Routes.ports, (s) => PortsScreen(initialTarget: s.uri.queryParameters['target'])),
           _route(Routes.speed, (s) => const SpeedScreen()),
