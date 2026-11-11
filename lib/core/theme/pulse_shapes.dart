@@ -203,6 +203,19 @@ class _PulseShapeBoxState extends State<PulseShapeBox> with TickerProviderStateM
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(PulseShapeBox old) {
+    super.didUpdateWidget(old);
+    if (widget.spin != null && widget.spin != _spin.duration) _spin.duration = widget.spin;
+    if (old.spin != widget.spin || old.breathe != widget.breathe) _sync();
+  }
+
+  /// Starts or rests the loops for the current [PulseShapeBox.spin] /
+  /// [PulseShapeBox.breathe] and the reduce-motion setting.
+  void _sync() {
     final reduce = _reduceMotion(context);
     if (widget.spin != null && !reduce) {
       if (!_spin.isAnimating) _spin.repeat();
@@ -213,6 +226,7 @@ class _PulseShapeBoxState extends State<PulseShapeBox> with TickerProviderStateM
       if (!_breathe.isAnimating) _breathe.repeat(reverse: true);
     } else {
       _breathe.stop();
+      _breathe.value = 0;
     }
   }
 
