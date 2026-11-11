@@ -36,7 +36,8 @@ class _GeoScreenState extends ConsumerState<GeoScreen> {
       final s = ref.read(geoProvider);
       if (widget.initialTarget != null) {
         geo.locate(widget.initialTarget!);
-      } else if (s.target == null && !s.loading && s.error == null) {
+      } else if (s.target == null && !s.loading && (s.error == null || _lookupsOffError(s.error!))) {
+        // Lookups were off last time and are on again: the old error is stale.
         _myIp();
       }
     });
@@ -132,17 +133,26 @@ class _GeoScreenState extends ConsumerState<GeoScreen> {
       hint: 'Domain or IP',
       onSubmitted: (_) => _locate(),
       trailing: ip == null ? null : (compact ? ip : '→ $ip'),
-      trailingWidget: compact && stale && !s.loading
-          ? Padding(
-              padding: const EdgeInsets.only(left: 4),
-              child: PulseIconButton(
-                icon: PulseIcons.pin,
-                tooltip: 'Locate',
-                style: PulseIconButtonStyle.pink,
-                visualSize: 40,
-                iconSize: 20,
-                onPressed: _locate,
-              ),
+      // Phones always have a Locate button (pink when the text changed, so a
+      // new lookup is pending; quiet when it would just run the same host again).
+      trailingWidget: compact && text.isNotEmpty && !s.loading
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (ip != null)
+                  Text(ip, style: context.type.bodySmall!.copyWith(color: context.colors.onSurfaceVariant)),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: PulseIconButton(
+                    icon: PulseIcons.pin,
+                    tooltip: stale ? 'Locate' : 'Locate again',
+                    style: stale ? PulseIconButtonStyle.pink : PulseIconButtonStyle.neutral,
+                    visualSize: 40,
+                    iconSize: 20,
+                    onPressed: _locate,
+                  ),
+                ),
+              ],
             )
           : null,
     );
@@ -182,8 +192,74 @@ class _GeoView {
     return MapPoint(g!.lat!, g.lon!, _place(g));
   }
 
-  Widget _map(BuildContext context, {required bool interactive}) =>
-      GeoRouteMap(you: youPoint, target: lookupsOn ? targetPoint : null, interactive: interactive);
+  Widget _map(BuildContext context, {required bool interactive}) {
+    final map = GeoRouteMap(you: youPoint, target: lookupsOn ? targetPoint : null, interactive: interactive);
+    if (interactive) return map;
+    // Embedded in a scrolling page, map gestures would fight the scroll, so
+    // the small map opens a full-screen one that pans and zooms freely.
+    return Stack(
+      children: [
+        Positioned.fill(child: map),
+        Positioned.fill(
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(28),
+              onTap: () => _openFullMap(context),
+              child: const SizedBox.expand(),
+            ),
+          ),
+        ),
+        Positioned(
+          right: 4,
+          top: 4,
+          child: PulseIconButton(
+            icon: PulseIcons.search,
+            tooltip: 'Open map',
+            style: PulseIconButtonStyle.neutral,
+            visualSize: 40,
+            iconSize: 20,
+            onPressed: () => _openFullMap(context),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _openFullMap(BuildContext context) {
+    final you = youPoint;
+    final there = lookupsOn ? targetPoint : null;
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (context) => Scaffold(
+          backgroundColor: context.colors.surface,
+          body: SafeArea(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: GeoRouteMap(you: you, target: there, interactive: true),
+                  ),
+                ),
+                Positioned(
+                  left: 12,
+                  top: 12,
+                  child: PulseIconButton(
+                    icon: PulseIcons.x,
+                    tooltip: 'Close map',
+                    style: PulseIconButtonStyle.neutral,
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   // ---- Phone ---------------------------------------------------------------
 
@@ -648,3 +724,5 @@ class _LookupsOff extends StatelessWidget {
     ),
   );
 }
+
+bool _lookupsOffError(String error) => error.contains('turned off');
