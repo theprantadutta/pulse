@@ -35,7 +35,7 @@ class AboutScreen extends ConsumerWidget {
           onTap: () => _open(kDeveloper.website),
         ),
         (r) => SettingsValueItem(
-          icon: PulseIcons.bell,
+          icon: PulseIcons.help,
           title: 'Email',
           subtitle: kDeveloper.email,
           chevron: true,

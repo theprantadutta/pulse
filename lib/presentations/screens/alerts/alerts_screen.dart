@@ -65,6 +65,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
           error: async.hasError ? '${async.error}' : null,
           selectedId: split ? draft.id : null,
           onEdit: edit,
+          padded: !split,
         );
 
         if (!split) {
@@ -148,6 +149,7 @@ class _AlertsList extends ConsumerWidget {
     required this.error,
     required this.selectedId,
     required this.onEdit,
+    required this.padded,
   });
 
   final List<AlertRule> rules;
@@ -155,6 +157,10 @@ class _AlertsList extends ConsumerWidget {
   final String? error;
   final int? selectedId;
   final void Function(AlertRule? rule) onEdit;
+
+  /// Single-column page (phones, tablets beside the Tools pane) pads itself;
+  /// the split layout already pads both columns.
+  final bool padded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -164,7 +170,7 @@ class _AlertsList extends ConsumerWidget {
     final active = ref.watch(activeAlertProvider);
     final repo = ref.read(alertRulesRepositoryProvider);
     final settings = ref.watch(settingsProvider);
-    final pad = compact ? context.pagePadding : 0.0;
+    final pad = padded ? context.pagePadding : 0.0;
 
     Widget spaced(Widget w) => Padding(padding: const EdgeInsets.only(bottom: 12), child: w);
 

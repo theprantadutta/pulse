@@ -489,7 +489,8 @@ class _PhoneBody extends ConsumerWidget {
     final done = s.phase == SpeedPhase.done && s.downMbps != null;
     final idle = !s.running && !done;
     final children = <Widget>[
-      _Phases(state: s),
+      // Tablets beside the Tools pane use this body too, with room for the full row.
+      _Phases(state: s, long: !context.isCompact),
       if (s.error != null) _ErrorBanner(message: s.error!),
       Center(
         child: LayoutBuilder(
