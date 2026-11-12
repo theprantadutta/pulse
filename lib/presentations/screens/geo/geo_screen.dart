@@ -103,15 +103,20 @@ class _GeoScreenState extends ConsumerState<GeoScreen> {
         children: [_field(s, compact: true), ...v.phone(context)],
       );
     }
+    // Portrait tablets leave the header field ~140 dp, which cut the IP off:
+    // give it a row of its own there.
+    final narrow = MediaQuery.sizeOf(context).width < 720;
     return PulsePage(
       title: 'Geo IP',
-      titleWidget: Row(
-        children: [
-          Text('Geo IP', style: context.type.headlineMedium),
-          const SizedBox(width: 16),
-          Expanded(child: _field(s, compact: false)),
-        ],
-      ),
+      titleWidget: narrow
+          ? null
+          : Row(
+              children: [
+                Text('Geo IP', style: context.type.headlineMedium),
+                const SizedBox(width: 16),
+                Expanded(child: _field(s, compact: false)),
+              ],
+            ),
       actions: [
         PulseButton(label: 'My IP', style: PulseButtonStyle.tonal, onPressed: canAct ? _myIp : null),
         PulseButton(
@@ -120,7 +125,18 @@ class _GeoScreenState extends ConsumerState<GeoScreen> {
           onPressed: canAct ? _locate : null,
         ),
       ],
-      body: v.tablet(context),
+      body: narrow
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(PulseLayout.tabletPadding, 0, PulseLayout.tabletPadding, 12),
+                  child: _field(s, compact: false),
+                ),
+                Expanded(child: v.tablet(context)),
+              ],
+            )
+          : v.tablet(context),
     );
   }
 
