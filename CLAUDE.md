@@ -81,11 +81,23 @@ It replaced the earlier "Wire" design (branch `redesign/wire`, now merged histor
 - Toast activation: `toast_activator.clsid` must equal the `guid` in `lib/services/background/notifications.dart`.
 - Version: `msix_version` must end in `.0` for the Store; keep it in step with `version:` (currently 2.0.0 / 2.0.0+2).
 - Policies (Store listing): https://legal.pranta.dev/pulse/privacy and https://legal.pranta.dev/pulse/terms, served
-  from `G:\MyProjects\privacy-project\Projects\pulse\` (push to master → auto-deploys).
+  from `G:\Personal\MyProjects\privacy-project\Projects\pulse\` (push to master → auto-deploys). Current versions:
+  privacy 1.1, terms 1.1 (Nov 12, 2026); bump them and the dates whenever data use, services or permissions change.
 - STILL NEEDED from the user: a Partner Center account and the reserved app name; then copy Package/Identity/Name →
   `identity_name`, Package/Identity/Publisher (CN=…) → `publisher`, PublisherDisplayName → `publisher_display_name`,
   set `display_name` to the reserved name, and add that name to `displayNames` in privacy-project `Program.cs` if it
   differs from "Pulse". Store listing also needs screenshots, description and age rating (done in Partner Center).
+
+## Flutter 3.50 notes (Nov 2026)
+- Android's asset packager unpacks `.gz` assets and drops the extension, so the OUI table ships as
+  `assets/data/oui_tsv.gzip`. Don't name assets `*.gz`.
+- Since 3.50 the build no longer overrides Android's asset ignore pattern, which drops dot-files: the
+  `androidResources { ignoreAssetsPattern … }` block in `android/app/build.gradle.kts` keeps `.env` in the APK/AAB.
+- Never `restartService()` the foreground service: the old engine's teardown unregisters plugins of the new one
+  (shared_preferences throws in onStart and no cycle runs). `BackgroundMonitor.start` updates it in place.
+- After a Visual Studio update moves MSVC, delete `build/windows` if CMake says the compiler path doesn't exist.
+- Other Claude sessions share this PC's Flutter SDK and the two Android devices: message them before using a device
+  or touching `C:\Users\pranta\develop\flutter\bin\cache`.
 
 ## Verifying
 - `flutter analyze` must be clean. `dart format` uses page width 120 (analysis_options.yaml).
