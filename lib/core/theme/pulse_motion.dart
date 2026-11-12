@@ -7,6 +7,8 @@
 //  * Loops (spins, waves, sonar) are ambient: slow, low amplitude, and they stop
 //    when MediaQuery.disableAnimations is true.
 
+import 'dart:math' as math;
+
 import 'package:material_ui/material_ui.dart';
 
 abstract final class PulseMotion {
@@ -23,6 +25,7 @@ abstract final class PulseMotion {
   static const Duration enter = Duration(milliseconds: 600);
   static const Duration barGrow = Duration(milliseconds: 600);
   static const Duration valueChange = Duration(milliseconds: 250);
+  static const Duration digitRoll = Duration(milliseconds: 700); // odometer digits in live numbers
   static const Duration breathe = Duration(milliseconds: 1200);
   static const Duration waveTravel = Duration(milliseconds: 1100);
   static const Duration sonar = Duration(milliseconds: 2000);
@@ -158,10 +161,13 @@ class _PulsePressableState extends State<PulsePressable> {
   }
 }
 
-/// A live number that rolls like an odometer: only the digits that change
-/// move, rolling up when the value rises and down when it falls (12 → 13 rolls
-/// just the 2; 19 → 20 rolls both). Digit slots are matched from the right so
-/// the units digit stays put when the value gains or loses a digit.
+/// A live number that rolls like an odometer. Each decimal place is a wheel,
+/// lined up on the decimal point: when the value changes, only the wheels whose
+/// digit changes turn, all upward when the value rises and downward when it
+/// falls, passing through the digits in between (12 → 13 turns just the units;
+/// 9.8 → 20 rolls the tens in from blank to 2 while ".8" folds away).
+/// Wheels slide without fading and widths change smoothly, so nothing pops.
+/// Text that isn't a plain number ("—", "Down") cross-fades instead.
 class PulseLiveValue extends StatefulWidget {
   const PulseLiveValue(this.text, {super.key, this.style});
 
@@ -172,78 +178,52 @@ class PulseLiveValue extends StatefulWidget {
   State<PulseLiveValue> createState() => _PulseLiveValueState();
 }
 
-class _PulseLiveValueState extends State<PulseLiveValue> {
-  bool _up = true;
+/// "prefix 12.5 suffix" split for the odometer; null when [s] isn't numeric.
+class _Num {
+  _Num(this.prefix, this.whole, this.fraction, this.suffix);
 
-  static double? _number(String s) => double.tryParse(s.replaceAll(RegExp(r'[^0-9.\-]'), ''));
+  static final _re = RegExp(r'^([^0-9]*?)(\d+)(?:\.(\d+))?([^0-9]*)$');
+
+  static _Num? parse(String s) {
+    final m = _re.firstMatch(s);
+    if (m == null) return null;
+    return _Num(m[1]!, m[2]!, m[3] ?? '', m[4]!);
+  }
+
+  final String prefix;
+  final String whole;
+  final String fraction;
+  final String suffix;
+
+  double get value => double.parse(fraction.isEmpty ? whole : '$whole.$fraction');
+
+  /// Digit at [place] (0 = units, -1 = tenths), or null when not shown.
+  int? digit(int place) {
+    if (place >= 0) {
+      if (place >= whole.length) return null;
+      return whole.codeUnitAt(whole.length - 1 - place) - 48;
+    }
+    final k = -place - 1;
+    if (k >= fraction.length) return null;
+    return fraction.codeUnitAt(k) - 48;
+  }
+}
+
+class _PulseLiveValueState extends State<PulseLiveValue> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: PulseMotion.digitRoll, value: 1);
+  late final _t = CurvedAnimation(parent: _c, curve: Curves.easeInOutCubic);
+  late String _from = widget.text;
 
   @override
   void didUpdateWidget(PulseLiveValue old) {
     super.didUpdateWidget(old);
     if (old.text == widget.text) return;
-    final a = _number(old.text), b = _number(widget.text);
-    if (a != null && b != null && a != b) _up = b > a;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final style = DefaultTextStyle.of(context).style.merge(widget.style);
-    final chars = widget.text.characters.toList();
-    final reduced = PulseMotion.reduced(context);
-    return Semantics(
-      label: widget.text,
-      excludeSemantics: true,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          for (var i = 0; i < chars.length; i++)
-            _RollingChar(
-              chars[i],
-              // Slot index from the right: the units digit keeps its slot.
-              key: ValueKey<int>(chars.length - i),
-              style: style,
-              up: _up,
-              animate: !reduced,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RollingChar extends StatefulWidget {
-  const _RollingChar(this.char, {super.key, required this.style, required this.up, required this.animate});
-
-  final String char;
-  final TextStyle style;
-  final bool up;
-  final bool animate;
-
-  @override
-  State<_RollingChar> createState() => _RollingCharState();
-}
-
-class _RollingCharState extends State<_RollingChar> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: PulseMotion.valueChange, value: 1);
-  late final _t = CurvedAnimation(parent: _c, curve: PulseMotion.emphasizedDecelerate);
-  String? _previous;
-
-  static bool _digit(String c) => c.length == 1 && c.codeUnitAt(0) >= 48 && c.codeUnitAt(0) <= 57;
-
-  @override
-  void didUpdateWidget(_RollingChar old) {
-    super.didUpdateWidget(old);
-    if (old.char == widget.char) return;
-    // Only digits roll; a unit, sign or separator swaps in place.
-    if (!widget.animate || !_digit(old.char) || !_digit(widget.char)) {
-      _previous = null;
+    _from = old.text;
+    if (PulseMotion.reduced(context)) {
       _c.value = 1;
-      return;
+    } else {
+      _c.forward(from: 0);
     }
-    _previous = old.char;
-    _c.forward(from: 0);
   }
 
   @override
@@ -255,32 +235,127 @@ class _RollingCharState extends State<_RollingChar> with SingleTickerProviderSta
 
   @override
   Widget build(BuildContext context) {
-    final current = Text(widget.char, style: widget.style);
-    final previous = _previous;
-    if (previous == null) return current;
-    return AnimatedBuilder(
-      animation: _t,
-      builder: (context, _) {
-        final t = _t.value;
-        if (t >= 1) return current;
-        // Rising values come in from below and push the old digit up.
-        final dir = widget.up ? 1.0 : -1.0;
-        return ClipRect(
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              FractionalTranslation(
-                translation: Offset(0, -dir * t),
-                child: Opacity(
-                  opacity: 1 - t,
-                  child: Text(previous, style: widget.style),
-                ),
-              ),
-              FractionalTranslation(translation: Offset(0, dir * (1 - t)), child: current),
-            ],
+    final style = DefaultTextStyle.of(context).style.merge(widget.style);
+    return Semantics(
+      label: widget.text,
+      excludeSemantics: true,
+      child: AnimatedBuilder(animation: _t, builder: (context, _) => _frame(style, _t.value)),
+    );
+  }
+
+  Widget _frame(TextStyle style, double t) {
+    final to = _Num.parse(widget.text);
+    final from = t >= 1 ? to : _Num.parse(_from);
+    if (to == null || from == null || from.prefix != to.prefix || from.suffix != to.suffix) {
+      // Not two comparable numbers: cross-fade the whole text.
+      return Stack(
+        alignment: AlignmentDirectional.centerStart,
+        children: [
+          if (t < 1)
+            Opacity(
+              opacity: 1 - t,
+              child: Text(_from, style: style),
+            ),
+          Opacity(
+            opacity: t,
+            child: Text(widget.text, style: style),
           ),
-        );
-      },
+        ],
+      );
+    }
+    final up = to.value >= from.value;
+    final top = math.max(from.whole.length, to.whole.length) - 1;
+    final bottom = -math.max(from.fraction.length, to.fraction.length);
+    double presence(bool a, bool b) => (a ? 1.0 : 0.0) + ((b ? 1.0 : 0.0) - (a ? 1.0 : 0.0)) * t;
+    final dot = presence(from.fraction.isNotEmpty, to.fraction.isNotEmpty);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        if (to.prefix.isNotEmpty) Text(to.prefix, style: style),
+        for (var place = top; place >= bottom; place--) ...[
+          if (place == -1 && dot > 0)
+            _Fold(
+              factor: dot,
+              child: Text('.', style: style),
+            ),
+          _wheelAt(place, from, to, up, t, style, presence),
+        ],
+        if (to.suffix.isNotEmpty) Text(to.suffix, style: style),
+      ],
+    );
+  }
+
+  Widget _wheelAt(
+    int place,
+    _Num from,
+    _Num to,
+    bool up,
+    double t,
+    TextStyle style,
+    double Function(bool, bool) presence,
+  ) {
+    final a = from.digit(place), b = to.digit(place);
+    final da = a ?? 0, db = b ?? 0;
+    // Turn the shorter way consistent with the value's direction.
+    final steps = up ? (db - da) % 10 : -((da - db) % 10);
+    final width = presence(a != null, b != null);
+    // A missing leading integer digit reads as blank, not 0.
+    final blankZero = place > 0 && (a == null || b == null);
+    final fraction = place < 0 && (a == null || b == null);
+    Widget wheel = _Wheel(position: da + steps * t, blankZero: blankZero, style: style);
+    if (fraction) wheel = Opacity(opacity: width.clamp(0.0, 1.0), child: wheel);
+    return _Fold(factor: width, child: wheel);
+  }
+}
+
+/// Collapses a child horizontally (1 = full width, 0 = gone).
+class _Fold extends StatelessWidget {
+  const _Fold({required this.factor, required this.child});
+
+  final double factor;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => ClipRect(
+    child: Align(alignment: Alignment.centerRight, widthFactor: factor.clamp(0.0, 1.0), child: child),
+  );
+}
+
+/// One odometer wheel showing a continuous [position] (2.5 = halfway from 2
+/// to 3). Always the same widget tree, so it never flickers between frames.
+class _Wheel extends StatelessWidget {
+  const _Wheel({required this.position, required this.blankZero, required this.style});
+
+  final double position;
+  final bool blankZero;
+  final TextStyle style;
+
+  String _glyph(int d) => blankZero && d == 0 ? ' ' : '$d';
+
+  @override
+  Widget build(BuildContext context) {
+    final base = position.floorToDouble();
+    final frac = position - base;
+    final lower = base.toInt() % 10;
+    final upper = (lower + 1) % 10;
+    return ClipRect(
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Sizes the wheel and carries the baseline.
+          Opacity(opacity: 0, child: Text('0', style: style)),
+          FractionalTranslation(
+            translation: Offset(0, -frac),
+            child: Text(_glyph(lower), style: style),
+          ),
+          FractionalTranslation(
+            translation: Offset(0, 1 - frac),
+            child: Text(_glyph(upper), style: style),
+          ),
+        ],
+      ),
     );
   }
 }
