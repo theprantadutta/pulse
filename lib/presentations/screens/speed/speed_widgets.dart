@@ -87,6 +87,7 @@ class _DashedPathPainter extends CustomPainter {
 /// Bottom sheet listing the download servers. Uploads always go to Cloudflare.
 Future<void> showSpeedServerSheet(BuildContext context, WidgetRef ref) async {
   final picked = await showModalBottomSheet<Object>(
+    useRootNavigator: true,
     context: context,
     showDragHandle: true,
     isScrollControlled: true,

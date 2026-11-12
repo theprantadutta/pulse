@@ -69,6 +69,7 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
   }
 
   Future<void> _options() => showModalBottomSheet<void>(
+    useRootNavigator: true,
     context: context,
     builder: (context) => Consumer(
       builder: (context, ref, _) {
@@ -112,6 +113,7 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
   );
 
   Future<void> _seeAll() => showModalBottomSheet<void>(
+    useRootNavigator: true,
     context: context,
     isScrollControlled: true,
     builder: (context) => DraggableScrollableSheet(

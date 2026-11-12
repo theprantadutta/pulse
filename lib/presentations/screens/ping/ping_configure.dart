@@ -29,8 +29,13 @@ bool _validHost(String host) =>
 // Sheet frame
 // ---------------------------------------------------------------------------
 
-Future<T?> _showSheet<T>(BuildContext context, WidgetBuilder builder) =>
-    showModalBottomSheet<T>(context: context, isScrollControlled: true, useSafeArea: true, builder: builder);
+Future<T?> _showSheet<T>(BuildContext context, WidgetBuilder builder) => showModalBottomSheet<T>(
+  useRootNavigator: true,
+  context: context,
+  isScrollControlled: true,
+  useSafeArea: true,
+  builder: builder,
+);
 
 /// Title, scrolling body and a pinned footer, sized to the content.
 class _SheetFrame extends StatelessWidget {
@@ -43,6 +48,13 @@ class _SheetFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Landscape tablets with the keyboard up leave ~200 dp: a pinned footer
+    // would cover the fields, so it scrolls with them instead.
+    final room = MediaQuery.sizeOf(context).height - MediaQuery.viewInsetsOf(context).bottom;
+    final pinFooter = room >= 420;
+    final footer = this.footer == null
+        ? null
+        : Padding(padding: EdgeInsets.fromLTRB(pinFooter ? 16 : 0, 4, pinFooter ? 16 : 0, 16), child: this.footer);
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: ConstrainedBox(
@@ -73,9 +85,13 @@ class _SheetFrame extends StatelessWidget {
               ),
             ),
             Flexible(
-              child: ListView(shrinkWrap: true, padding: const EdgeInsets.fromLTRB(16, 4, 16, 16), children: children),
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                children: [...children, if (!pinFooter) ?footer],
+              ),
             ),
-            if (footer != null) Padding(padding: const EdgeInsets.fromLTRB(16, 4, 16, 16), child: footer),
+            if (pinFooter) ?footer,
           ],
         ),
       ),

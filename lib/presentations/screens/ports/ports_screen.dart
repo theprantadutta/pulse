@@ -52,6 +52,7 @@ class _PortsScreenState extends ConsumerState<PortsScreen> {
 
   Future<void> _custom() async {
     final spec = await showModalBottomSheet<String>(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       builder: (context) => _CustomRangeSheet(initial: ref.read(portScanProvider).customSpec),

@@ -69,6 +69,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   Future<void> _openExport(List<Session> filtered) async {
     final choice = await showModalBottomSheet<(ExportFormat, bool)>(
+      useRootNavigator: true,
       context: context,
       showDragHandle: true,
       backgroundColor: context.colors.surfaceContainerLow,

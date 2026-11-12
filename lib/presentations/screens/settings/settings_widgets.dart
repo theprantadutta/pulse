@@ -512,6 +512,7 @@ Future<T?> pickSetting<T>(
 }) {
   final c = context.colors;
   return showModalBottomSheet<T>(
+    useRootNavigator: true,
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
