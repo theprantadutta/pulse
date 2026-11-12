@@ -1,15 +1,36 @@
 # Pulse — project notes for Claude
 
-## Current work: "Wire" redesign (branch `redesign/wire`)
-Full visual + functional overhaul of Pulse to the **Wire** design language.
+## Current design: "Expressive" (branch `redesign/expressive`)
+Material 3 Expressive redesign (plum surfaces; pink / lavender / lime; Roboto Flex; M3 Expressive shapes and motion).
+It replaced the earlier "Wire" design (branch `redesign/wire`, now merged history only).
 
-- **Spec:** `design_handoff_pulse_wire/README.md` (read end to end) and the original task prompt
-  `design_handoff_pulse_wire/CLAUDE_CODE_PROMPT.md`. HTML references are in `design_handoff_pulse_wire/screens/`
-  (open in a browser with `support.js` next to them); PNG of every screen in `design_handoff_pulse_wire/screenshots/`.
-- The handoff folder is committed for reference only — the app uses the copies in `assets/brand/`,
-  `assets/fonts/` and `lib/core/theme/wire_theme.dart`.
-- **Do not** replace the repo's `screenshots/` folder with the handoff PNGs (those are design renders; real
-  screenshots will be taken later).
+- **Spec:** `design_handoff_pulse_expressive/` (README, `DESIGN_SYSTEM.md`, `SCREENS.md`, `tokens/`, `prototype/`
+  HTML, icon/shape/logo SVGs). The kit's PNG screenshots and MP4 motion clips (34 MB) are not committed; the user has
+  them in `Downloads\Pulse-Expressive-Redesign-Kit\pulse-redesign-kit\{screenshots,animations}`.
+- **Design system in code** — import `lib/core/widgets/pulse/pulse.dart` only:
+  `lib/core/theme/pulse_theme.dart` (schemes, `PulseTokens` latency/map colours, `PulseAccent` (Pink/Lavender/Lime/Blue
+  swaps the fixed hero family), `pulseText`/`pulseNumber`, `context.colors/type/pulse`), `pulse_shapes.dart`
+  (`PulseShape`, `PulseShapeBox`, `WavyProgress`, `PulseLogo`), `pulse_motion.dart` (entrances, press morph, live
+  values), components in `lib/core/widgets/pulse/` (page scaffold, buttons, button group, chips, target field, hero
+  metric, stat row, segmented list, bars, pills, empty/error states), icons = kit SVGs in `assets/icons/`.
+  No hard-coded colours in screens; hex values live only in `pulse_theme.dart`.
+- **Shell:** `lib/presentations/navigation/pulse_shell.dart`. compact < 600 dp: NavigationBar (Ping · Network · Tools ·
+  History); ≥ 600: 96 dp rail (logo, "+" → `/ping?add=1`, 4 destinations, Settings at the bottom); ≥ 840 tool routes
+  get the Tools pane. Tool catalogue (badge shape/colour, last result) in `tools_catalog.dart`.
+  Navigation rule: tabs/rail/Tools pane use `context.go`; drill-ins (tool tiles, LAN from Network, Alerts, rule
+  editor, Settings) use `context.push` so back returns to the opener. System back with nothing to pop goes to
+  `parentRoute()` (destinations.dart) instead of closing the app.
+- **Splash:** `main.dart` holds the native splash (`FlutterNativeSplash.preserve`); `SplashScreen` is the only place
+  that calls `remove()`, after its first frame. The native images in `assets/brand/splash/` are drawn with
+  `PulseLogo`'s exact geometry at 168 dp (672 px @4x) on the theme surface, so the hand-off is invisible. Regenerate
+  them with the same geometry if the logo changes, then `dart run flutter_native_splash:create`.
+- **Brand assets:** kit logo PNGs → `assets/brand/icon/*` (launcher icons via `flutter_launcher_icons.yaml`; Windows
+  `.ico`, macOS, web and tray icons are written pixel-exact; Android notification icon `ic_stat_pulse`).
+- **Geo IP map:** offline Natural Earth vector map `assets/data/world_map.bin` (format in `assets/data/README.md`),
+  drawn by `lib/presentations/screens/geo/world_map.dart`. No tile provider.
+- **Settings added:** `accent`, `dynamicColor` (dynamic_color, keeps brand roles), `expressiveMotion` (off ⇒
+  `disableAnimations` app-wide).
+- **Do not** replace the repo's `screenshots/` folder with kit PNGs; real device screenshots will be taken later.
 
 ### Decisions made with the user
 - Persistence: **drift** (`lib/data/db/app_database.dart`, run `dart run build_runner build` after schema edits).
@@ -22,16 +43,15 @@ Full visual + functional overhaul of Pulse to the **Wire** design language.
 - Commit after each step; no Claude / AI attribution in commit messages. Style: `feat: :sparkles: ...` (gitmoji).
 - The app imports `package:material_ui/material_ui.dart` (decoupled Material), not `flutter/material.dart`.
 
-### Progress
-All seven steps are done (see `git log`). Every screen 01–14 is rebuilt on real engines; no legacy screens remain.
+### Engines and providers
 - Engines: `lib/services/net/` (ping prober + Windows ICMP FFI, traceroute, port scanner, speed test, LAN scan with
   ARP/NetBIOS/mDNS/OUI, Wake-on-LAN, geo IP, per-OS network details, gateway), `lib/services/background/`
   (MonitorEngine, notifications, foreground service), `lib/services/desktop/` (window + tray, launch at login).
 - Providers: `lib/providers/*` (one per tool; `pingBoardProvider` = multi-ping; `monitorRunnerProvider` decides where
   monitoring runs: tray on desktop, foreground service on Android/iOS when "Run in background" is on, else in-app).
-- Layout frames (`WireLayout`): mobile < 840 dp (phones, portrait tablets), rail 840–1023 (landscape tablets),
-  sidebar ≥ 1024. Phones (shortest side < 600 dp) are locked to portrait in `main.dart`.
-  `test/render/device_render_test.dart` renders every screen at Galaxy A24 / Galaxy Tab A9 sizes.
+- Layout: see "Shell" above. Phones (shortest side < 600 dp) are locked to portrait in `main.dart`.
+  `test/render/device_render_test.dart` renders screens at Galaxy A24 / Galaxy Tab A9 sizes; every screen has its own
+  render test (`renderMatrix`: phone 390×844 + tablet 1280×800, light + dark) writing PNGs to `build/renders/`.
 - DB schema v2 (saved_targets + sessions.label). Bump `schemaVersion` + add an `onUpgrade` step for changes.
 
 ### Test checklist for real devices (office PC: Android phone + Windows)
@@ -61,16 +81,30 @@ All seven steps are done (see `git log`). Every screen 01–14 is rebuilt on rea
 - Toast activation: `toast_activator.clsid` must equal the `guid` in `lib/services/background/notifications.dart`.
 - Version: `msix_version` must end in `.0` for the Store; keep it in step with `version:` (currently 2.0.0 / 2.0.0+2).
 - Policies (Store listing): https://legal.pranta.dev/pulse/privacy and https://legal.pranta.dev/pulse/terms, served
-  from `G:\MyProjects\privacy-project\Projects\pulse\` (push to master → auto-deploys).
+  from `G:\Personal\MyProjects\privacy-project\Projects\pulse\` (push to master → auto-deploys). Current versions:
+  privacy 1.1, terms 1.1 (Nov 12, 2026); bump them and the dates whenever data use, services or permissions change.
 - STILL NEEDED from the user: a Partner Center account and the reserved app name; then copy Package/Identity/Name →
   `identity_name`, Package/Identity/Publisher (CN=…) → `publisher`, PublisherDisplayName → `publisher_display_name`,
   set `display_name` to the reserved name, and add that name to `displayNames` in privacy-project `Program.cs` if it
   differs from "Pulse". Store listing also needs screenshots, description and age rating (done in Partner Center).
 
+## Flutter 3.50 notes (Nov 2026)
+- Android's asset packager unpacks `.gz` assets and drops the extension, so the OUI table ships as
+  `assets/data/oui_tsv.gzip`. Don't name assets `*.gz`.
+- Since 3.50 the build no longer overrides Android's asset ignore pattern, which drops dot-files: the
+  `androidResources { ignoreAssetsPattern … }` block in `android/app/build.gradle.kts` keeps `.env` in the APK/AAB.
+- Never `restartService()` the foreground service: the old engine's teardown unregisters plugins of the new one
+  (shared_preferences throws in onStart and no cycle runs). `BackgroundMonitor.start` updates it in place.
+- After a Visual Studio update moves MSVC, delete `build/windows` if CMake says the compiler path doesn't exist.
+- Other Claude sessions share this PC's Flutter SDK and the two Android devices: message them before using a device
+  or touching `C:\Users\pranta\develop\flutter\bin\cache`.
+
 ## Verifying
 - `flutter analyze` must be clean. `dart format` uses page width 120 (analysis_options.yaml).
 - `flutter test` — `test/render/*` (tag `render`) writes PNG renders to `build/renders/` with real fonts;
-  `test/services/*_live_test.dart` (tag `network`) hits the real network.
+  `test/services/*_live_test.dart` (tag `network`) hits the real network. Run `flutter test --exclude-tags network`
+  for the offline suite. Don't run several `flutter test` processes at once on Windows: they fight over
+  `build/native_assets/windows/sqlite3.dll` ("failed to delete").
 - Windows build needs the Visual Studio component **"C++ ATL for latest v143 build tools"** (for
   `flutter_local_notifications_windows`).
 - The user continues on the office PC with an Android device + Windows PC — run on both there.

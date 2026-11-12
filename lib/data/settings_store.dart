@@ -28,6 +28,8 @@ class SettingsStore {
         orElse: () => _defaults.themeMode,
       ),
       accent: pick(kAccentKey, _defaults.accent),
+      dynamicColor: pick(kDynamicColorKey, _defaults.dynamicColor),
+      expressiveMotion: pick(kExpressiveMotionKey, _defaults.expressiveMotion),
       pingCount: pick(kPingCountKey, _defaults.pingCount),
       pingIntervalMs: pick(kPingIntervalKey, _defaults.pingIntervalMs),
       pingTimeoutSec: pick(kPingTimeoutKey, _defaults.pingTimeoutSec),
@@ -53,6 +55,8 @@ class SettingsStore {
     await Future.wait([
       prefs.setString(kThemeModeKey, s.themeMode.name),
       prefs.setString(kAccentKey, s.accent),
+      prefs.setBool(kDynamicColorKey, s.dynamicColor),
+      prefs.setBool(kExpressiveMotionKey, s.expressiveMotion),
       prefs.setInt(kPingCountKey, s.pingCount),
       prefs.setInt(kPingIntervalKey, s.pingIntervalMs),
       prefs.setInt(kPingTimeoutKey, s.pingTimeoutSec),
@@ -84,5 +88,7 @@ class SettingsStore {
     if (prefs.containsKey(kLegacyFlexSchemeKey)) {
       prefs.remove(kLegacyFlexSchemeKey);
     }
+    // Wire accents (orange, blue, …) don't exist in the Expressive palette.
+    if (prefs.containsKey('wire.accent')) prefs.remove('wire.accent');
   }
 }

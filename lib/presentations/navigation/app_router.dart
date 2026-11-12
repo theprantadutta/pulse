@@ -2,47 +2,67 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../core/theme/wire_theme.dart';
+import '../../core/widgets/pulse/pulse.dart';
 import '../screens/alerts/alerts_screen.dart';
 import '../screens/geo/geo_screen.dart';
 import '../screens/history/history_screen.dart';
 import '../screens/lan/lan_screen.dart';
 import '../screens/loss/loss_screen.dart';
 import '../screens/monitor/monitor_screen.dart';
-import '../screens/launch/launch_screen.dart';
 import '../screens/network/network_screen.dart';
+import '../screens/ping/ping_detail_screen.dart';
 import '../screens/ping/ping_screen.dart';
 import '../screens/ports/ports_screen.dart';
+import '../screens/settings/about_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import '../screens/splash/splash_screen.dart';
 import '../screens/speed/speed_screen.dart';
 import '../screens/tools/tools_hub_screen.dart';
 import '../screens/trace/trace_screen.dart';
 import 'destinations.dart';
-import 'wire_shell.dart';
+import 'pulse_shell.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 
-/// Tab roots switch instantly; everything else slides in over 180ms on
-/// mobile (a pushed tool with a ← back) and switches instantly on desktop.
+/// Top-level destinations (and everything on tablets/desktop) fade through:
+/// the outgoing page fades out, the incoming one fades in from 96% scale.
+/// Pushed tool screens on phones slide in by 30% while fading (expressive
+/// shared axis). Reduce-motion makes every switch instant.
 Page<void> _page(BuildContext context, GoRouterState state, Widget child) {
   final isRoot = kTabRoots.values.contains(state.uri.path);
-  final mobile = MediaQuery.sizeOf(context).width < WireLayout.compact;
-  if (isRoot || !mobile) {
-    return NoTransitionPage<void>(key: state.pageKey, child: child);
+  final compact = MediaQuery.sizeOf(context).width < PulseLayout.medium;
+  if (PulseMotion.reduced(context)) return NoTransitionPage<void>(key: state.pageKey, child: child);
+  if (isRoot || !compact) {
+    return CustomTransitionPage<void>(
+      key: state.pageKey,
+      child: child,
+      transitionDuration: const Duration(milliseconds: 300),
+      reverseTransitionDuration: const Duration(milliseconds: 200),
+      transitionsBuilder: (context, animation, secondary, child) {
+        final t = CurvedAnimation(parent: animation, curve: PulseMotion.emphasizedDecelerate);
+        return FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: const Interval(.25, 1)),
+          child: ScaleTransition(scale: Tween(begin: .96, end: 1.0).animate(t), child: child),
+        );
+      },
+    );
   }
   return CustomTransitionPage<void>(
     key: state.pageKey,
     child: child,
-    transitionDuration: WireMotion.panel,
-    reverseTransitionDuration: WireMotion.panel,
-    transitionsBuilder: (context, animation, secondary, child) => SlideTransition(
-      position: Tween(
-        begin: const Offset(1, 0),
-        end: Offset.zero,
-      ).chain(CurveTween(curve: WireMotion.panelCurve)).animate(animation),
-      child: child,
-    ),
+    transitionDuration: const Duration(milliseconds: 350),
+    reverseTransitionDuration: const Duration(milliseconds: 250),
+    transitionsBuilder: (context, animation, secondary, child) {
+      final t = CurvedAnimation(parent: animation, curve: PulseMotion.emphasizedDecelerate);
+      return FadeTransition(
+        opacity: t,
+        child: SlideTransition(
+          position: Tween(begin: const Offset(.3, 0), end: Offset.zero).animate(t),
+          child: child,
+        ),
+      );
+    },
   );
 }
 
@@ -56,13 +76,14 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: Routes.launch,
-        pageBuilder: (context, state) => NoTransitionPage(key: state.pageKey, child: const LaunchScreen()),
+        pageBuilder: (context, state) => NoTransitionPage(key: state.pageKey, child: const SplashScreen()),
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
-        builder: (context, state, child) => WireShell(location: state.uri.path, child: child),
+        builder: (context, state, child) => PulseShell(location: state.uri.path, child: child),
         routes: [
           _route(Routes.ping, (s) => const PingScreen()),
+          _route(Routes.pingDetail, (s) => PingDetailScreen(id: s.uri.queryParameters['id'])),
           _route(Routes.traceroute, (s) => TraceScreen(initialTarget: s.uri.queryParameters['target'])),
           _route(Routes.ports, (s) => PortsScreen(initialTarget: s.uri.queryParameters['target'])),
           _route(Routes.speed, (s) => const SpeedScreen()),
@@ -75,6 +96,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           _route(Routes.alertRule, (s) => RuleEditorScreen(ruleId: int.tryParse(s.uri.queryParameters['id'] ?? ''))),
           _route(Routes.history, (s) => const HistoryScreen()),
           _route(Routes.settings, (s) => const SettingsScreen()),
+          _route(Routes.about, (s) => const AboutScreen()),
           _route(Routes.tools, (s) => const ToolsHubScreen()),
         ],
       ),

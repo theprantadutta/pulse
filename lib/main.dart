@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,7 +14,12 @@ import 'services/desktop/desktop_host.dart';
 import 'services/desktop/launch_at_login.dart';
 
 void main(List<String> args) async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final binding = WidgetsFlutterBinding.ensureInitialized();
+  // Keep the OS splash up until SplashScreen paints the same logo (it calls
+  // FlutterNativeSplash.remove after its first frame). Only mobile has a
+  // native splash; on desktop the runner shows its window on the first frame
+  // the engine receives, so deferring it would keep the window invisible.
+  if (Platform.isAndroid || Platform.isIOS) FlutterNativeSplash.preserve(widgetsBinding: binding);
   launchedAtLogin = args.contains(LaunchAtLogin.flag);
   await dotenv.load(fileName: '.env', isOptional: true);
   final prefs = await SharedPreferences.getInstance();

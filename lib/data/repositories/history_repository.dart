@@ -82,9 +82,27 @@ class HistoryRepository {
 
   static final _stamp = DateFormat('yyyy-MM-dd HH:mm:ss');
 
-  /// Sessions as CSV or aligned plain text.
+  /// Sessions as CSV, JSON (with each run's full payload) or aligned plain text.
   static String export(List<Session> sessions, ExportFormat format) {
     String fmt(double? v) => v == null ? '' : v.toStringAsFixed(1);
+    if (format == ExportFormat.json) {
+      return const JsonEncoder.withIndent('  ').convert([
+        for (final s in sessions)
+          {
+            'id': s.id,
+            'tool': s.tool,
+            'name': s.label,
+            'target': s.target,
+            'started': s.startedAt.toIso8601String(),
+            'ended': s.endedAt.toIso8601String(),
+            'avgMs': s.avgMs,
+            'lossPct': s.lossPct,
+            'summary': s.summary,
+            'trend': trendOf(s),
+            'payload': payloadOf(s),
+          },
+      ]);
+    }
     if (format == ExportFormat.csv) {
       String cell(String v) => v.contains(RegExp('[",\n]')) ? '"${v.replaceAll('"', '""')}"' : v;
       final b = StringBuffer('started,ended,name,target,tool,avg_ms,loss_pct,summary\n');

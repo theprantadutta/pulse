@@ -1,0 +1,307 @@
+/* ==========================================================================
+   Pulse — "Expressive" design system (Material 3 Expressive, plum / pink / lime)
+   Reference implementation for the HTML prototype. Flutter equivalents live in
+   ../tokens/pulse_theme.dart. Token names mirror Material 3 ColorScheme roles.
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Roboto Flex';
+  src: url('../fonts/RobotoFlex-Variable.ttf') format('truetype');
+  font-weight: 100 1000;
+  font-stretch: 25% 151%;
+  font-style: normal;
+  font-display: block;
+}
+
+/* ---------- Brand + shared tokens (identical in light and dark) ---------- */
+:root {
+  --font: 'Roboto Flex', Roboto, system-ui, sans-serif;
+
+  /* "Fixed" brand roles: hero shapes, logo, charts. Same in both themes. */
+  --pink: #FFAFD0;        --on-pink: #3B0720;      /* primaryFixedDim / onPrimaryFixed   */
+  --pink-soft: #FFD9E6;                            /* primaryFixed                        */
+  --lav: #DDBCFF;         --on-lav: #25074A;       /* secondaryFixedDim / onSecondaryFixed*/
+  --lav-soft: #F0DBFF;                             /* secondaryFixed                      */
+  --lime: #CDEB74;        --on-lime: #141F00;      /* tertiaryFixedDim / onTertiaryFixed  */
+  --lime-soft: #E0F98A;                            /* tertiaryFixed                       */
+  --berry: #4A1D3B;       --ecg: #4A0F2C;          /* logo tile + heartbeat line          */
+
+  /* Shape scale (corner radii) */
+  --r-xs: 6px; --r-sm: 12px; --r-md: 16px; --r-lg: 20px; --r-xl: 28px; --r-2xl: 32px; --r-full: 999px;
+
+  /* Motion */
+  --spring: cubic-bezier(.3, 1.4, .5, 1);          /* expressive spatial spring (overshoot) */
+  --emph: cubic-bezier(.2, 0, 0, 1);               /* emphasized                          */
+  --emph-dec: cubic-bezier(.05, .7, .1, 1);        /* emphasized decelerate (enter)       */
+  --std: cubic-bezier(.2, 0, 0, 1);
+}
+
+/* ---------- Dark scheme ---------- */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #19121D;          --surface-dim: #19121D;   --surface-bright: #403644;
+  --surface-lowest: #130D17;   --surface-low: #1F1724;   --surface-c: #241B29;
+  --surface-high: #2F2535;     --surface-highest: #3A2F40;
+  --on-surface: #F3E5F4;       --on-surface-var: #D3C2D6;
+  --outline: #9C8BA0;          --outline-var: #5E4F63;
+  --primary: #FFAFD0;          --on-primary: #5A1335;
+  --primary-c: #7A2950;        --on-primary-c: #FFD9E6;
+  --secondary: #DDBCFF;        --on-secondary: #3A1F57;
+  --secondary-c: #4B3466;      --on-secondary-c: #F0DBFF;
+  --tertiary: #CDEB74;         --on-tertiary: #2B3700;
+  --tertiary-c: #3F5100;       --on-tertiary-c: #E0F98A;
+  --error: #FFB4AB;            --on-error: #690005;
+  --error-c: #93000A;          --on-error-c: #FFDAD6;
+  --inverse-surface: #F3E5F4;  --inverse-on-surface: #362D3A;
+  /* latency semantics: small marks/text vs. big fills */
+  --lat-fast: #CDEB74;  --lat-mid: #DDBCFF;  --lat-slow: #FFAFD0;
+  --shadow-1: 0 1px 3px rgba(0,0,0,.4);
+  --shadow-3: 0 8px 24px rgba(0,0,0,.38);
+  --map-land: #3A2F40; --map-border: #5E4F63; --map-sea: #1F1724;
+}
+
+/* ---------- Light scheme ---------- */
+[data-theme="light"] {
+  color-scheme: light;
+  --surface: #FFF7FA;          --surface-dim: #E4D7DD;   --surface-bright: #FFF7FA;
+  --surface-lowest: #FFFFFF;   --surface-low: #FCF0F5;   --surface-c: #F7EAF0;
+  --surface-high: #F1E4EA;     --surface-highest: #EBDEE4;
+  --on-surface: #21181E;       --on-surface-var: #524349;
+  --outline: #847379;          --outline-var: #D6C2CA;
+  --primary: #8E3A60;          --on-primary: #FFFFFF;
+  --primary-c: #FFD9E6;        --on-primary-c: #3B0720;
+  --secondary: #6B4F8A;        --on-secondary: #FFFFFF;
+  --secondary-c: #F0DBFF;      --on-secondary-c: #25074A;
+  --tertiary: #4A6200;         --on-tertiary: #FFFFFF;
+  --tertiary-c: #CDEB74;       --on-tertiary-c: #141F00;
+  --error: #BA1A1A;            --on-error: #FFFFFF;
+  --error-c: #FFDAD6;          --on-error-c: #410002;
+  --inverse-surface: #362D33;  --inverse-on-surface: #FCEEF4;
+  --lat-fast: #4F6B00;  --lat-mid: #72519C;  --lat-slow: #B0306A;
+  --shadow-1: 0 1px 3px rgba(70,20,45,.14);
+  --shadow-3: 0 8px 22px rgba(70,20,45,.18);
+  --map-land: #EBDEE4; --map-border: #D6C2CA; --map-sea: #FCF0F5;
+}
+
+/* ---------- Base ---------- */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: #0E0A10; }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; text-align: inherit; }
+input { font: inherit; color: inherit; }
+svg { display: block; flex: none; }
+
+.app {
+  position: relative; overflow: hidden;
+  background: var(--surface); color: var(--on-surface);
+  font-family: var(--font); font-size: 14px; line-height: 1.35;
+  -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums;
+}
+.phone  { width: 390px;  height: 844px; display: flex; flex-direction: column; }
+.tablet { width: 1280px; height: 800px; display: flex; }
+
+/* ---------- Type scale (Roboto Flex; wdth axis = width) ---------- */
+.t-hero    { font-size: 104px; font-weight: 900; line-height: .95; letter-spacing: -.04em; font-variation-settings: 'wdth' 120; }
+.t-display { font-size: 76px;  font-weight: 900; line-height: .9;  letter-spacing: -.04em; font-variation-settings: 'wdth' 125; }
+.t-hl      { font-size: 40px;  font-weight: 800; line-height: 1.05; letter-spacing: -.02em; font-variation-settings: 'wdth' 125; }
+.t-h2      { font-size: 28px;  font-weight: 800; line-height: 1.1; letter-spacing: -.01em; font-variation-settings: 'wdth' 115; }
+.t-title-lg{ font-size: 22px;  font-weight: 700; line-height: 1.2; }
+.t-title   { font-size: 16px;  font-weight: 600; }
+.t-body    { font-size: 14px;  font-weight: 400; }
+.t-sup     { font-size: 13px;  color: var(--on-surface-var); }
+.t-label   { font-size: 12px;  font-weight: 600; color: var(--on-surface-var); }
+.t-over    { font-size: 11px;  font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--on-surface-var); }
+.t-num     { font-weight: 800; font-variation-settings: 'wdth' 110; }
+.muted { color: var(--on-surface-var); }
+.ellip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Layout helpers ---------- */
+.row { display: flex; align-items: center; }
+.col { display: flex; flex-direction: column; }
+.grow { flex: 1; min-width: 0; }
+.safe-top { height: 40px; flex: none; }
+
+/* ---------- App bars ---------- */
+.appbar    { display: flex; align-items: center; gap: 4px; height: 64px; padding: 0 12px 0 4px; flex: none; }
+.appbar .title { flex: 1; font-size: 22px; font-weight: 700; }
+.appbar .title small { display: block; font-size: 13px; font-weight: 500; color: var(--on-surface-var); margin-top: -2px; }
+.appbar-lg { display: flex; align-items: center; justify-content: space-between; height: 72px; padding: 0 12px 0 20px; flex: none; }
+
+/* ---------- Buttons ---------- */
+.icon-btn { width: 48px; height: 48px; border-radius: 24px; display: grid; place-items: center; color: var(--on-surface-var); flex: none;
+  transition: transform .2s var(--spring), border-radius .3s var(--spring), background-color .2s; }
+.icon-btn.tonal  { background: var(--surface-high); color: var(--on-surface); }
+.icon-btn.filled { background: var(--primary); color: var(--on-primary); }
+.icon-btn.pink   { background: var(--pink); color: var(--on-pink); }
+.btn { height: 48px; padding: 0 20px; border-radius: 24px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-weight: 700; font-size: 14px; flex: none; white-space: nowrap;
+  transition: transform .2s var(--spring), border-radius .3s var(--spring), background-color .2s; }
+.btn.filled  { background: var(--primary); color: var(--on-primary); }
+.btn.pink    { background: var(--pink); color: var(--on-pink); }
+.btn.tonal   { background: var(--secondary-c); color: var(--on-secondary-c); }
+.btn.outline { border: 1px solid var(--outline-var); color: var(--on-surface); }
+.btn.text    { color: var(--primary); padding: 0 12px; }
+.btn.lg { height: 56px; border-radius: 28px; font-size: 16px; padding: 0 24px; }
+.btn.sm { height: 36px; border-radius: 18px; font-size: 13px; padding: 0 14px; }
+.icon-btn:active, .btn:active, .fab:active { transform: scale(.94); border-radius: 14px; }
+.fab { height: 60px; padding: 0 22px 0 18px; border-radius: 20px; background: var(--pink); color: var(--on-pink);
+  display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; box-shadow: var(--shadow-3);
+  transition: transform .2s var(--spring), border-radius .3s var(--spring); }
+.fab.float { position: absolute; right: 16px; bottom: 96px; }
+
+/* Connected button group (M3 Expressive) */
+.group { display: flex; gap: 3px; }
+.group > button { flex: 1; height: 48px; display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--surface-high); color: var(--on-surface-var); font-weight: 600; font-size: 14px; border-radius: 8px;
+  transition: flex .35s var(--spring), border-radius .35s var(--spring), background-color .2s; }
+.group > button:first-child { border-radius: 24px 8px 8px 24px; }
+.group > button:last-child  { border-radius: 8px 24px 24px 8px; }
+.group > button.on { flex: 1.35; border-radius: 24px; background: var(--pink); color: var(--on-pink); font-weight: 800; }
+.group > button.done { color: var(--tertiary); font-weight: 700; }
+.group.sm > button { height: 40px; font-size: 13px; }
+
+/* Chips */
+.chip { height: 40px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--outline-var); color: var(--on-surface-var);
+  display: inline-flex; align-items: center; gap: 6px; font-weight: 500; font-size: 14px; flex: none; white-space: nowrap;
+  transition: border-radius .3s var(--spring), background-color .2s; }
+.chip.sel { border-color: transparent; background: var(--secondary-c); color: var(--on-secondary-c); border-radius: 20px; font-weight: 600; padding-left: 10px; }
+.chip.sm  { height: 32px; font-size: 13px; padding: 0 12px; border-radius: 10px; }
+.chip.sm.sel { border-radius: 16px; }
+.chips { display: flex; gap: 8px; overflow: hidden; }
+
+/* Badges / pills */
+.pill { height: 30px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 15px; font-size: 13px; font-weight: 800; white-space: nowrap; flex: none; }
+.pill.lime { background: var(--lime); color: var(--on-lime); }
+.pill.lav  { background: var(--lav);  color: var(--on-lav); }
+.pill.pink { background: var(--pink); color: var(--on-pink); }
+.pill.soft { background: var(--surface-high); color: var(--on-surface); font-weight: 700; }
+.pill.out  { border: 1px solid var(--outline-var); color: var(--on-surface-var); font-weight: 600; }
+
+/* Search / text field */
+.field { height: 56px; border-radius: 28px; background: var(--surface-high); display: flex; align-items: center; gap: 12px; padding: 0 20px 0 16px; flex: none; }
+.field input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; font-size: 17px; font-weight: 600; }
+.field .aux { font-size: 13px; color: var(--on-surface-var); white-space: nowrap; }
+
+/* Containers */
+.card { background: var(--surface-c); border-radius: var(--r-xl); }
+.card.high { background: var(--surface-high); }
+.pane { background: var(--surface-c); border-radius: var(--r-xl); }
+
+/* Segmented list (M3 Expressive grouped list: 3px gaps, 24px outer corners) */
+.seg { display: flex; flex-direction: column; gap: 3px; }
+.seg > .item { background: var(--surface-c); border-radius: 6px; min-height: 56px; display: flex; align-items: center; gap: 14px;
+  padding: 8px 16px 8px 12px; width: 100%; transition: background-color .2s, border-radius .3s var(--spring); }
+.seg > .item:first-child { border-top-left-radius: 24px; border-top-right-radius: 24px; }
+.seg > .item:last-child  { border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; }
+.seg > .item.sel { background: var(--secondary-c); color: var(--on-secondary-c); border-radius: 24px; }
+.seg > .item.sel .s { color: var(--on-secondary-c); opacity: .85; }
+.seg.high > .item { background: var(--surface-high); }
+.seg > .item.sel, .seg.high > .item.sel { background: var(--secondary-c); color: var(--on-secondary-c); border-radius: 24px; }
+.item .lead { width: 40px; height: 40px; flex: none; display: grid; place-items: center; position: relative; }
+.item .txt  { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.item .h    { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item .s    { font-size: 13px; color: var(--on-surface-var); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item .v    { font-size: 20px; font-weight: 800; white-space: nowrap; font-variation-settings: 'wdth' 105; }
+.item .v small { font-size: 12px; font-weight: 600; color: var(--on-surface-var); margin-left: 2px; }
+
+/* Stat tiles */
+.stats { display: grid; gap: 6px; }
+.stat { background: var(--surface-high); padding: 10px 12px; border-radius: 6px; display: flex; flex-direction: column; gap: 2px; }
+.stat .k { font-size: 12px; color: var(--on-surface-var); }
+.stat .n { font-size: 20px; font-weight: 800; font-variation-settings: 'wdth' 110; }
+.stats > .stat:first-child { border-top-left-radius: 20px; border-bottom-left-radius: 20px; }
+.stats > .stat:last-child  { border-top-right-radius: 20px; border-bottom-right-radius: 20px; }
+
+/* Switch (M3) */
+.switch { width: 52px; height: 32px; border-radius: 16px; background: var(--surface-highest); border: 2px solid var(--outline); position: relative; flex: none; }
+.switch::after { content: ''; position: absolute; left: 6px; top: 6px; width: 16px; height: 16px; border-radius: 50%; background: var(--outline); transition: all .3s var(--spring); }
+.switch.on { background: var(--primary); border-color: var(--primary); }
+.switch.on::after { left: 24px; top: 2px; width: 24px; height: 24px; background: var(--on-primary); }
+
+/* Navigation bar (phone) */
+.navbar { position: absolute; left: 0; right: 0; bottom: 0; height: 80px; background: var(--surface-c); display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 12px 8px 0; z-index: 5; }
+.nav-i { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; color: var(--on-surface-var); }
+.nav-i .ind { width: 56px; height: 32px; border-radius: 16px; display: grid; place-items: center; transition: background-color .25s, width .35s var(--spring); }
+.nav-i.on { color: var(--on-surface); font-weight: 700; }
+.nav-i.on .ind { background: var(--secondary-c); color: var(--on-secondary-c); }
+
+/* Navigation rail (tablet) */
+.rail { width: 96px; flex: none; height: 100%; display: flex; flex-direction: column; align-items: center; padding: 20px 0 20px; gap: 4px; }
+.rail .brand { width: 48px; height: 48px; margin-bottom: 10px; }
+.rail .rail-fab { width: 56px; height: 56px; border-radius: 16px; background: var(--primary-c); color: var(--on-primary-c); display: grid; place-items: center; margin-bottom: 18px; box-shadow: var(--shadow-1); }
+.rail-i { width: 80px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0 8px; font-size: 12px; font-weight: 500; color: var(--on-surface-var); }
+.rail-i .ind { width: 56px; height: 32px; border-radius: 16px; display: grid; place-items: center; }
+.rail-i.on { color: var(--on-surface); font-weight: 700; }
+.rail-i.on .ind { background: var(--secondary-c); color: var(--on-secondary-c); }
+.rail .spacer { flex: 1; }
+
+/* Live dot */
+.live { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+
+/* Divider */
+.hr { height: 1px; background: var(--outline-var); opacity: .6; }
+
+/* ==========================================================================
+   Motion. Entrance keyframes only define `from`, so the resting style is the
+   final frame (screenshots with animation disabled look identical).
+   ========================================================================== */
+@keyframes spin     { to { transform: rotate(360deg); } }
+@keyframes spin-rev { to { transform: rotate(-360deg); } }
+@keyframes breathe  { 50% { transform: scale(1.035); } }
+@keyframes morph    { 0%,100% { border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; transform: rotate(0); }
+                      50%     { border-radius: 62% 38% 35% 65% / 58% 62% 38% 42%; transform: rotate(30deg); } }
+@keyframes rise     { from { opacity: 0; transform: translateY(16px) scale(.97); } }
+@keyframes rise-x   { from { opacity: 0; transform: translateX(-10px); } }
+@keyframes pop      { from { opacity: 0; transform: scale(.6) rotate(-24deg); } }
+@keyframes chip-in  { from { opacity: 0; transform: scale(.8); } }
+@keyframes fade     { from { opacity: 0; } }
+@keyframes blink    { 50% { opacity: .3; } }
+@keyframes wave-x   { to { transform: translateX(24px); } }
+@keyframes grow-y   { from { transform: scaleY(0); } }
+@keyframes grow-x   { from { transform: scaleX(0); } }
+@keyframes draw     { from { stroke-dashoffset: var(--len, 400); } }
+@keyframes sonar    { from { transform: scale(1); opacity: .8; } to { transform: scale(2.6); opacity: 0; } }
+@keyframes node-pop { 0% { transform: scale(0); } 70% { transform: scale(1.3); } }
+@keyframes bob      { 50% { transform: translateY(-3px); } }
+@keyframes wobble   { 0%,100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+@keyframes ecg      { 0% { stroke-dashoffset: 160; } 40%,75% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -160; } }
+@keyframes pump     { 0%,100% { transform: scale(1); } 30% { transform: scale(1.06); } 45% { transform: scale(.98); } 60% { transform: scale(1.02); } }
+@keyframes dash-flow{ to { stroke-dashoffset: -20; } }
+@keyframes cell-in  { from { opacity: 0; transform: scale(.3); } }
+@keyframes eq       { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(.6); } }
+@keyframes shimmer  { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+@keyframes travel   { 0% { offset-distance: 0%; opacity: 0; } 10%,90% { opacity: 1; } 100% { offset-distance: 100%; opacity: 0; } }
+.a-travel   { animation: travel 2.6s cubic-bezier(.45,0,.55,1) infinite; offset-rotate: 0deg; }
+
+.a-spin     { transform-box: fill-box; transform-origin: center; animation: spin 28s linear infinite; }
+.a-spin-f   { transform-box: fill-box; transform-origin: center; animation: spin 10s linear infinite; }
+.a-spin-rev { transform-box: fill-box; transform-origin: center; animation: spin-rev 30s linear infinite; }
+.a-breathe  { animation: breathe 1.2s cubic-bezier(.4,0,.2,1) infinite; }
+.a-morph    { border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; animation: morph 9s ease-in-out infinite; }
+.a-rise     { animation: rise .6s var(--emph-dec) both; }
+.a-rise-x   { animation: rise-x .5s var(--emph-dec) both; }
+.a-pop      { animation: pop .7s var(--spring) both; }
+.a-chip     { animation: chip-in .45s var(--spring) both; }
+.a-fade     { animation: fade .8s ease both; }
+.a-blink    { animation: blink 1.4s ease-in-out infinite; }
+.a-wave-x   { animation: wave-x .9s linear infinite; }
+.a-grow-y   { transform-origin: bottom; animation: grow-y .6s var(--spring) both; }
+.a-grow-x   { transform-origin: left; animation: grow-x .9s var(--emph-dec) both; }
+.a-draw     { animation: draw 1.6s var(--emph-dec) both; }
+.a-sonar    { transform-box: fill-box; transform-origin: center; animation: sonar 2s cubic-bezier(.2,.6,.3,1) infinite; }
+.a-node     { transform-box: fill-box; transform-origin: center; animation: node-pop .45s var(--spring) both; }
+.a-bob      { animation: bob 1.6s ease-in-out infinite; }
+.a-wobble   { transform-box: fill-box; transform-origin: center; animation: wobble 4s ease-in-out infinite; }
+.a-ecg      { stroke-dasharray: 160; animation: ecg 2.4s cubic-bezier(.4,0,.2,1) infinite; }
+.a-pump     { animation: pump 2.4s ease-in-out infinite; }
+.a-dash     { animation: dash-flow 1s linear infinite; }
+.a-cell     { animation: cell-in .3s var(--spring) both; }
+.a-eq       { transform-origin: bottom; animation: eq 1.2s ease-in-out infinite; }
+
+/* Screenshot mode: freeze everything on its resting frame */
+.static *, .static *::before, .static *::after { animation: none !important; transition: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .app *, .app *::before, .app *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}

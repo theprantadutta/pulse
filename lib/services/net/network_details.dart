@@ -147,6 +147,18 @@ class NetworkDetailsReader {
 
   static const _channel = MethodChannel('network_info');
 
+  /// Android: opens the system Location page (the SSID stays hidden while the
+  /// device's Location toggle is off). False when it couldn't be opened.
+  static Future<bool> openLocationSettings() async {
+    try {
+      return await _channel.invokeMethod<bool>('openLocationSettings') ?? false;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
   /// [summary] lets tests skip the connectivity plugin.
   Future<LinkDetails> read({ConnectionSummary? summary}) async {
     summary ??= await readConnection(await Connectivity().checkConnectivity());

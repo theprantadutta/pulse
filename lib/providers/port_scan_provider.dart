@@ -61,15 +61,18 @@ class PortScanState {
     Duration? elapsed,
     String? error,
     bool clearError = false,
+
+    /// Drops the previous run's resolved address and elapsed time.
+    bool clearRun = false,
   }) => PortScanState(
     target: target ?? this.target,
-    address: address ?? this.address,
+    address: clearRun ? address : address ?? this.address,
     preset: preset ?? this.preset,
     customSpec: customSpec ?? this.customSpec,
     ports: ports ?? this.ports,
     results: results ?? this.results,
     running: running ?? this.running,
-    elapsed: elapsed ?? this.elapsed,
+    elapsed: clearRun ? elapsed : elapsed ?? this.elapsed,
     error: clearError ? null : error ?? this.error,
     concurrency: concurrency,
   );
@@ -111,7 +114,14 @@ class PortScanNotifier extends Notifier<PortScanState> {
       state = state.copyWith(error: 'Pick at most 20,000 ports per scan.');
       return;
     }
-    state = state.copyWith(target: target, ports: ports, results: const {}, running: true, clearError: true);
+    state = state.copyWith(
+      target: target,
+      ports: ports,
+      results: const {},
+      running: true,
+      clearError: true,
+      clearRun: true,
+    );
     final InternetAddress address;
     try {
       address = await Dns.resolve(target, family: ProbeFamily.ipv4);

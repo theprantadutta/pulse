@@ -1,15 +1,23 @@
+import 'dart:math' as math;
+
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/format.dart';
-import '../../../core/widgets/wire/wire.dart';
-import '../../../core/widgets/wire/wire_page.dart';
+import '../../../core/widgets/pulse/pulse.dart';
 import '../../../providers/network_provider.dart';
 import '../../../providers/speed_provider.dart';
 import '../../../services/net/speed_test.dart';
-import '../tools/tool_widgets.dart';
+import '../../navigation/destinations.dart';
+import 'speed_widgets.dart';
 
-/// 10 — Speed test.
+/// Engine defaults, for the "6.2 s" phase clock.
+final _engine = SpeedTest();
+
+/// 08 Speed test: phase group, wavy circular gauge (log scale), shape stats.
+/// Tablet: gauge on the left, Ping/Jitter shapes, upload card and past results
+/// in a 300 dp column on the right.
 class SpeedScreen extends ConsumerStatefulWidget {
   const SpeedScreen({super.key});
 
@@ -22,470 +30,656 @@ class _SpeedScreenState extends ConsumerState<SpeedScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!ref.read(speedProvider).hasServer) ref.read(speedProvider.notifier).autoSelect();
+      if (!mounted) return;
+      final s = ref.read(speedProvider);
+      if (!s.hasServer && !s.selecting) ref.read(speedProvider.notifier).autoSelect();
     });
   }
 
-  String _mbps(double? v) => v == null
-      ? '—'
-      : v >= 100
-      ? v.toStringAsFixed(0)
-      : v.toStringAsFixed(1);
-
-  Future<void> _change() async {
-    final n = ref.read(speedProvider.notifier);
-    final picked = await showDialog<SpeedServer>(
-      context: context,
-      builder: (context) {
-        final w = context.wire;
-        return Dialog(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  color: w.ink,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                  child: Text('SERVER', style: WireType.title(26).copyWith(color: w.background)),
-                ),
-                for (final s in kSpeedServers)
-                  WireRow(
-                    onTap: () => Navigator.of(context).pop(s),
-                    child: Row(
-                      children: [
-                        Expanded(child: Text('${s.name} · ${s.location}', style: WireType.data(14))),
-                        Text(
-                          n.distanceTo(s) == null
-                              ? (s.isCloudflare ? 'ANYCAST' : '')
-                              : '${n.distanceTo(s)!.round()} KM',
-                          style: WireType.label(),
-                        ),
-                      ],
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    'Uploads always go to Cloudflare — Hetzner servers are download-only.',
-                    style: WireType.body(12).copyWith(color: w.text2),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-    if (picked != null) n.choose(picked);
+  void _copy(SpeedState s) {
+    final text = [
+      'Pulse speed test · ${serverLabel(s)}',
+      '↓ ${fmtMbps(s.downMbps)} Mbps',
+      '↑ ${fmtMbps(s.upMbps)} Mbps',
+      'ping ${fmtMs(s.pingMs)} ms',
+      'jitter ${fmtMs(s.jitterMs)} ms',
+    ].join(' · ');
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.maybeOf(context)
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('Result copied'), duration: Duration(seconds: 2)));
   }
 
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(speedProvider);
     final n = ref.read(speedProvider.notifier);
-    final w = context.wire;
-    // Distance needs this network's public location.
+    // Server distances need this network's public location.
     ref.watch(networkInfoProvider);
-    final dist = s.hasServer ? n.distanceTo(s.server) : null;
-    final serverName = !s.hasServer
-        ? (s.selecting ? 'Selecting…' : '—')
-        : s.server.isCloudflare
-        ? 'Cloudflare${s.colo == null ? '' : ' · ${s.colo}'}'
-        : '${s.server.name} · ${s.server.location}';
-    final serverMeta = [
-      if (dist != null) '${dist.round()} km',
-      if (s.server.isCloudflare) 'anycast',
-      if (s.autoSelected) 'auto-selected',
-      if (!s.server.isCloudflare && s.hasServer) 'upload via Cloudflare',
-    ].join(' · ');
-    final liveLabel = switch (s.phase) {
-      SpeedPhase.ping => 'PING · MEASURING',
-      SpeedPhase.download => 'DOWNLOAD · LIVE',
-      SpeedPhase.upload => 'UPLOAD · LIVE',
-      SpeedPhase.done => 'DOWNLOAD · RESULT',
-      SpeedPhase.idle => 'READY',
-    };
-    final heroValue = switch (s.phase) {
-      SpeedPhase.download || SpeedPhase.upload => _mbps(s.liveMbps),
-      SpeedPhase.done => _mbps(s.downMbps),
-      SpeedPhase.ping => s.pingMs == null ? '…' : fmtMs(s.pingMs),
-      SpeedPhase.idle => '—',
-    };
-    final heroUnit = s.phase == SpeedPhase.ping ? 'ms' : 'mbps';
-    final gaugeValue = s.phase == SpeedPhase.done ? (s.downMbps ?? 0) : (s.liveMbps ?? 0);
+    final compact = context.isCompact;
 
-    Widget steps() => _Steps(phase: s.phase);
+    final serverChip = _ServerChip(state: s, long: !compact, onTap: () => showSpeedServerSheet(context, ref));
 
-    Widget chart({int slots = 48, double pad = 20}) => WireBarChart(
-      bars: [for (final x in s.samples) WireBar(x.mbps, color: x.upload ? w.signal : w.chartBar)],
-      slots: slots,
-      gridStep: 30,
-      padding: EdgeInsets.fromLTRB(pad, 16, pad, 0),
-    );
-
-    final action = s.running
-        ? WireButton.bar(label: 'Cancel', glyph: '■', variant: WireButtonVariant.outline, onPressed: n.cancel)
-        : WireButton.bar(label: s.phase == SpeedPhase.done ? 'Test again' : 'Start', glyph: '▶', onPressed: n.start);
-
-    return WireAdaptive(
-      mobile: (context) => WireMobilePage(
-        header: WireMobileHeader(
+    return LayoutBuilder(
+      builder: (context, box) {
+        final wide = !compact && box.maxWidth >= 760;
+        return PulsePage(
           title: 'Speed test',
-          onBack: mobileBack(context),
-          trailing: Text(
-            s.phase == SpeedPhase.idle ? '' : s.phase.name.toUpperCase(),
-            style: WireType.label(12).copyWith(color: w.signal),
-          ),
-        ),
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            WireRow(
-              onTap: s.running ? null : _change,
-              divider: kWireBorder,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: serverName,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    if (serverMeta.isNotEmpty) TextSpan(text: ' · $serverMeta'),
-                  ],
-                ),
-                style: WireType.body(12),
-              ),
-            ),
-            if (s.error != null) WireErrorBlock(reason: s.error!, size: 56),
-            Container(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-              decoration: BoxDecoration(
-                color: s.running ? w.signal : null,
-                border: Border(
-                  bottom: BorderSide(color: w.ink, width: kWireBorder),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(liveLabel, style: WireType.label().copyWith(color: s.running ? w.onSignal : w.ink)),
-                  WireHeroNumber(value: heroValue, size: 150, color: s.running ? w.onSignal : w.ink, unit: null),
-                  Text(
-                    heroUnit.toUpperCase(),
-                    style: WireType.data(14).copyWith(color: s.running ? w.onSignal : w.ink),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              height: 46,
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: w.ink, width: kWireBorder),
-                ),
-              ),
-              child: _Gauge(value: gaugeValue, segments: 20, gap: 2),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: w.ink, width: kWireBorder),
-                ),
-              ),
-              child: WireSplitRow(
-                children: [
-                  WireStat(
-                    label: 'Download',
-                    value: _mbps(s.downMbps),
-                    valueSize: 32,
-                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                  ),
-                  WireStat(
-                    label: 'Ping',
-                    value: s.pingMs == null ? '—' : '${fmtMs(s.pingMs)} MS',
-                    valueSize: 32,
-                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(child: chart(slots: 30, pad: 14)),
+          backTo: Routes.tools,
+          actions: [
+            serverChip,
+            if (!compact && s.running)
+              PulseButton(label: 'Cancel', icon: PulseIcons.stop, style: PulseButtonStyle.tonal, onPressed: n.cancel),
           ],
-        ),
-        action: action,
-      ),
-      desktop: (context) => WireDesktopPage(
-        panelWidth: 340,
-        topBar: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Text('SERVER>', style: WireType.label(12)),
-                    const SizedBox(width: 16),
-                    Flexible(
-                      child: Text(serverName, maxLines: 1, overflow: TextOverflow.ellipsis, style: WireType.data(20)),
-                    ),
-                    const SizedBox(width: 16),
-                    Flexible(
-                      child: Text(
-                        serverMeta,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: WireType.body(13).copyWith(color: w.text3),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const WireVRule(),
-            WireTopChip(label: 'CHANGE', onTap: s.running ? null : _change),
-            if (s.running)
-              WireButton(
-                label: 'Cancel',
-                glyph: '■',
-                variant: WireButtonVariant.inverse,
-                bordered: false,
-                fontSize: 17,
-                height: WireLayout.topBar,
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                onPressed: n.cancel,
-              )
-            else
-              WireButton(
-                label: s.phase == SpeedPhase.done ? 'Test again' : 'Start',
-                glyph: '▶',
-                variant: WireButtonVariant.primary,
-                bordered: false,
-                fontSize: 17,
-                height: WireLayout.topBar,
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                onPressed: s.selecting ? null : n.start,
-              ),
-          ],
-        ),
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            steps(),
-            if (s.error != null) WireErrorBlock(reason: s.error!, size: 72, onRetry: n.start),
-            Container(
-              padding: const EdgeInsets.fromLTRB(28, 20, 28, 20),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: w.ink, width: kWireBorder),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(liveLabel, style: WireType.label(12)),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 160,
-                    child: Align(
-                      alignment: Alignment.bottomLeft,
-                      child: WireHeroNumber(value: heroValue, unit: heroUnit, size: 180),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(height: 28, child: _Gauge(value: gaugeValue, segments: 40, gap: 3)),
-                  const SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      for (final l in const ['0', '50', '100', '250', '500+'])
-                        Text(l, style: WireType.body(11).copyWith(color: w.text2, height: 1.2)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Expanded(child: chart()),
-          ],
-        ),
-        panel: _SpeedPanel(state: s),
-      ),
+          body: wide
+              ? _TabletBody(state: s, onCopy: () => _copy(s))
+              : _PhoneBody(state: s, onCopy: () => _copy(s), showCancel: compact),
+        );
+      },
     );
   }
 }
 
-class _Steps extends StatelessWidget {
-  const _Steps({required this.phase});
-  final SpeedPhase phase;
-
-  @override
-  Widget build(BuildContext context) {
-    final w = context.wire;
-    const steps = [
-      (SpeedPhase.ping, '1 PING'),
-      (SpeedPhase.download, '2 DOWNLOAD'),
-      (SpeedPhase.upload, '3 UPLOAD'),
-      (SpeedPhase.done, '4 RESULT'),
-    ];
-    final current = phase.index;
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: w.ink, width: kWireBorder),
-        ),
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (var i = 0; i < steps.length; i++) ...[
-              if (i > 0) const WireVRule(),
-              Expanded(
-                child: Builder(
-                  builder: (context) {
-                    final idx = steps[i].$1.index;
-                    final done = phase != SpeedPhase.idle && (idx < current || phase == SpeedPhase.done);
-                    final active = idx == current && phase != SpeedPhase.done && phase != SpeedPhase.idle;
-                    final bg = done
-                        ? w.ink
-                        : active
-                        ? w.signal
-                        : null;
-                    final fg = done
-                        ? w.background
-                        : active
-                        ? w.onSignal
-                        : w.ink;
-                    return Container(
-                      color: bg,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '${steps[i].$2}${done
-                            ? ' ✓'
-                            : active
-                            ? '…'
-                            : ''}',
-                        style: WireType.label(12).copyWith(color: fg),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Gauge extends StatelessWidget {
-  const _Gauge({required this.value, required this.segments, required this.gap});
-  final double value;
-  final int segments;
-  final double gap;
-
-  @override
-  Widget build(BuildContext context) {
-    final w = context.wire;
-    final filled = (gaugeFraction(value) * segments).round();
-    return WireStatusStrip(
-      colors: [for (var i = 0; i < segments; i++) i < filled ? w.ink : Colors.transparent],
-      gap: gap,
-      height: double.infinity,
-      borderColor: w.ink,
-    );
-  }
-}
-
-class _SpeedPanel extends ConsumerWidget {
-  const _SpeedPanel({required this.state});
+class _ServerChip extends StatelessWidget {
+  const _ServerChip({required this.state, required this.long, required this.onTap});
   final SpeedState state;
+  final bool long;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = state;
+    final label = [
+      serverLabel(s),
+      if (long && s.hasServer && s.server.isCloudflare) 'anycast',
+      if (long && s.hasServer && !s.server.isCloudflare) 'upload via Cloudflare',
+    ].join(' · ');
+    return PulseButton(
+      label: label,
+      icon: PulseIcons.server,
+      style: PulseButtonStyle.outlined,
+      size: long ? PulseButtonSize.medium : PulseButtonSize.small,
+      tooltip: 'Server',
+      onPressed: onTap,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Shared pieces
+// ---------------------------------------------------------------------------
+
+class _Phases extends StatelessWidget {
+  const _Phases({required this.state, this.long = false});
+  final SpeedState state;
+  final bool long;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = state;
+    final pingDone = s.pingMs != null && s.phase != SpeedPhase.ping;
+    final downDone = s.downMbps != null;
+    final upDone = s.upMbps != null;
+    return Semantics(
+      label: 'Test phases',
+      child: PulseButtonGroup<SpeedPhase>(
+        selected: s.running ? s.phase : null,
+        segments: [
+          PulseSegment(
+            SpeedPhase.ping,
+            'Ping',
+            icon: PulseIcons.pulse,
+            done: pingDone,
+            trailing: pingDone ? '${fmtMs(s.pingMs)}${long ? ' ms' : ''}' : null,
+          ),
+          PulseSegment(
+            SpeedPhase.download,
+            'Download',
+            icon: PulseIcons.down,
+            done: downDone,
+            trailing: downDone ? fmtMbps(s.downMbps) : null,
+          ),
+          PulseSegment(
+            SpeedPhase.upload,
+            'Upload',
+            icon: long || s.phase == SpeedPhase.upload ? PulseIcons.up : null,
+            done: upDone,
+            trailing: upDone ? fmtMbps(s.upMbps) : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The wavy circular gauge with the live value in its centre, or the pink
+/// Start button when idle.
+class _Gauge extends ConsumerWidget {
+  const _Gauge({required this.state, required this.size});
+  final SpeedState state;
+  final double size;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final w = context.wire;
     final s = state;
-    final history = ref.watch(speedHistoryProvider).value ?? const [];
-    String mb(double? v) => v == null
-        ? '—'
-        : v >= 100
-        ? v.toStringAsFixed(0)
-        : v.toStringAsFixed(1);
+    final c = context.colors;
+    final big = size >= 360;
+    final idle = s.phase == SpeedPhase.idle || (s.phase == SpeedPhase.done && s.downMbps == null);
+    final mbps = switch (s.phase) {
+      SpeedPhase.download || SpeedPhase.upload => s.liveMbps,
+      SpeedPhase.done => s.downMbps,
+      _ => null,
+    };
+    final Widget centre;
+    if (idle) {
+      centre = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PulseButton(
+            label: 'Start',
+            icon: PulseIcons.play,
+            size: PulseButtonSize.large,
+            onPressed: s.selecting ? null : ref.read(speedProvider.notifier).start,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            s.selecting ? 'Finding the fastest server…' : 'Ping, download, then upload',
+            style: context.type.bodySmall!.copyWith(color: c.onSurfaceVariant),
+          ),
+        ],
+      );
+    } else {
+      final ping = s.phase == SpeedPhase.ping;
+      final label = switch (s.phase) {
+        SpeedPhase.ping => 'Ping',
+        SpeedPhase.upload => 'Upload',
+        _ => 'Download',
+      };
+      centre = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: pulseText(big ? 16 : 14, 600).copyWith(color: c.onSurfaceVariant)),
+          MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.3)),
+            child: PulseLiveValue(
+              ping ? (s.pingMs == null ? '…' : fmtMs(s.pingMs)) : fmtMbps(mbps ?? 0),
+              style: pulseText(big ? 132 : 92, 900, wdth: 125, height: 1, tracking: -.04).copyWith(color: c.onSurface),
+            ),
+          ),
+          Text(ping ? 'ms' : 'Mbps', style: pulseText(big ? 20 : 16, 700).copyWith(color: c.primary)),
+        ],
+      );
+    }
+    return Semantics(
+      label: idle ? 'Speed gauge, not started' : 'Speed gauge, ${fmtMbps(mbps ?? 0)} megabits per second',
+      child: WavyProgress(
+        circular: true,
+        size: Size(size, size),
+        value: speedGaugeValue(mbps),
+        child: SizedBox(
+          width: size * .62,
+          child: FittedBox(fit: BoxFit.scaleDown, child: centre),
+        ),
+      ),
+    );
+  }
+}
+
+class _PhaseProgress extends StatelessWidget {
+  const _PhaseProgress({required this.state, this.scaleNote = false});
+  final SpeedState state;
+  final bool scaleNote;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = state;
+    final c = context.colors;
+    final (String what, String clock) = switch (s.phase) {
+      SpeedPhase.ping => ('Measuring ping', '${(s.progress * 10).round()} of 10'),
+      SpeedPhase.download => (
+        'Measuring download',
+        '${(s.progress * _engine.downloadTime.inMilliseconds / 1000).toStringAsFixed(1)} s',
+      ),
+      SpeedPhase.upload => (
+        'Measuring upload',
+        '${(s.progress * _engine.uploadTime.inMilliseconds / 1000).toStringAsFixed(1)} s',
+      ),
+      SpeedPhase.done => ('Finished', ''),
+      SpeedPhase.idle => ('Ready', ''),
+    };
+    final style = context.type.bodySmall!.copyWith(color: c.onSurfaceVariant);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('DOWNLOAD', style: WireType.label()),
-              Text(mb(s.downMbps), style: WireType.display(60, width: 65, height: 0.95)),
-              Text('MBPS', style: WireType.label()),
-            ],
-          ),
-        ),
-        const WireRule(),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('UPLOAD', style: WireType.label()),
-              Text(mb(s.upMbps), style: WireType.display(44, width: 65, height: 0.95)),
-              Text('MBPS', style: WireType.label()),
-            ],
-          ),
-        ),
-        const WireRule(),
-        WireSplitRow(
+        Row(
           children: [
-            WireStat(
-              label: 'Ping',
-              value: s.pingMs == null ? '—' : '${fmtMs(s.pingMs)} MS',
-              valueSize: 32,
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            Expanded(
+              child: Text(
+                scaleNote ? '$what · log scale 1–500 Mbps' : what,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: style,
+              ),
             ),
-            WireStat(
-              label: 'Jitter',
-              value: s.jitterMs == null ? '—' : '${fmtMs(s.jitterMs)} MS',
-              valueSize: 32,
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            Text(clock, style: style),
+          ],
+        ),
+        const SizedBox(height: 6),
+        PulseWavyBar(value: s.progress.clamp(0, .999).toDouble(), semanticLabel: what),
+      ],
+    );
+  }
+}
+
+/// "Upload — next": a dashed arch while the upload has not started.
+class _PendingArch extends StatelessWidget {
+  const _PendingArch({required this.size, required this.label, required this.note});
+  final double size;
+  final String label, note;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Semantics(
+      label: '$label, $note',
+      excludeSemantics: true,
+      child: SizedBox.square(
+        dimension: size,
+        child: DashedOutline(
+          path: DashedOutline.shape(PulseShape.arch),
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(height: size * .08),
+                  Text(label, style: pulseText(size * .12, 700).copyWith(color: c.onSurfaceVariant)),
+                  Text('—', style: pulseText(size * .28, 900, height: 1).copyWith(color: c.onSurfaceVariant)),
+                  Text(note, style: pulseText(size * .11, 700).copyWith(color: c.onSurfaceVariant)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PingShape extends StatelessWidget {
+  const _PingShape({required this.state, required this.size});
+  final SpeedState state;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => PulsePop(
+    delay: const Duration(milliseconds: 200),
+    child: PulseShapeStat(
+      shape: PulseShape.clover4,
+      tone: PulseTone.lime,
+      label: 'Ping',
+      value: fmtMs(state.pingMs),
+      unit: 'ms',
+      size: size,
+      motion: PulseShapeMotion.wobble,
+    ),
+  );
+}
+
+class _JitterShape extends StatelessWidget {
+  const _JitterShape({required this.state, required this.size});
+  final SpeedState state;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => PulsePop(
+    delay: const Duration(milliseconds: 300),
+    child: PulseShapeStat(
+      shape: PulseShape.sunny,
+      tone: PulseTone.lavender,
+      label: 'Jitter',
+      value: fmtMs(state.jitterMs),
+      unit: 'ms',
+      size: size,
+      motion: PulseShapeMotion.spin,
+    ),
+  );
+}
+
+/// Done: ↓ · ↑ · ping · jitter, then Run again / Copy.
+class _Summary extends ConsumerWidget {
+  const _Summary({required this.state, required this.onCopy});
+  final SpeedState state;
+  final VoidCallback onCopy;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = state;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        PulseCard(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: Text('Result', style: context.type.titleMedium)),
+                  Flexible(
+                    child: Text(
+                      serverLabel(s),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.type.bodySmall!.copyWith(color: context.colors.onSurfaceVariant),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              PulseStatRow(
+                stats: [
+                  PulseStat('↓ Down', fmtMbps(s.downMbps), unit: 'Mbps'),
+                  PulseStat('↑ Up', fmtMbps(s.upMbps), unit: 'Mbps'),
+                  PulseStat('Ping', fmtMs(s.pingMs), unit: 'ms'),
+                  PulseStat('Jitter', fmtMs(s.jitterMs), unit: 'ms'),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: PulseButton(
+                label: 'Run again',
+                icon: PulseIcons.refresh,
+                size: PulseButtonSize.large,
+                expand: true,
+                onPressed: ref.read(speedProvider.notifier).start,
+              ),
+            ),
+            const SizedBox(width: 8),
+            PulseButton(
+              label: 'Copy',
+              icon: PulseIcons.copy,
+              style: PulseButtonStyle.tonal,
+              size: PulseButtonSize.large,
+              onPressed: onCopy,
             ),
           ],
         ),
-        const WireRule(),
-        const WireSectionBar('Past results'),
-        Expanded(
-          child: history.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Text('Finished tests land here.', style: WireType.body(13).copyWith(color: w.text3)),
-                )
-              : ListView(
-                  children: [
-                    for (final h in history)
-                      WireRow(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        child: Row(
-                          children: [
-                            Expanded(child: Text(fmtWhen(h.at), style: WireType.body(12))),
-                            Text('↓${mb(h.down)}', style: WireType.data(13)),
-                            const SizedBox(width: 14),
-                            Text('↑${mb(h.up)}', style: WireType.data(13)),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-        ),
       ],
     );
+  }
+}
+
+class _ErrorBanner extends ConsumerWidget {
+  const _ErrorBanner({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => PulseErrorBanner(
+    title: 'Speed test failed',
+    message: message.replaceFirst('Speed test failed: ', ''),
+    onRetry: ref.read(speedProvider.notifier).start,
+  );
+}
+
+class _PastResults extends ConsumerWidget {
+  const _PastResults();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final history = ref.watch(speedHistoryProvider).value ?? const <SpeedResult>[];
+    final c = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const PulseSectionLabel('Past results', padding: EdgeInsets.fromLTRB(4, 6, 0, 8)),
+        if (history.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+            child: Text(
+              'Finished tests show up here.',
+              style: context.type.bodyMedium!.copyWith(color: c.onSurfaceVariant),
+            ),
+          )
+        else
+          PulseSegmentedList(
+            children: [
+              for (final h in history.take(5))
+                PulseListItem(
+                  title: fmtDay(h.at),
+                  titleStyle: context.type.titleMedium!.copyWith(fontSize: 15),
+                  subtitle: [h.server, if (h.ping != null) '${fmtMs(h.ping)} ms'].join(' · '),
+                  trailing: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('${fmtMbps(h.down)} ↓', style: pulseNumber(16).copyWith(color: c.onSurface)),
+                      Text('${fmtMbps(h.up)} ↑', style: context.type.bodySmall!.copyWith(color: c.onSurfaceVariant)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Phone
+// ---------------------------------------------------------------------------
+
+class _PhoneBody extends ConsumerWidget {
+  const _PhoneBody({required this.state, required this.onCopy, required this.showCancel});
+  final SpeedState state;
+  final VoidCallback onCopy;
+  final bool showCancel;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = state;
+    final pad = context.pagePadding;
+    final done = s.phase == SpeedPhase.done && s.downMbps != null;
+    final idle = !s.running && !done;
+    final children = <Widget>[
+      // Tablets beside the Tools pane use this body too, with room for the full row.
+      _Phases(state: s, long: !context.isCompact),
+      if (s.error != null) _ErrorBanner(message: s.error!),
+      Center(
+        child: LayoutBuilder(
+          builder: (context, box) => _Gauge(state: s, size: math.min(280, box.maxWidth)),
+        ),
+      ),
+      if (s.running)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: _PhaseProgress(state: s),
+        ),
+      if (done)
+        _Summary(state: s, onCopy: onCopy)
+      else
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final size = math.min(140.0, (box.maxWidth - 24) / 3);
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _PingShape(state: s, size: size),
+                  _JitterShape(state: s, size: size),
+                  PulsePop(
+                    delay: const Duration(milliseconds: 400),
+                    child: s.phase == SpeedPhase.upload && s.downMbps != null
+                        ? PulseShapeStat(
+                            shape: PulseShape.arch,
+                            tone: PulseTone.pink,
+                            label: 'Download',
+                            value: fmtMbps(s.downMbps),
+                            unit: 'Mbps',
+                            size: size,
+                          )
+                        : _PendingArch(size: size, label: 'Upload', note: idle ? 'Mbps' : 'next'),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      if (idle || done) const _PastResults(),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(pad, 8, pad, 24),
+            children: [
+              for (var i = 0; i < children.length; i++)
+                Padding(
+                  padding: EdgeInsets.only(top: i == 0 ? 0 : 14),
+                  child: PulseEntrance(index: i, child: children[i]),
+                ),
+            ],
+          ),
+        ),
+        if (s.running && showCancel)
+          Padding(
+            padding: EdgeInsets.fromLTRB(pad, 4, pad, 16),
+            child: PulseButton(
+              label: 'Cancel test',
+              icon: PulseIcons.stop,
+              style: PulseButtonStyle.tonal,
+              size: PulseButtonSize.large,
+              expand: true,
+              onPressed: ref.read(speedProvider.notifier).cancel,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tablet
+// ---------------------------------------------------------------------------
+
+class _TabletBody extends StatelessWidget {
+  const _TabletBody({required this.state, required this.onCopy});
+  final SpeedState state;
+  final VoidCallback onCopy;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = state;
+    final done = s.phase == SpeedPhase.done && s.downMbps != null;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(PulseLayout.tabletPadding, 0, PulseLayout.tabletPadding, 24),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                PulseEntrance(child: _Phases(state: s, long: true)),
+                if (s.error != null) ...[const SizedBox(height: 14), _ErrorBanner(message: s.error!)],
+                const SizedBox(height: 14),
+                LayoutBuilder(
+                  builder: (context, box) => Center(
+                    child: _Gauge(state: s, size: math.min(400, box.maxWidth)),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                if (done)
+                  PulseEntrance(
+                    index: 2,
+                    child: _Summary(state: s, onCopy: onCopy),
+                  )
+                else if (s.running)
+                  _PhaseProgress(state: s, scaleNote: true)
+                else
+                  Text(
+                    'Log scale 1–500 Mbps · uploads go to Cloudflare',
+                    textAlign: TextAlign.center,
+                    style: context.type.bodySmall!.copyWith(color: context.colors.onSurfaceVariant),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 20),
+          SizedBox(
+            width: PulseLayout.pane,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _PingShape(state: s, size: 144),
+                    _JitterShape(state: s, size: 144),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                PulseEntrance(index: 1, child: _UploadCard(state: s)),
+                const SizedBox(height: 12),
+                const PulseEntrance(index: 2, child: _PastResults()),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Tablet upload card: dashed while pending, live during upload, solid when done.
+class _UploadCard extends StatelessWidget {
+  const _UploadCard({required this.state});
+  final SpeedState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = state;
+    final c = context.colors;
+    final pending = s.upMbps == null && s.phase != SpeedPhase.upload;
+    final value = s.phase == SpeedPhase.upload ? s.liveMbps : s.upMbps;
+    final row = Padding(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+      child: Row(
+        children: [
+          PulseIcon(PulseIcons.up, size: 22, color: c.onSurfaceVariant),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Upload', style: context.type.titleMedium),
+                Text(switch (s.phase) {
+                  SpeedPhase.upload => 'Measuring · Cloudflare',
+                  SpeedPhase.done when s.upMbps != null => 'Cloudflare',
+                  SpeedPhase.idle || SpeedPhase.done => 'Runs after download',
+                  _ => 'Starts after download',
+                }, style: context.type.bodySmall!.copyWith(color: c.onSurfaceVariant)),
+              ],
+            ),
+          ),
+          if (pending)
+            Text('—', style: pulseNumber(24).copyWith(color: c.outline))
+          else
+            PulseNumber(fmtMbps(value), unit: 'Mbps', live: true, unitScale: .5, style: pulseNumber(24)),
+        ],
+      ),
+    );
+    if (!pending) return PulseCard(padding: EdgeInsets.zero, radius: 24, child: row);
+    return DashedOutline(path: DashedOutline.rounded(24), child: row);
   }
 }

@@ -118,6 +118,14 @@ class MonitorRunner extends Notifier<MonitorRunState> {
 
   Future<void> togglePaused() => setPaused(!_paused);
 
+  /// Re-posts the foreground service's notification after notifications were
+  /// allowed: Android drops the one posted while they were blocked.
+  Future<void> refreshService() async {
+    if (!_started || state.mode != MonitorMode.service) return;
+    _interval = 0;
+    await _configure();
+  }
+
   Future<void> _configure() async {
     final settings = ref.read(settingsProvider);
     final newDeviceRules =
@@ -342,9 +350,11 @@ Future<MonitorOverview> _overview(AppDatabase db, MonitorRange range) async {
         rttN += n - down;
       }
       final loss = sent == 0 ? 0 : (sent - recv) / sent;
-      if (down / n >= 0.5) {
+      // A slot is "down" if any check in it failed outright, "degraded" when
+      // probes were lost or latency ran above twice the target's baseline.
+      if (down > 0) {
         blocks.add(BlockState.down);
-      } else if (down > 0 || loss > 0.05 || (normal != null && rtt != null && rtt > normal * 2 + 20)) {
+      } else if (loss > 0.05 || (normal != null && rtt != null && rtt > normal * 2 + 20)) {
         blocks.add(BlockState.degraded);
       } else {
         blocks.add(BlockState.healthy);

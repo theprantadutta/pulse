@@ -1,10 +1,10 @@
 <p align="center">
-  <img alt="Pulse" src="./assets/brand/logo/pulse_lockup_horizontal_light.png" width="560" />
+  <img alt="Pulse" src="./assets/brand/logo/pulse-lockup-on-light@2x.png" width="420" />
 </p>
 
 # Pulse
 
-A **network diagnostics and monitoring** app for Windows, macOS, Linux, Android and iOS, built with Flutter in the bold, hard-edged **Wire** design.
+A **network diagnostics and monitoring** app for Windows, macOS, Linux, Android and iOS, built with Flutter in a **Material 3 Expressive** design: plum surfaces, a pink, lavender and lime palette, Roboto Flex and shapes that move while Pulse measures.
 
 ## Download
 
@@ -21,9 +21,9 @@ A **network diagnostics and monitoring** app for Windows, macOS, Linux, Android 
 - **Packet loss test** – per-packet timeline, burst detection and a verdict; compare against 1.1.1.1.
 - **Network info** – SSID, Wi-Fi standard, band, channel, security, signal, addressing, public IP, ISP and ASN.
 - **LAN scan** – devices with names, vendors (MAC OUI), types and open ports; Wake-on-LAN.
-- **Geo IP** – locate any host on a map with distance, RTT and hops.
+- **Geo IP** – locate any host on a built-in offline world map with distance, RTT and hops.
 - **Monitor & Alerts** – background checks with uptime strips and incidents; rules for latency, loss, outages and new LAN devices, delivered as notifications, tray alerts or sound. Runs from the system tray on desktop and as a background service on Android/iOS.
-- **History** – every session, searchable, exportable as CSV/TXT.
+- **History** – every session, searchable, exportable as CSV, JSON or text.
 
 ## Installation
 

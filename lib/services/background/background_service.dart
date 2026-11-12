@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/shared_preference_keys.dart';
+import '../../core/theme/pulse_theme.dart';
 import '../../data/db/app_database.dart';
 import '../../data/settings_store.dart';
 import '../net/lan/oui.dart';
@@ -34,7 +35,12 @@ class PulseMonitorTask extends TaskHandler {
     await PulseNotifications.init();
     _prefs = await SharedPreferences.getInstance();
     _db = AppDatabase.open();
-    await OuiDb.load();
+    try {
+      await OuiDb.load();
+    } on Object catch (e) {
+      // Vendor names are a nicety for LAN-watch alerts; checks must still run.
+      debugPrint('Monitor: vendor table unavailable: $e');
+    }
     _engine = MonitorEngine(
       db: _db!,
       prober: const PingProber(),
@@ -121,15 +127,17 @@ class BackgroundMonitor {
         onlyAlertOnce: true,
       ),
       iosNotificationOptions: const IOSNotificationOptions(showNotification: false, playSound: false),
-      foregroundTaskOptions: ForegroundTaskOptions(
-        eventAction: ForegroundTaskEventAction.repeat(intervalSec * 1000),
-        autoRunOnBoot: true,
-        autoRunOnMyPackageReplaced: true,
-        allowWakeLock: true,
-        allowWifiLock: true,
-      ),
+      foregroundTaskOptions: _taskOptions(intervalSec),
     );
   }
+
+  static ForegroundTaskOptions _taskOptions(int intervalSec) => ForegroundTaskOptions(
+    eventAction: ForegroundTaskEventAction.repeat(intervalSec * 1000),
+    autoRunOnBoot: true,
+    autoRunOnMyPackageReplaced: true,
+    allowWakeLock: true,
+    allowWifiLock: true,
+  );
 
   static Future<bool> get isRunning async => supported && await FlutterForegroundTask.isRunningService;
 
@@ -147,20 +155,35 @@ class BackgroundMonitor {
   static Future<void> start({required int intervalSec, required String summary}) async {
     if (!supported) return;
     init(intervalSec: intervalSec);
+    const title = 'Pulse · monitoring';
+    const icon = NotificationIcon(
+      metaDataName: 'com.pranta.pulse.MONITOR_ICON',
+      backgroundColor: PulseBrand.notification,
+    );
+    const buttons = [NotificationButton(id: 'pause', text: 'Pause')];
     if (await FlutterForegroundTask.isRunningService) {
-      await FlutterForegroundTask.restartService();
+      // Update in place rather than restartService: a restart swaps the task's
+      // Flutter engine, and the old engine's teardown unregisters plugins the
+      // new one already set up (shared_preferences then throws in onStart and
+      // no cycle ever runs). Updating also refreshes the notification the
+      // service was first started with and re-posts it.
+      await FlutterForegroundTask.updateService(
+        foregroundTaskOptions: _taskOptions(intervalSec),
+        notificationTitle: title,
+        notificationText: summary,
+        notificationIcon: icon,
+        notificationButtons: buttons,
+        notificationInitialRoute: monitorRoute,
+      );
       return;
     }
     await FlutterForegroundTask.startService(
       serviceId: _serviceId,
       serviceTypes: const [ForegroundServiceTypes.specialUse],
-      notificationTitle: 'Pulse · monitoring',
+      notificationTitle: title,
       notificationText: summary,
-      notificationIcon: const NotificationIcon(
-        metaDataName: 'com.pranta.pulse.MONITOR_ICON',
-        backgroundColor: Color(0xFFE8612C),
-      ),
-      notificationButtons: const [NotificationButton(id: 'pause', text: 'Pause')],
+      notificationIcon: icon,
+      notificationButtons: buttons,
       notificationInitialRoute: monitorRoute,
       callback: pulseMonitorCallback,
     );

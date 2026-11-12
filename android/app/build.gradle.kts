@@ -15,6 +15,14 @@ android {
     compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
+    // Android's default asset ignore pattern drops dot-files (".*"), and since
+    // Flutter 3.50 the build no longer overrides it, so the bundled `.env`
+    // (ipinfo token for Geo IP) was left out of every APK and AAB. Same list
+    // as the default, minus ".*".
+    androidResources {
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~"
+    }
+
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17

@@ -3,14 +3,16 @@ import 'package:material_ui/material_ui.dart';
 /// IP family selection for ping-style tools.
 enum IpVersionPref { auto, ipv4, ipv6, both }
 
-enum ExportFormat { csv, txt }
+enum ExportFormat { csv, json, txt }
 
 /// Every user-tunable value, persisted in SharedPreferences.
 @immutable
 class AppSettings {
   const AppSettings({
     this.themeMode = ThemeMode.system,
-    this.accent = 'ORANGE',
+    this.accent = 'PINK',
+    this.dynamicColor = false,
+    this.expressiveMotion = true,
     this.pingCount = 0,
     this.pingIntervalMs = 1000,
     this.pingTimeoutSec = 5,
@@ -33,6 +35,12 @@ class AppSettings {
 
   final ThemeMode themeMode;
   final String accent;
+
+  /// Android 12+ / desktop: build the scheme roles from the system accent.
+  final bool dynamicColor;
+
+  /// Springs, shape morphs and ambient loops. Off sets disableAnimations app-wide.
+  final bool expressiveMotion;
 
   /// 0 means continuous (∞).
   final int pingCount;
@@ -64,6 +72,8 @@ class AppSettings {
   AppSettings copyWith({
     ThemeMode? themeMode,
     String? accent,
+    bool? dynamicColor,
+    bool? expressiveMotion,
     int? pingCount,
     int? pingIntervalMs,
     int? pingTimeoutSec,
@@ -86,6 +96,8 @@ class AppSettings {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
       accent: accent ?? this.accent,
+      dynamicColor: dynamicColor ?? this.dynamicColor,
+      expressiveMotion: expressiveMotion ?? this.expressiveMotion,
       pingCount: pingCount ?? this.pingCount,
       pingIntervalMs: pingIntervalMs ?? this.pingIntervalMs,
       pingTimeoutSec: pingTimeoutSec ?? this.pingTimeoutSec,
