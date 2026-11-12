@@ -133,7 +133,9 @@ class RunInfo {
       case SessionTool.speed:
         return '';
       case SessionTool.ports:
-        return (payload['range'] as String?) ?? '';
+        final range = payload['range'] as String?;
+        if (range == null || range.isEmpty) return '';
+        return range == 'COMMON' ? 'common ports' : 'ports $range';
       case SessionTool.loss:
         final sent = _int('sent');
         return sent == null ? '' : '$sent sent';

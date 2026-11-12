@@ -321,7 +321,8 @@ class RunDetail extends ConsumerWidget {
       const PulseSectionLabel('Details'),
       _KeyValues([
         if (info.payload['address'] != null) ('Address', '${info.payload['address']}'),
-        if (info.payload['range'] != null) ('Range', '${info.payload['range']}'),
+        if (info.payload['range'] != null)
+          ('Range', info.payload['range'] == 'COMMON' ? 'Common ports' : '${info.payload['range']}'),
         ('Duration', info.durationText),
       ]),
     ];
@@ -371,6 +372,22 @@ class RunDetail extends ConsumerWidget {
     ];
   }
 
+  /// Icon and readable name for a saved device type code ("ROUTER", "?").
+  static (PulseIcons, String) _lanType(Object? type) => switch (type) {
+    'ROUTER' => (PulseIcons.router, 'Router'),
+    'PC' => (PulseIcons.laptop, 'Computer'),
+    'PHONE' => (PulseIcons.phone, 'Phone'),
+    'TABLET' => (PulseIcons.phone, 'Tablet'),
+    'TV' => (PulseIcons.lan, 'TV'),
+    'PRINTER' => (PulseIcons.lan, 'Printer'),
+    'STORAGE' => (PulseIcons.data, 'Storage'),
+    'IOT' => (PulseIcons.wifi, 'Smart device'),
+    'CAMERA' => (PulseIcons.lan, 'Camera'),
+    'CONSOLE' => (PulseIcons.lan, 'Game console'),
+    'AUDIO' => (PulseIcons.lan, 'Speaker'),
+    _ => (PulseIcons.help, 'Unknown device'),
+  };
+
   List<Widget> _lanBody(BuildContext context, RunInfo info) {
     final devices = info.devices;
     return [
@@ -380,10 +397,10 @@ class RunDetail extends ConsumerWidget {
         children: [
           for (final d in devices)
             PulseListItem(
-              leading: const PulseShapeBadge(
+              leading: PulseShapeBadge(
                 shape: PulseShape.pill,
                 tone: PulseTone.lime,
-                icon: PulseIcons.lan,
+                icon: _lanType(d['type']).$1,
                 size: 36,
               ),
               title: (d['name'] as String?)?.isNotEmpty == true ? d['name'] as String : '${d['ip']}',
@@ -391,7 +408,7 @@ class RunDetail extends ConsumerWidget {
                 if ((d['name'] as String?)?.isNotEmpty == true) '${d['ip']}',
                 if (d['vendor'] != null) '${d['vendor']}',
                 if (d['mac'] != null) '${d['mac']}',
-                if (d['type'] != null) '${d['type']}',
+                _lanType(d['type']).$2,
               ].join(' · '),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
