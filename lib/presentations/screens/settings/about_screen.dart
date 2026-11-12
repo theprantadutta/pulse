@@ -178,7 +178,14 @@ class AboutScreen extends ConsumerWidget {
       final other => other,
     };
     if (Platform.isAndroid || Platform.isIOS) return name;
-    return '$name · ${Platform.operatingSystemVersion.replaceAll('"', '')}';
+    final version = Platform.operatingSystemVersion.replaceAll('"', '');
+    if (Platform.isWindows) {
+      // Windows 11 still reports itself as "Windows 10" to Dart; builds from
+      // 22000 on are Windows 11.
+      final build = int.tryParse(RegExp(r'Build (\d+)').firstMatch(version)?.group(1) ?? '');
+      if (build != null) return 'Windows ${build >= 22000 ? 11 : 10} · build $build';
+    }
+    return '$name · $version';
   }
 
   static String _store(String id) => switch (id) {

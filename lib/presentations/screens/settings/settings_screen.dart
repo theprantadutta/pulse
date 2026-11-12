@@ -198,10 +198,16 @@ class SettingsSectionBody extends ConsumerWidget {
         final dynamicTile = PulseSwitchItem(
           icon: PulseIcons.auto,
           title: 'Dynamic color',
+          // Android 12+ builds the palette from the wallpaper; desktops from
+          // the system accent colour.
           subtitle: dynamicOk || s.dynamicColor
-              ? (wide
-                    ? 'Use colors from your wallpaper (Android 12+). Turns off the accent below.'
-                    : 'Use wallpaper colors (Android 12+)')
+              ? (Platform.isAndroid
+                    ? (wide
+                          ? 'Use colors from your wallpaper (Android 12+). Turns off the accent below.'
+                          : 'Use wallpaper colors (Android 12+)')
+                    : (wide
+                          ? 'Use your system accent color. Turns off the accent below.'
+                          : 'Use your system accent color'))
               : 'Not available on this device',
           value: s.dynamicColor,
           onChanged: dynamicOk || s.dynamicColor ? (v) => set((x) => x.copyWith(dynamicColor: v)) : null,
