@@ -108,6 +108,7 @@ class MonitorScreen extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, box) {
         final wide = box.maxWidth >= _wideFrom;
+        final narrow = box.maxWidth < 640;
         if (!wide) {
           // Portrait tablet or narrow window: tablet header, one column.
           return PulsePage(
@@ -119,15 +120,23 @@ class MonitorScreen extends ConsumerWidget {
             ],
             children: [
               const _NotificationsOffBanner(),
-              Row(
-                children: [
-                  const Expanded(child: _StatusStrip()),
-                  const SizedBox(width: 12),
-                  const SizedBox(width: 220, child: _RangeGroup()),
-                ],
-              ),
+              // Portrait tablets (~500 dp of content) squeezed the status label
+              // to "Ru…" and broke "Incidents" across two lines: stack the strip
+              // over the ranges and use the phone stats there.
+              if (narrow) ...[
+                const _StatusStrip(),
+                const SizedBox(height: 12),
+                const _RangeGroup(),
+              ] else
+                Row(
+                  children: [
+                    const Expanded(child: _StatusStrip()),
+                    const SizedBox(width: 12),
+                    const SizedBox(width: 220, child: _RangeGroup()),
+                  ],
+                ),
               const SizedBox(height: 16),
-              _TabletStats(overview: overview),
+              if (narrow) _PhoneStats(overview: overview) else _TabletStats(overview: overview),
               const SizedBox(height: 14),
               _TargetList(rows: rows, blocks: 36, wide: true),
               const SizedBox(height: 12),
