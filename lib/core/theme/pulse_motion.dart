@@ -213,12 +213,21 @@ class _PulseLiveValueState extends State<PulseLiveValue> with SingleTickerProvid
   late final _c = AnimationController(vsync: this, duration: PulseMotion.digitRoll, value: 1);
   late final _t = CurvedAnimation(parent: _c, curve: Curves.easeInOutCubic);
   late String _from = widget.text;
+  DateTime? _lastChange;
 
   @override
   void didUpdateWidget(PulseLiveValue old) {
     super.didUpdateWidget(old);
     if (old.text == widget.text) return;
     _from = old.text;
+    // Fast streams (5 packets/s) change before a full roll ends: shorten the
+    // roll to fit the gap so each one finishes instead of restarting halfway.
+    final now = DateTime.now();
+    final gap = _lastChange == null ? PulseMotion.digitRoll : now.difference(_lastChange!);
+    _lastChange = now;
+    _c.duration = Duration(
+      milliseconds: (gap.inMilliseconds * .8).clamp(120, PulseMotion.digitRoll.inMilliseconds).round(),
+    );
     if (PulseMotion.reduced(context)) {
       _c.value = 1;
     } else {

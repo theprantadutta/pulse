@@ -171,7 +171,12 @@ class LossState {
     'stable' => 'No loss and latency is steady.',
     'mostly stable' => loss == 0 ? 'No loss, but some replies were slow.' : 'Only occasional single drops.',
     'unstable' => pattern ?? 'Noticeable loss for games and calls.',
-    _ => ['Bursty loss, likely a congested or failing link.', if (bursts.length >= 3) ?pattern].join(' '),
+    _ =>
+      r.longestBurst >= 3 || bursts.length >= 3
+          ? ['Bursty loss, likely a congested or failing link.', if (bursts.length >= 3) ?pattern].join(' ')
+          : r.longestBurst <= 1
+          ? 'Heavy loss of single packets spread across the run, typical of a congested link or weak Wi-Fi.'
+          : 'Heavy loss with short outages of up to ${r.longestBurst} packets in a row.',
   };
   final late = latePct >= 5 ? ' ${latePct.toStringAsFixed(0)}% of replies were late (>150 ms).' : '';
   return (word: word, text: [base + late, ?compareText].join(' '));
