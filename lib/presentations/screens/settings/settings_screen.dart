@@ -25,7 +25,7 @@ import 'settings_widgets.dart';
 
 const kPrivacyUrl = 'https://legal.pranta.dev/pulse/privacy';
 const kTermsUrl = 'https://legal.pranta.dev/pulse/terms';
-const kDeveloper = (name: 'Pranta Dutta', email: 'prantadutta1997@gmail.com');
+const kDeveloper = (name: 'Pranta Dutta', email: 'prantadutta1997@gmail.com', website: 'https://pranta.dev');
 
 enum SettingsSection {
   appearance('Appearance', PulseIcons.palette),
@@ -642,30 +642,12 @@ class SettingsSectionBody extends ConsumerWidget {
               items: [
                 (r) => SettingsValueItem(
                   icon: PulseIcons.info,
-                  title: 'Version',
-                  subtitle: 'Network diagnostics for desktop and mobile',
-                  value: info == null ? '' : '${info.version} (${info.buildNumber})',
-                ),
-                (r) => SettingsValueItem(
-                  icon: PulseIcons.code,
-                  title: 'Source code',
-                  subtitle: 'github.com/theprantadutta/pulse',
+                  title: 'About Pulse',
+                  subtitle: info == null
+                      ? 'Made by ${kDeveloper.name}'
+                      : 'Version ${info.version} (build ${info.buildNumber}) · by ${kDeveloper.name}',
                   chevron: true,
-                  onTap: () => launchUrl(Uri.parse('https://github.com/theprantadutta/pulse')),
-                ),
-                (r) => SettingsValueItem(
-                  icon: PulseIcons.help,
-                  title: 'Made by ${kDeveloper.name}',
-                  subtitle: kDeveloper.email,
-                  chevron: true,
-                  onTap: () => launchUrl(Uri(scheme: 'mailto', path: kDeveloper.email, query: 'subject=Pulse')),
-                ),
-                (r) => SettingsValueItem(
-                  icon: PulseIcons.data,
-                  title: 'Open-source licenses',
-                  chevron: true,
-                  onTap: () =>
-                      showLicensePage(context: context, applicationName: 'Pulse', applicationVersion: info?.version),
+                  onTap: () => context.push(Routes.about),
                 ),
               ],
             ),

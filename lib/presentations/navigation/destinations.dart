@@ -20,6 +20,7 @@ class Routes {
   static const alertRule = '/alerts/rule';
   static const history = '/history';
   static const settings = '/settings';
+  static const about = '/settings/about';
   static const tools = '/tools';
 }
 
@@ -67,6 +68,7 @@ MobileTab tabFor(String location) {
 /// editor → Alerts, Ping detail → Ping, the other tabs → Ping. Null on Ping:
 /// back leaves the app from there.
 String? parentRoute(String location) {
+  if (_under(location, Routes.about)) return Routes.settings;
   if (_under(location, Routes.alertRule)) return Routes.alerts;
   if (_under(location, Routes.alerts)) return Routes.monitor;
   if (_under(location, Routes.pingDetail)) return Routes.ping;
