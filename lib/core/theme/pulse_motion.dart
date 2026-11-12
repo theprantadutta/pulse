@@ -158,29 +158,129 @@ class _PulsePressableState extends State<PulsePressable> {
   }
 }
 
-/// A number that slides/fades when it changes (live latency values).
-class PulseLiveValue extends StatelessWidget {
+/// A live number that rolls like an odometer: only the digits that change
+/// move, rolling up when the value rises and down when it falls (12 → 13 rolls
+/// just the 2; 19 → 20 rolls both). Digit slots are matched from the right so
+/// the units digit stays put when the value gains or loses a digit.
+class PulseLiveValue extends StatefulWidget {
   const PulseLiveValue(this.text, {super.key, this.style});
 
   final String text;
   final TextStyle? style;
 
   @override
+  State<PulseLiveValue> createState() => _PulseLiveValueState();
+}
+
+class _PulseLiveValueState extends State<PulseLiveValue> {
+  bool _up = true;
+
+  static double? _number(String s) => double.tryParse(s.replaceAll(RegExp(r'[^0-9.\-]'), ''));
+
+  @override
+  void didUpdateWidget(PulseLiveValue old) {
+    super.didUpdateWidget(old);
+    if (old.text == widget.text) return;
+    final a = _number(old.text), b = _number(widget.text);
+    if (a != null && b != null && a != b) _up = b > a;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: PulseMotion.reduced(context) ? Duration.zero : PulseMotion.valueChange,
-      switchInCurve: PulseMotion.emphasizedDecelerate,
-      switchOutCurve: Curves.easeIn,
-      transitionBuilder: (child, anim) => FadeTransition(
-        opacity: anim,
-        child: SlideTransition(
-          position: Tween<Offset>(begin: const Offset(0, 0.25), end: Offset.zero).animate(anim),
-          child: child,
-        ),
+    final style = DefaultTextStyle.of(context).style.merge(widget.style);
+    final chars = widget.text.characters.toList();
+    final reduced = PulseMotion.reduced(context);
+    return Semantics(
+      label: widget.text,
+      excludeSemantics: true,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          for (var i = 0; i < chars.length; i++)
+            _RollingChar(
+              chars[i],
+              // Slot index from the right: the units digit keeps its slot.
+              key: ValueKey<int>(chars.length - i),
+              style: style,
+              up: _up,
+              animate: !reduced,
+            ),
+        ],
       ),
-      layoutBuilder: (current, previous) =>
-          Stack(alignment: Alignment.centerLeft, children: <Widget>[...previous, ?current]),
-      child: Text(text, key: ValueKey<String>(text), style: style),
+    );
+  }
+}
+
+class _RollingChar extends StatefulWidget {
+  const _RollingChar(this.char, {super.key, required this.style, required this.up, required this.animate});
+
+  final String char;
+  final TextStyle style;
+  final bool up;
+  final bool animate;
+
+  @override
+  State<_RollingChar> createState() => _RollingCharState();
+}
+
+class _RollingCharState extends State<_RollingChar> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: PulseMotion.valueChange, value: 1);
+  late final _t = CurvedAnimation(parent: _c, curve: PulseMotion.emphasizedDecelerate);
+  String? _previous;
+
+  static bool _digit(String c) => c.length == 1 && c.codeUnitAt(0) >= 48 && c.codeUnitAt(0) <= 57;
+
+  @override
+  void didUpdateWidget(_RollingChar old) {
+    super.didUpdateWidget(old);
+    if (old.char == widget.char) return;
+    // Only digits roll; a unit, sign or separator swaps in place.
+    if (!widget.animate || !_digit(old.char) || !_digit(widget.char)) {
+      _previous = null;
+      _c.value = 1;
+      return;
+    }
+    _previous = old.char;
+    _c.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _t.dispose();
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final current = Text(widget.char, style: widget.style);
+    final previous = _previous;
+    if (previous == null) return current;
+    return AnimatedBuilder(
+      animation: _t,
+      builder: (context, _) {
+        final t = _t.value;
+        if (t >= 1) return current;
+        // Rising values come in from below and push the old digit up.
+        final dir = widget.up ? 1.0 : -1.0;
+        return ClipRect(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              FractionalTranslation(
+                translation: Offset(0, -dir * t),
+                child: Opacity(
+                  opacity: 1 - t,
+                  child: Text(previous, style: widget.style),
+                ),
+              ),
+              FractionalTranslation(translation: Offset(0, dir * (1 - t)), child: current),
+            ],
+          ),
+        );
+      },
     );
   }
 }
