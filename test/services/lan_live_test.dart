@@ -13,7 +13,7 @@ import 'package:test/test.dart';
 
 void main() {
   test('OUI lookup', () async {
-    final db = await OuiDb.load(bytes: File('assets/data/oui.tsv.gz').readAsBytesSync());
+    final db = await OuiDb.load(bytes: File('assets/data/oui_tsv.gzip').readAsBytesSync());
     expect(db.vendor('00:11:32:A4:7E:0C'), contains('Synology'));
     expect(db.vendor('B8-27-EB-00-00-01'), contains('Raspberry'));
     expect(db.vendor('DA:A1:19:00:00:00'), 'Private address');
@@ -46,7 +46,7 @@ void main() {
   test('real sweep of this LAN', () async {
     final ip = await primaryLocalIpv4();
     final gw = await Gateway.ipv4();
-    await OuiDb.load(bytes: File('assets/data/oui.tsv.gz').readAsBytesSync());
+    await OuiDb.load(bytes: File('assets/data/oui_tsv.gzip').readAsBytesSync());
     final sw = Stopwatch()..start();
     LanScanProgress? last;
     await for (final p in LanScanner().scan(localIp: ip!.$1, prefix: 24, gateway: gw)) {

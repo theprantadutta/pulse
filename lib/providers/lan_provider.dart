@@ -194,6 +194,9 @@ class LanScanNotifier extends Notifier<LanScanState> {
         );
     await completer.future;
     await _persist(cidr, started);
+    // The selected device's quick port check waits for the sweep (see scanPorts).
+    final selected = state.selectedIp;
+    if (selected != null && !state.ports.containsKey(selected)) unawaited(scanPorts(selected));
   }
 
   Future<void> _persist(String cidr, DateTime started) async {
@@ -264,11 +267,12 @@ class LanScanNotifier extends Notifier<LanScanState> {
   /// Quick COMMON-port scan for the detail panel.
   Future<void> scanPorts(String ip) async {
     if (state.scanningPorts.contains(ip)) return;
+    // During the sweep hundreds of probes hold sockets, so connections to open
+    // ports time out and the device looks closed. scan() runs it afterwards.
+    if (state.running) return;
     state = state.copyWith(scanningPorts: {...state.scanningPorts, ip});
     final open = <PortResult>[];
-    await for (final r in const PortScanner(
-      timeout: Duration(milliseconds: 600),
-    ).scan(InternetAddress(ip), kCommonPorts)) {
+    await for (final r in const PortScanner().scan(InternetAddress(ip), kCommonPorts)) {
       if (r.state == PortState.open) open.add(r);
     }
     open.sort((a, b) => a.port.compareTo(b.port));

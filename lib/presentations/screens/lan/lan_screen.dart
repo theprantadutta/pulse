@@ -835,6 +835,8 @@ class _OpenPorts extends ConsumerWidget {
           Text('Checking common ports…', style: pulseText(large ? 15 : 13, 600).copyWith(color: on)),
         ],
       );
+    } else if (ports == null && state.running) {
+      content = Text('Checked when the scan ends', style: pulseText(large ? 15 : 13, 600).copyWith(color: on));
     } else if (ports == null) {
       content = Align(
         alignment: Alignment.centerLeft,
@@ -901,14 +903,17 @@ class _Actions extends ConsumerWidget {
             size: size,
             onPressed: () => context.go('${Routes.ports}?target=${d.host.ip}'),
           ),
-          PulseButton(
-            label: large ? 'Wake on LAN' : 'Wake',
-            icon: PulseIcons.power,
-            style: PulseButtonStyle.text,
-            size: size,
-            tooltip: d.host.mac == null ? 'Needs the device MAC address' : 'Send a Wake-on-LAN magic packet',
-            onPressed: d.host.mac == null ? null : () => _wake(context, d, state.broadcast),
-          ),
+          // Phones can't read MACs (Android hides them), so a dead Wake button
+          // would only push the copy button onto its own line.
+          if (d.host.mac != null || !copy)
+            PulseButton(
+              label: large ? 'Wake on LAN' : 'Wake',
+              icon: PulseIcons.power,
+              style: PulseButtonStyle.text,
+              size: size,
+              tooltip: d.host.mac == null ? 'Needs the device MAC address' : 'Send a Wake-on-LAN magic packet',
+              onPressed: d.host.mac == null ? null : () => _wake(context, d, state.broadcast),
+            ),
         ])
           IntrinsicWidth(child: b),
         if (copy) _CopyDevice(device: d, state: state),

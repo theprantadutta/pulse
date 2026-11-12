@@ -35,7 +35,12 @@ class PulseMonitorTask extends TaskHandler {
     await PulseNotifications.init();
     _prefs = await SharedPreferences.getInstance();
     _db = AppDatabase.open();
-    await OuiDb.load();
+    try {
+      await OuiDb.load();
+    } on Object catch (e) {
+      // Vendor names are a nicety for LAN-watch alerts; checks must still run.
+      debugPrint('Monitor: vendor table unavailable: $e');
+    }
     _engine = MonitorEngine(
       db: _db!,
       prober: const PingProber(),

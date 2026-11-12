@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 /// MAC vendor lookup backed by the bundled IEEE registry extract
-/// (assets/data/oui.tsv.gz, generated from Wireshark's `manuf`).
+/// (assets/data/oui_tsv.gzip, generated from Wireshark's `manuf`).
 class OuiDb {
   OuiDb._(this._map);
 
@@ -14,7 +14,7 @@ class OuiDb {
 
   static Future<OuiDb> load({Uint8List? bytes}) async {
     if (_instance != null && bytes == null) return _instance!;
-    final raw = bytes ?? (await rootBundle.load('assets/data/oui.tsv.gz')).buffer.asUint8List();
+    final raw = bytes ?? (await rootBundle.load('assets/data/oui_tsv.gzip')).buffer.asUint8List();
     final text = utf8.decode(GZipCodec().decode(raw));
     final map = <String, String>{};
     for (final line in const LineSplitter().convert(text)) {
