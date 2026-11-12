@@ -379,10 +379,13 @@ class _MuteControls extends ConsumerWidget {
               padding: const EdgeInsets.only(left: 32),
               child: Wrap(
                 spacing: 8,
+                runSpacing: 8,
                 children: [
                   for (final (h, label) in const [(1, '1 h'), (4, '4 h'), (8, '8 h')])
+                    // The row is titled "Mute alerts", so the chips only need
+                    // the duration; "Mute 8 h" wrapped to a second line on phones.
                     PulseChip(
-                      label: 'Mute $label',
+                      label: label,
                       small: true,
                       icon: PulseIcons.timer,
                       onTap: () => n.muteFor(Duration(hours: h)),

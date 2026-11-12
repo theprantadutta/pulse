@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -42,11 +44,15 @@ String metricLabel(String metric) => switch (metric) {
   _ => metric,
 };
 
+/// The tray channel puts the alert in the desktop tray, and on Android in the
+/// ongoing "Pulse · monitoring" notification. iOS has neither.
+String get trayChannelLabel => Platform.isAndroid ? 'Status' : 'Tray';
+
 /// "Push + tray".
 String channelsLabel(int channels) {
   final parts = [
     if (channels & AlertChannel.push != 0) 'Push',
-    if (channels & AlertChannel.tray != 0) 'Tray',
+    if (channels & AlertChannel.tray != 0 && !Platform.isIOS) trayChannelLabel,
     if (channels & AlertChannel.sound != 0) 'Sound',
   ];
   if (parts.isEmpty) return 'No channel';
@@ -280,9 +286,10 @@ class _RuleEditorState extends ConsumerState<RuleEditor> {
       Wrap(
         spacing: 8,
         children: [
-          for (final (bit, label, icon) in const [
+          for (final (bit, label, icon) in [
             (AlertChannel.push, 'Push', PulseIcons.bell),
-            (AlertChannel.tray, 'Tray', PulseIcons.laptop),
+            if (!Platform.isIOS)
+              (AlertChannel.tray, trayChannelLabel, Platform.isAndroid ? PulseIcons.phone : PulseIcons.laptop),
             (AlertChannel.sound, 'Sound', PulseIcons.signal),
           ])
             PulseChip(
