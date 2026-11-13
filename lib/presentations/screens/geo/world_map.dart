@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -338,7 +339,7 @@ class _GeoRouteMapState extends State<GeoRouteMap> with TickerProviderStateMixin
                 children: [
                   Positioned.fill(
                     child: RepaintBoundary(
-                      child: CustomPaint(
+                      child: _LandImage(
                         painter: _LandPainter(map: _map!, view: v, land: p.mapLand, border: p.mapBorder),
                       ),
                     ),
@@ -515,6 +516,62 @@ class _MapLabel extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// The land and borders as a bitmap, redrawn only when the view, size or
+/// colours change. Impeller has no raster cache, so drawing the coastline path
+/// directly re-tessellated thousands of vertices on every frame of the sonar,
+/// marker spin and route packet animations (~35 ms per frame on a Galaxy A24).
+class _LandImage extends StatefulWidget {
+  const _LandImage({required this.painter});
+  final _LandPainter painter;
+
+  @override
+  State<_LandImage> createState() => _LandImageState();
+}
+
+class _LandImageState extends State<_LandImage> {
+  ui.Image? _image;
+  _LandPainter? _for;
+  Size _size = Size.zero;
+  double _dpr = 0;
+
+  ui.Image? _imageFor(Size size, double dpr) {
+    if (size.isEmpty) return null;
+    final p = widget.painter;
+    final stale = _image == null || size != _size || dpr != _dpr || _for == null || p.shouldRepaint(_for!);
+    if (!stale) return _image;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder)..scale(dpr);
+    p.paint(canvas, size);
+    final picture = recorder.endRecording();
+    _image?.dispose();
+    _image = picture.toImageSync((size.width * dpr).ceil(), (size.height * dpr).ceil());
+    picture.dispose();
+    _for = p;
+    _size = size;
+    _dpr = dpr;
+    return _image;
+  }
+
+  @override
+  void dispose() {
+    _image?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    return LayoutBuilder(
+      builder: (context, box) {
+        final size = box.biggest;
+        final image = _imageFor(size, dpr);
+        if (image == null) return const SizedBox.expand();
+        return RawImage(image: image, width: size.width, height: size.height, scale: dpr, fit: BoxFit.fill);
+      },
+    );
+  }
 }
 
 class _LandPainter extends CustomPainter {
