@@ -49,13 +49,23 @@ flutter run
 ## Screenshots
 
 <p align="center">
-  <img alt="Ping Screen" src="./screenshots/Windows/Windows_Screenshot_1.png" width="45%" />
-  <img alt="Network Screen" src="./screenshots/Windows/Windows_Screenshot_2.png" width="45%" />
+  <img alt="Ping: several hosts live" src="./screenshots/Windows/Windows_Screenshot_1.png" width="45%" />
+  <img alt="Network details" src="./screenshots/Windows/Windows_Screenshot_2.png" width="45%" />
 </p>
 
 <p align="center">
-  <img alt="Diagnostics Screen" src="./screenshots/Windows/Windows_Screenshot_3.png" width="45%" />
-  <img alt="Tools Screen" src="./screenshots/Windows/Windows_Screenshot_4.png" width="45%" />
+  <img alt="Traceroute" src="./screenshots/Windows/Windows_Screenshot_3.png" width="45%" />
+  <img alt="Tools" src="./screenshots/Windows/Windows_Screenshot_4.png" width="45%" />
+</p>
+
+<p align="center">
+  <img alt="Speed test" src="./screenshots/Windows/Windows_Screenshot_5.png" width="45%" />
+  <img alt="Port scan" src="./screenshots/Windows/Windows_Screenshot_6.png" width="45%" />
+</p>
+
+<p align="center">
+  <img alt="Geo IP" src="./screenshots/Windows/Windows_Screenshot_7.png" width="45%" />
+  <img alt="History" src="./screenshots/Windows/Windows_Screenshot_8.png" width="45%" />
 </p>
 
 
