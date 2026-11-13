@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/services.dart';
 
@@ -15,13 +16,20 @@ class OuiDb {
   static Future<OuiDb> load({Uint8List? bytes}) async {
     if (_instance != null && bytes == null) return _instance!;
     final raw = bytes ?? (await rootBundle.load('assets/data/oui_tsv.gzip')).buffer.asUint8List();
+    // Inflating and splitting ~40k lines took ~130 ms: a dropped-frame hitch
+    // on the UI thread when a LAN scan finished. Isolate.run hands the map
+    // back without copying it.
+    return _instance = OuiDb._(await Isolate.run(() => _parse(raw)));
+  }
+
+  static Map<String, String> _parse(Uint8List raw) {
     final text = utf8.decode(GZipCodec().decode(raw));
     final map = <String, String>{};
     for (final line in const LineSplitter().convert(text)) {
       final tab = line.indexOf('\t');
       if (tab > 0) map[line.substring(0, tab)] = line.substring(tab + 1);
     }
-    return _instance = OuiDb._(map);
+    return map;
   }
 
   /// Vendor for [mac] ("00:11:32:A4:7E:0C" / "00-11-32-…"), or null.
