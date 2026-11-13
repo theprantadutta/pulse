@@ -3,8 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/widgets/pulse/pulse.dart';
 import '../../data/models/session_tool.dart';
 import '../../providers/database_provider.dart';
+import '../../providers/lan_provider.dart';
+import '../../providers/loss_provider.dart';
 import '../../providers/monitor_summary_provider.dart';
 import '../../providers/ping_provider.dart';
+import '../../providers/port_scan_provider.dart';
+import '../../providers/speed_provider.dart';
+import '../../providers/trace_provider.dart';
 import 'destinations.dart';
 
 /// One tool in the Tools hub / Tools pane / History badges. Shape and colour
@@ -146,10 +151,21 @@ final toolStatusProvider = Provider<Map<PulseTool, ToolStatus>>((ref) {
       return live.length == 1 ? live.first.title : '${live.length} hosts';
     }),
   );
+  // A run in progress isn't in History yet either; say so instead of showing
+  // the previous result (or "Not run yet") next to a running tool.
+  final running = <SessionTool>{
+    if (ref.watch(traceProvider.select((s) => s.running))) SessionTool.trace,
+    if (ref.watch(portScanProvider.select((s) => s.running))) SessionTool.ports,
+    if (ref.watch(speedProvider.select((s) => s.running))) SessionTool.speed,
+    if (ref.watch(lossProvider.select((s) => s.running))) SessionTool.loss,
+    if (ref.watch(lanScanProvider.select((s) => s.running))) SessionTool.lan,
+  };
   return {
     for (final t in kTools)
       t: t == kPingTool && livePing != null
           ? ToolStatus(livePing, live: true)
+          : t.session != null && running.contains(t.session)
+          ? const ToolStatus('Running…', live: true)
           : t == kMonitorTool
           ? ToolStatus(
               monitor == null || monitor.targets == 0
