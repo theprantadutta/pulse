@@ -8,8 +8,8 @@ A **network diagnostics and monitoring** app for Windows, macOS, Linux, Android 
 
 ## Download
 
-[![Download for Windows](https://img.shields.io/badge/Download-Windows-blue?style=for-the-badge&logo=windows)](https://github.com/theprantadutta/pulse/releases/download/v1.0.0/pulse_windows_v1.0.0.msix)  
-[![Download for Android](https://img.shields.io/badge/Download-Android-green?style=for-the-badge&logo=android)](https://github.com/theprantadutta/pulse/releases/download/v1.0.0/pulse_android_v1.0.0.apk)
+[![Download for Windows](https://img.shields.io/badge/Download-Windows-blue?style=for-the-badge&logo=windows)](https://github.com/theprantadutta/pulse_flutter_app/releases/download/v1.0.0/pulse_windows_v1.0.0.msix)  
+[![Download for Android](https://img.shields.io/badge/Download-Android-green?style=for-the-badge&logo=android)](https://github.com/theprantadutta/pulse_flutter_app/releases/download/v1.0.0/pulse_android_v1.0.0.apk)
 
 
 ## Features
@@ -36,8 +36,8 @@ A **network diagnostics and monitoring** app for Windows, macOS, Linux, Android 
 ### Steps
 ```sh
 # Clone the repo
-git clone https://github.com/theprantadutta/pulse
-cd pulse
+git clone https://github.com/theprantadutta/pulse_flutter_app
+cd pulse_flutter_app
 
 # Install dependencies
 flutter pub get

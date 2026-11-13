@@ -12,7 +12,7 @@ import '../../navigation/destinations.dart';
 import 'settings_screen.dart' show kDeveloper, kPrivacyUrl, kTermsUrl, packageInfoProvider;
 import 'settings_widgets.dart';
 
-const kSourceUrl = 'https://github.com/theprantadutta/pulse';
+const kSourceUrl = 'https://github.com/theprantadutta/pulse_flutter_app';
 const kLicenseName = 'Apache-2.0';
 
 /// About Pulse: who makes it, the exact build, and the legal links.

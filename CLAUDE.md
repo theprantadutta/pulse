@@ -1,5 +1,11 @@
 # Pulse — project notes for Claude
 
+## Layout (Nov 2026)
+`G:\Personal\MyProjects\pulse\` is a plain folder holding two repos, like Pourfect and Snake Classic:
+- `pulse_flutter_app/` — this app (GitHub `theprantadutta/pulse_flutter_app`, renamed from `pulse`; public).
+- `pulse-rust-api/` — the Rust (axum) backend that serves the marketing / support / download site at
+  https://pulse.pranta.dev (GitHub `theprantadutta/pulse-rust-api`, private).
+
 ## Current design: "Expressive" (branch `redesign/expressive`)
 Material 3 Expressive redesign (plum surfaces; pink / lavender / lime; Roboto Flex; M3 Expressive shapes and motion).
 It replaced the earlier "Wire" design (branch `redesign/wire`, now merged history only).

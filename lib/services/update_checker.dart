@@ -13,7 +13,7 @@ class UpdateInfo {
 class UpdateChecker {
   const UpdateChecker();
 
-  static const repo = 'theprantadutta/pulse';
+  static const repo = 'theprantadutta/pulse_flutter_app';
 
   Future<UpdateInfo> check(String currentVersion) async {
     final res = await http
