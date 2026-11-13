@@ -19,7 +19,7 @@ void main() {
     await loadPulseFonts();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
       const MethodChannel('dev.fluttercommunity.plus/package_info'),
-      (call) async => {'appName': 'Pulse', 'packageName': 'com.pranta.pulse', 'version': '2.0.0', 'buildNumber': '2'},
+      (call) async => {'appName': 'Pulse', 'packageName': 'com.pranta.pulse', 'version': '1.0.0', 'buildNumber': '1'},
     );
   });
 

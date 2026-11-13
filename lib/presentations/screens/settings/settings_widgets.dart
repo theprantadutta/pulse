@@ -408,7 +408,7 @@ class SettingsCategoryItem extends StatelessWidget {
   }
 }
 
-/// Logo tile, "Pulse 2.0.0", "Apache-2.0 · Made with Flutter", Check for updates.
+/// Logo tile, "Pulse 1.0.0", "Apache-2.0 · Made with Flutter", Check for updates.
 class AboutCard extends ConsumerWidget {
   const AboutCard({super.key});
 
