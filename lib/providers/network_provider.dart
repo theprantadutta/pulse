@@ -150,7 +150,7 @@ class NetworkInfoNotifier extends AsyncNotifier<NetworkSnapshot> {
             .then((g) => push(snap.copyWith(geo: g)))
             .catchError((Object e) => push(snap.copyWith(geoError: '$e'))),
       // Read from the device's own addresses, so it doesn't need lookups on.
-      service.publicIpv6().then((v) => push(snap.copyWith(publicIpv6: v))),
+      service.publicIpv6(interface: base.link.interfaceName).then((v) => push(snap.copyWith(publicIpv6: v))),
     ]);
     push(snap.copyWith(internetLoading: false));
   }

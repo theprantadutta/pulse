@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -71,5 +72,26 @@ void main() {
       () => geo.lookup('1.1.1.1'),
       throwsA(isA<GeoLookupFailure>().having((e) => e.message, 'message', contains('clock'))),
     );
+  });
+
+  test('public IPv6 comes from the active interface, not mobile data', () {
+    List<InternetAddress> ips(List<String> l) => [for (final ip in l) InternetAddress(ip)];
+    final mobile = ips(['2400:c600:55a4:5d67::1']);
+    expect(
+      pickPublicIpv6({
+        'rmnet2': mobile,
+        'wlan0': ips(['fe80::1', '2001:db8:1::25']),
+      }, interface: 'wlan0'),
+      '2001:db8:1::25',
+    );
+    expect(
+      pickPublicIpv6({
+        'rmnet2': mobile,
+        'wlan0': ips(['fe80::1']),
+      }, interface: 'wlan0'),
+      isNull,
+    );
+    expect(pickPublicIpv6({'rmnet2': mobile}, interface: 'wlan0'), isNull);
+    expect(pickPublicIpv6({'rmnet2': mobile}), '2400:c600:55a4:5d67::1');
   });
 }

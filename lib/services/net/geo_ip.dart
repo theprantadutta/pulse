@@ -141,18 +141,30 @@ class GeoIpService {
   /// The device's public IPv6 address, or null when the network has none.
   /// IPv6 has no NAT, so a global unicast address (2000::/3) on an interface
   /// is the address the internet sees: no outside service needed.
-  Future<String?> publicIpv6() async {
+  ///
+  /// Pass the active link's [interface] (e.g. `wlan0`): phones keep mobile
+  /// data up while on Wi-Fi, and the SIM's address on `rmnet*` must not be
+  /// shown next to the Wi-Fi ISP. When it is known, only that interface counts.
+  Future<String?> publicIpv6({String? interface}) async {
     try {
       final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv6);
-      for (final i in interfaces) {
-        for (final a in i.addresses) {
-          final first = a.rawAddress.isEmpty ? 0 : a.rawAddress[0];
-          if ((first & 0xE0) == 0x20) return a.address.split('%').first;
-        }
-      }
+      return pickPublicIpv6({for (final i in interfaces) i.name: i.addresses}, interface: interface);
     } on Object {
       // No IPv6 stack or no permission: treat as no IPv6.
+      return null;
     }
-    return null;
   }
+}
+
+/// The first global unicast IPv6 address on [interface], or on any interface
+/// when [interface] is null (platforms that don't report it).
+String? pickPublicIpv6(Map<String, List<InternetAddress>> byInterface, {String? interface}) {
+  for (final MapEntry(key: name, value: addresses) in byInterface.entries) {
+    if (interface != null && name != interface) continue;
+    for (final a in addresses) {
+      final first = a.rawAddress.isEmpty ? 0 : a.rawAddress[0];
+      if ((first & 0xE0) == 0x20) return a.address.split('%').first;
+    }
+  }
+  return null;
 }

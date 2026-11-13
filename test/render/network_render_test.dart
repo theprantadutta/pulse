@@ -42,7 +42,7 @@ class _Geo extends GeoIpService {
     source: 'ip-api.com',
   );
   @override
-  Future<String?> publicIpv6() async => null;
+  Future<String?> publicIpv6({String? interface}) async => null;
 }
 
 class _Prober implements PingProber {
