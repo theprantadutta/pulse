@@ -500,9 +500,11 @@ class _AddHostSheetState extends ConsumerState<_AddHostSheet> {
       showPingLimit(context);
       return;
     }
-    // Keep the host for a quick repeat, but don't name the next host the same.
+    // The host is on the board now: the next Add host starts empty instead of
+    // prefilling it (typing would append to it). A dismissed sheet still keeps
+    // its draft through the listeners above.
     ref.read(pingDraftProvider.notifier)
-      ..setHost(host)
+      ..setHost('')
       ..setName('');
     Navigator.of(context).pop();
   }
