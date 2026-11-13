@@ -97,7 +97,7 @@ It replaced the earlier "Wire" design (branch `redesign/wire`, now merged histor
   C++/WinRT channel (`windows/runner/startup_task.cpp`); unpackaged builds keep the HKCU Run key. Windows only lets the
   user re-enable a task they switched off in Task Manager › Startup apps.
 - Toast activation: `toast_activator.clsid` must equal the `guid` in `lib/services/background/notifications.dart`.
-- Version: `msix_version` must end in `.0` for the Store; keep it in step with `version:` (currently 1.0.0 / 1.0.0+1, the first Play release; bump the build number for every upload).
+- Version: `msix_version` must end in `.0` for the Store; keep it in step with `version:` (currently 1.0.1.0 / 1.0.1+2; bump the build number for every Play upload).
 - Policies (Store listing): https://legal.pranta.dev/pulse/privacy and https://legal.pranta.dev/pulse/terms, served
   from `G:\Personal\MyProjects\privacy-project\Projects\pulse\` (push to master → auto-deploys). Current versions:
   privacy 1.2, terms 1.2 (Nov 13, 2026); bump them and the dates whenever data use, services or permissions change.
