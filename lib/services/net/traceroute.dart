@@ -217,6 +217,9 @@ class Traceroute {
             if (h.countryCode == 'LAN') return "inside your ISP's private network";
             return 'leaving your ISP for the public internet';
           }
+          // A private address after public hops is a carrier's internal
+          // router, not your LAN ("the link from Dhaka to LAN" read wrong).
+          if (h.countryCode == 'LAN') return "inside your ISP's private network";
           if (prev.countryCode != null && h.countryCode != null && prev.countryCode != h.countryCode) {
             return 'the link from ${place(prev)} to ${place(h)}';
           }

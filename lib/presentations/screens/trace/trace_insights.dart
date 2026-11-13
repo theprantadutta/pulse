@@ -66,6 +66,7 @@ String hopNo(int n) => n.toString().padLeft(2, '0');
 /// Probe times as "3.9 / 4.5 / 4.7 ms" ("*" for a lost probe).
 String probesText(TraceHop h) {
   if (h.probes.isEmpty) return '';
+  if (h.probes.every((p) => p == null)) return 'No reply to ${h.probes.length} probes';
   return '${h.probes.map((p) => p == null ? '*' : fmtMs(p)).join(' / ')} ms';
 }
 
@@ -202,8 +203,8 @@ class TraceInsights {
 
   /// Hops drawn as "no reply": no address at all, or an address whose every
   /// RTT probe timed out (`* / * / *`). Matches the rail and the hop list.
-  int get timeoutCount => hops.where((h) => h.timedOut || (h.done && h.avg == null)).length;
-  List<TraceHop> get timeouts => hops.where((h) => h.timedOut).toList();
+  int get timeoutCount => timeouts.length;
+  List<TraceHop> get timeouts => hops.where((h) => h.timedOut || (h.done && h.avg == null)).toList();
   TraceHop? get destination => reached && hops.isNotEmpty ? hops.last : null;
 
   /// RTT of the destination, or of the last hop that replied.
