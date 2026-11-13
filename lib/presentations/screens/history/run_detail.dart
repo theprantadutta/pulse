@@ -35,7 +35,9 @@ class RunDetail extends ConsumerWidget {
     final info = RunInfo(session);
     final pad = compact ? PulseLayout.gutter : PulseLayout.tabletPadding;
     final body = <Widget>[
-      _Header(info: info, compact: compact),
+      // Phones show Save / Delete in the top bar; the split pane has no top
+      // bar, so they sit at the end of the header row instead.
+      _Header(info: info, compact: compact, actions: compact ? const [] : _headerActions(context, ref, info)),
       const SizedBox(height: 20),
       _SummaryTiles(tiles: info.tiles, compact: compact),
       ..._bodyFor(context, info),
@@ -454,9 +456,10 @@ class RunDetail extends ConsumerWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.info, required this.compact});
+  const _Header({required this.info, required this.compact, this.actions = const []});
   final RunInfo info;
   final bool compact;
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
@@ -489,6 +492,7 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
+        ...actions,
       ],
     );
   }
