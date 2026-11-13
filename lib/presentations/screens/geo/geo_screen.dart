@@ -103,9 +103,13 @@ class _GeoScreenState extends ConsumerState<GeoScreen> {
         children: [_field(s, compact: true), ...v.phone(context)],
       );
     }
-    // Portrait tablets leave the header field ~140 dp, which cut the IP off:
-    // give it a row of its own there.
-    final narrow = MediaQuery.sizeOf(context).width < 720;
+    // Portrait tablets, and landscape next to the Tools pane, leave the header
+    // field too little room (the host was clipped by "→ ip"): give it a row of
+    // its own unless the page itself is wide. The title and buttons take ~460 dp.
+    return LayoutBuilder(builder: (context, box) => _tabletPage(s, v, canAct, narrow: box.maxWidth < 900));
+  }
+
+  Widget _tabletPage(GeoState s, _GeoView v, bool canAct, {required bool narrow}) {
     return PulsePage(
       title: 'Geo IP',
       titleWidget: narrow
