@@ -607,6 +607,7 @@ class _PermissionCard extends ConsumerStatefulWidget {
 
 class _PermissionCardState extends ConsumerState<_PermissionCard> with WidgetsBindingObserver {
   final _mobile = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+  final _windows = !kIsWeb && Platform.isWindows;
   _SsidBlock _block = _SsidBlock.permission;
 
   @override
@@ -626,6 +627,11 @@ class _PermissionCardState extends ConsumerState<_PermissionCard> with WidgetsBi
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
+    if (_windows) {
+      // Back from Settings › Location: re-read the Wi-Fi details.
+      ref.read(networkInfoProvider.notifier).refresh();
+      return;
+    }
     final before = _block;
     _check().then((_) {
       if (mounted && (_block != before || _block == _SsidBlock.locationOff)) {
@@ -652,6 +658,9 @@ class _PermissionCardState extends ConsumerState<_PermissionCard> with WidgetsBi
       final status = await Permission.locationWhenInUse.request();
       if (status.isPermanentlyDenied) await openAppSettings();
       await _check();
+    } else if (_windows) {
+      await launchUrl(Uri.parse('ms-settings:privacy-location'));
+      return; // didChangeAppLifecycleState refreshes on return.
     } else if (Platform.isMacOS) {
       await launchUrl(Uri.parse('x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices'));
     }
@@ -664,6 +673,12 @@ class _PermissionCardState extends ConsumerState<_PermissionCard> with WidgetsBi
     final mac = !kIsWeb && Platform.isMacOS;
     final off = _block == _SsidBlock.locationOff;
     final (title, body, action) = switch ((mac, off)) {
+      _ when _windows => (
+        'Wi-Fi details hidden',
+        'Windows shares the network name and signal only when Location is on for desktop apps. '
+            'Pulse never reads where you are.',
+        'Open',
+      ),
       (true, _) => (
         'Wi-Fi name hidden',
         'macOS shows the network name only after Pulse gets Location Services access.',

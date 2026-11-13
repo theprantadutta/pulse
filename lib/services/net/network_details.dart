@@ -217,8 +217,15 @@ $vpn = Get-CimInstance Win32_NetworkAdapter -Filter 'NetEnabled=True' | Where-Ob
 
     String? ssid, bssid, radio, auth, band;
     int? channel, signal, rx;
+    var locationBlocked = false;
     if (s.kind == LinkKind.wifi) {
       final w = await Process.run('netsh', ['wlan', 'show', 'interfaces']);
+      // Windows 11 24H2+ hides all WLAN details (SSID, signal, channel) from
+      // desktop apps until Location is on: netsh prints this instead.
+      locationBlocked = RegExp(
+        r'location permission|ms-settings:privacy-location',
+        caseSensitive: false,
+      ).hasMatch('${w.stdout}');
       for (final line in '${w.stdout}'.split('\n')) {
         final i = line.indexOf(':');
         if (i < 0) continue;
@@ -266,6 +273,7 @@ $vpn = Get-CimInstance Win32_NetworkAdapter -Filter 'NetEnabled=True' | Where-Ob
       ipv6: ipv6,
       vpn: j['vpn'] == true || s.vpn,
       vpnName: j['vpnName'] as String?,
+      ssidNeedsPermission: locationBlocked,
     );
   }
 
