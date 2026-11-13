@@ -36,8 +36,8 @@ class AboutScreen extends ConsumerWidget {
         ),
         (r) => SettingsValueItem(
           icon: PulseIcons.help,
-          title: 'Email',
-          subtitle: kDeveloper.email,
+          title: 'Contact us',
+          subtitle: 'Questions, bugs or feedback',
           chevron: true,
           onTap: () => launchUrl(Uri(scheme: 'mailto', path: kDeveloper.email, query: 'subject=Pulse')),
         ),
