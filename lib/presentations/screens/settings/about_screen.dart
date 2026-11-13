@@ -57,9 +57,6 @@ class AboutScreen extends ConsumerWidget {
         (r) => SettingsValueItem(icon: PulseIcons.tune, title: 'Build type', value: _buildMode),
         (r) => SettingsValueItem(icon: PulseIcons.code, title: 'Package', subtitle: info?.packageName ?? '—'),
         (r) => SettingsValueItem(icon: _platformIcon, title: 'Platform', subtitle: _platform),
-        if (info?.installerStore != null)
-          (r) =>
-              SettingsValueItem(icon: PulseIcons.export, title: 'Installed from', value: _store(info!.installerStore!)),
         (r) => SettingsValueItem(icon: PulseIcons.pulse, title: 'Dart', value: _dartVersion),
       ],
     );
@@ -188,22 +185,11 @@ class AboutScreen extends ConsumerWidget {
     return '$name · $version';
   }
 
-  static String _store(String id) => switch (id) {
-    'com.android.vending' => 'Google Play',
-    'com.sec.android.app.samsungapps' => 'Galaxy Store',
-    'com.apple.AppStore' || 'AppStore' => 'App Store',
-    'TestFlight' => 'TestFlight',
-    'com.google.android.packageinstaller' || 'com.android.packageinstaller' => 'APK install',
-    'com.android.shell' => 'Developer install',
-    _ => id,
-  };
-
   static Future<void> _copyInfo(BuildContext context, PackageInfo info) async {
     final text = [
       'Pulse ${info.version} (build ${info.buildNumber}, ${_buildMode.toLowerCase()})',
       'Package: ${info.packageName}',
       'Platform: $_platform',
-      if (info.installerStore != null) 'Installed from: ${_store(info.installerStore!)}',
       'Dart: $_dartVersion',
     ].join('\n');
     await Clipboard.setData(ClipboardData(text: text));
