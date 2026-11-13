@@ -235,6 +235,14 @@ bool get _mobileOs => defaultTargetPlatform == TargetPlatform.android || default
 String get _osName => defaultTargetPlatform == TargetPlatform.iOS ? 'iOS' : 'Android';
 
 /// Discovery method: phones can't read the ARP table.
+/// Shortest side ≥ 600 dp, the same split the shell and main.dart use.
+bool get _isTablet {
+  final views = WidgetsBinding.instance.platformDispatcher.views;
+  if (views.isEmpty) return false;
+  final v = views.first;
+  return v.physicalSize.shortestSide / v.devicePixelRatio >= 600;
+}
+
 String _method() => _mobileOs ? 'ICMP + TCP' : 'ARP + ICMP';
 
 String _macPrivacy() =>
@@ -268,7 +276,7 @@ PulseIcons _iconFor(LanDevice d) {
 /// "gateway", vendor, or the device type, for the subtitle.
 String? _role(LanDevice d) {
   if (d.host.isGateway) return 'gateway';
-  if (d.host.isSelf) return _mobileOs ? 'phone' : 'this computer';
+  if (d.host.isSelf) return _mobileOs ? (_isTablet ? 'tablet' : 'phone') : 'this computer';
   if (d.type != DeviceType.unknown) return d.type.label.toLowerCase();
   return null;
 }
