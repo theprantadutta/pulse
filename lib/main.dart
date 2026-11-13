@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -21,7 +20,6 @@ void main(List<String> args) async {
   // the engine receives, so deferring it would keep the window invisible.
   if (Platform.isAndroid || Platform.isIOS) FlutterNativeSplash.preserve(widgetsBinding: binding);
   launchedAtLogin = args.contains(LaunchAtLogin.flag);
-  await dotenv.load(fileName: '.env', isOptional: true);
   final prefs = await SharedPreferences.getInstance();
   await _lockPhonesToPortrait();
   if (DesktopHost.supported) DesktopHost.instance.initWindow(hidden: launchedAtLogin);

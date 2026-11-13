@@ -1,10 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:http/http.dart' as http;
-
 import 'dns.dart';
+import 'geo_ip.dart';
 import 'ping_prober.dart';
 
 class TraceHop {
@@ -58,10 +56,10 @@ class TraceResult {
 /// TTL-stepping traceroute built on [PingProber] so it runs on every
 /// platform without raw sockets.
 class Traceroute {
-  Traceroute({this.prober = const PingProber(), http.Client? client}) : _client = client ?? http.Client();
+  Traceroute({this.prober = const PingProber(), GeoIpService? geo}) : _geo = geo ?? GeoIpService();
 
   final PingProber prober;
-  final http.Client _client;
+  final GeoIpService _geo;
 
   Stream<TraceResult> run(
     String target, {
@@ -160,7 +158,7 @@ class Traceroute {
     );
   }
 
-  /// One ip-api batch call for every public hop.
+  /// One lookup on Pulse's server for every public hop (countries and cities).
   Future<void> _locate(List<TraceHop> hops) async {
     final public = <String>{
       for (final h in hops)
@@ -171,19 +169,12 @@ class Traceroute {
     }
     if (public.isEmpty) return;
     try {
-      final res = await _client
-          .post(Uri.parse('http://ip-api.com/batch?fields=status,query,countryCode,city'), body: jsonEncode(public))
-          .timeout(const Duration(seconds: 6));
-      if (res.statusCode != 200) return;
-      final byIp = {
-        for (final e in (jsonDecode(res.body) as List).cast<Map>())
-          if (e['status'] == 'success') e['query'] as String: e,
-      };
+      final byIp = await _geo.lookupMany(public);
       for (final h in hops) {
-        final e = byIp[h.ip];
-        if (e != null) {
-          h.countryCode = e['countryCode'] as String?;
-          h.city = e['city'] as String?;
+        final g = byIp[h.ip];
+        if (g != null) {
+          h.countryCode = g.countryCode;
+          h.city = g.city;
         }
       }
     } on Object {

@@ -213,7 +213,7 @@ List<_Detail> _internetDetails(NetworkSnapshot s) {
     ],
     pending('Gateway ping', ms(s.gatewayPingMs), copy: false, missing: 'No reply'),
     pending('DNS ping', ms(s.dnsPingMs), copy: false, missing: 'No reply'),
-    if (!s.lookupsDisabled) pending('Public IPv6', s.publicIpv6, missing: 'Not available'),
+    pending('Public IPv6', s.publicIpv6, missing: 'Not available'),
   ];
 }
 

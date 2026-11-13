@@ -38,6 +38,18 @@ It replaced the earlier "Wire" design (branch `redesign/wire`, now merged histor
   `disableAnimations` app-wide).
 - **Do not** replace the repo's `screenshots/` folder with kit PNGs; real device screenshots will be taken later.
 
+### Public IP and Geo IP: our backend only
+- **No third-party IP services** (user's rule): public IP, Geo IP, traceroute countries all go to
+  `pulse-rust-api` (`/api/v1/ip`, `/api/v1/geo/lookup`, DB-IP Lite data) via `lib/services/pulse_api.dart`.
+  Reverse DNS uses the device resolver; public IPv6 = the device's global unicast address. Credit "IP geolocation
+  by DB-IP" wherever that data shows (CC BY 4.0).
+- Requests are HMAC-signed with `PULSE_APP_KEY`, compiled in from the git-ignored `secrets.json` (same value as the
+  backend `.env`). **Every build that should do lookups needs it:**
+  `flutter run --dart-define-from-file=secrets.json`, `flutter build appbundle --release --dart-define-from-file=secrets.json`
+  (also for Windows/macOS/iOS). Without it, Geo IP shows "This build has no Pulse API key".
+- Release signing: `android/key.properties` (git-ignored) → upload key in `C:/android-keys/pulse/` (same layout
+  as Gridwell/Pourfect; credentials file there). Play App Signing holds the app signing key.
+
 ### Decisions made with the user
 - Persistence: **drift** (`lib/data/db/app_database.dart`, run `dart run build_runner build` after schema edits).
 - **No stubs anywhere.** Every screen/provider must be fully real: LAN scan, Monitor, Alerts, Geo IP, Packet loss
@@ -97,8 +109,6 @@ It replaced the earlier "Wire" design (branch `redesign/wire`, now merged histor
 ## Flutter 3.50 notes (Nov 2026)
 - Android's asset packager unpacks `.gz` assets and drops the extension, so the OUI table ships as
   `assets/data/oui_tsv.gzip`. Don't name assets `*.gz`.
-- Since 3.50 the build no longer overrides Android's asset ignore pattern, which drops dot-files: the
-  `androidResources { ignoreAssetsPattern … }` block in `android/app/build.gradle.kts` keeps `.env` in the APK/AAB.
 - Never `restartService()` the foreground service: the old engine's teardown unregisters plugins of the new one
   (shared_preferences throws in onStart and no cycle runs). `BackgroundMonitor.start` updates it in place.
 - After a Visual Studio update moves MSVC, delete `build/windows` if CMake says the compiler path doesn't exist.

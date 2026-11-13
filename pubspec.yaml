@@ -30,8 +30,6 @@ dependencies:
   connectivity_plus: ^7.3.2
   permission_handler: ^13.0.2
   package_info_plus: ^10.2.2
-  flutter_dotenv: ^6.0.1
-
   # Brand
   flutter_native_splash: ^2.4.8
   flutter_svg: ^2.3.4
@@ -52,6 +50,7 @@ dependencies:
   firebase_core: ^5.1.0
   cupertino_ui: ^1.1.6
   dynamic_color: ^2.1.0
+  crypto: ^3.0.8
 
 dev_dependencies:
   flutter_test:
@@ -82,7 +81,6 @@ flutter:
     - assets/brand/tray/
     - assets/icons/
     - assets/data/
-    - .env
 
   fonts:
     - family: RobotoFlex

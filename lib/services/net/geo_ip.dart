@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
+import 'dart:io';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
+import '../pulse_api.dart';
+import 'dns.dart';
 
 /// Public IP facts: ISP, ASN and location.
 class GeoInfo {
@@ -38,8 +38,11 @@ class GeoInfo {
   final String? reverse;
   final bool? hosting, mobile, proxy;
 
-  /// ip-api.com or ipinfo.io.
+  /// Where the facts came from: "DB-IP" (via Pulse's server) for new
+  /// lookups; older history may say ip-api.com or ipinfo.io.
   final String source;
+
+  GeoInfo withReverse(String name) => GeoInfo.fromJson({...toJson(), 'reverse': name});
 
   String get place =>
       [city, region, countryCode ?? country].whereType<String>().where((s) => s.isNotEmpty).toSet().join(', ');
@@ -94,95 +97,62 @@ class GeoLookupFailure implements Exception {
   String toString() => message;
 }
 
-/// Looks up IPs with ip-api.com (free, includes the hosting flag) and falls
-/// back to ipinfo.io (HTTPS, needs IP_INFO_TOKEN in .env).
+/// Public IP and Geo IP lookups through Pulse's own server (see PulseApi):
+/// no third-party IP service. The server answers from DB-IP's free
+/// databases; reverse DNS is asked of the device's own resolver.
 class GeoIpService {
-  GeoIpService({http.Client? client}) : _client = client ?? http.Client();
-  final http.Client _client;
-
-  static const _fields =
-      'status,message,query,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,asname,reverse,mobile,proxy,hosting';
+  GeoIpService({PulseApi? api}) : _api = api ?? PulseApi();
+  final PulseApi _api;
 
   /// [ip] null means "my public IP".
   Future<GeoInfo> lookup([String? ip]) async {
-    Object firstError;
+    final List<GeoInfo> results;
     try {
-      return await _ipApi(ip);
-    } on Object catch (e) {
-      firstError = e;
+      results = await _post(ip == null ? const [] : [ip]);
+    } on PulseApiException catch (e) {
+      throw GeoLookupFailure(e.message);
+    } on TimeoutException {
+      throw GeoLookupFailure('The Pulse server took too long to answer');
+    } on SocketException {
+      throw GeoLookupFailure("Couldn't reach the Pulse server");
     }
-    try {
-      return await _ipInfo(ip);
-    } on Object catch (e) {
-      throw GeoLookupFailure('Lookup failed: $firstError; fallback: $e');
-    }
+    if (results.isEmpty) throw GeoLookupFailure('No location found for ${ip ?? 'your IP'}');
+    final g = results.first;
+    final reverse = await Dns.reverse(g.ip);
+    return reverse == null ? g : g.withReverse(reverse);
   }
 
-  Future<GeoInfo> _ipApi(String? ip) async {
-    final uri = Uri.parse('http://ip-api.com/json/${ip ?? ''}?fields=$_fields');
-    final res = await _client.get(uri).timeout(const Duration(seconds: 6));
-    if (res.statusCode != 200) throw GeoLookupFailure('ip-api HTTP ${res.statusCode}');
-    final j = jsonDecode(res.body) as Map<String, dynamic>;
-    if (j['status'] != 'success') throw GeoLookupFailure('${j['message'] ?? 'ip-api failed'}');
-    final as = j['as'] as String?;
-    return GeoInfo(
-      ip: j['query'] as String,
-      city: j['city'] as String?,
-      region: j['regionName'] as String?,
-      country: j['country'] as String?,
-      countryCode: j['countryCode'] as String?,
-      postal: (j['zip'] as String?)?.isEmpty == true ? null : j['zip'] as String?,
-      lat: (j['lat'] as num?)?.toDouble(),
-      lon: (j['lon'] as num?)?.toDouble(),
-      timezone: j['timezone'] as String?,
-      isp: j['isp'] as String?,
-      org: j['org'] as String?,
-      asn: as == null ? null : RegExp(r'^(AS\d+)').firstMatch(as)?.group(1),
-      asName: j['asname'] as String?,
-      reverse: (j['reverse'] as String?)?.isEmpty == true ? null : j['reverse'] as String?,
-      hosting: j['hosting'] as bool?,
-      mobile: j['mobile'] as bool?,
-      proxy: j['proxy'] as bool?,
-      source: 'ip-api.com',
-    );
+  /// Several IPs in one request (traceroute hops). Missing entries were not
+  /// found; failures throw.
+  Future<Map<String, GeoInfo>> lookupMany(List<String> ips) async {
+    if (ips.isEmpty) return const {};
+    final results = await _post(ips);
+    return {for (final g in results) g.ip: g};
   }
 
-  Future<GeoInfo> _ipInfo(String? ip) async {
-    final token = dotenv.isInitialized ? dotenv.maybeGet('IP_INFO_TOKEN') : null;
-    final path = ip == null ? 'json' : '$ip/json';
-    final uri = Uri.parse('https://ipinfo.io/$path${token == null || token.isEmpty ? '' : '?token=$token'}');
-    final res = await _client.get(uri).timeout(const Duration(seconds: 6));
-    if (res.statusCode != 200) throw GeoLookupFailure('ipinfo HTTP ${res.statusCode}');
-    final j = jsonDecode(res.body) as Map<String, dynamic>;
-    if (j['bogon'] == true) throw GeoLookupFailure('${j['ip']} is a private address');
-    final org = j['org'] as String?;
-    final asn = org == null ? null : RegExp(r'^(AS\d+)').firstMatch(org)?.group(1);
-    final loc = (j['loc'] as String?)?.split(',');
-    return GeoInfo(
-      ip: j['ip'] as String,
-      city: j['city'] as String?,
-      region: j['region'] as String?,
-      countryCode: j['country'] as String?,
-      postal: j['postal'] as String?,
-      lat: loc == null ? null : double.tryParse(loc[0]),
-      lon: loc == null || loc.length < 2 ? null : double.tryParse(loc[1]),
-      timezone: j['timezone'] as String?,
-      isp: asn == null ? org : org!.substring(asn.length).trim(),
-      org: org,
-      asn: asn,
-      reverse: j['hostname'] as String?,
-      source: 'ipinfo.io',
-    );
+  Future<List<GeoInfo>> _post(List<String> ips) async {
+    final j = await _api.postJson('/api/v1/geo/lookup', {'ips': ips});
+    return [
+      for (final r in (j['results'] as List? ?? const []).cast<Map<String, dynamic>>())
+        if (r['public'] != false) GeoInfo.fromJson({...r, 'source': r['source'] ?? 'DB-IP'}),
+    ];
   }
 
-  /// The public IPv6 address, or null when the network has no IPv6 path.
+  /// The device's public IPv6 address, or null when the network has none.
+  /// IPv6 has no NAT, so a global unicast address (2000::/3) on an interface
+  /// is the address the internet sees: no outside service needed.
   Future<String?> publicIpv6() async {
     try {
-      final res = await _client.get(Uri.parse('https://api6.ipify.org')).timeout(const Duration(seconds: 4));
-      final v = res.body.trim();
-      return res.statusCode == 200 && v.contains(':') ? v : null;
+      final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv6);
+      for (final i in interfaces) {
+        for (final a in i.addresses) {
+          final first = a.rawAddress.isEmpty ? 0 : a.rawAddress[0];
+          if ((first & 0xE0) == 0x20) return a.address.split('%').first;
+        }
+      }
     } on Object {
-      return null;
+      // No IPv6 stack or no permission: treat as no IPv6.
     }
+    return null;
   }
 }

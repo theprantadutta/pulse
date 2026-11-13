@@ -63,7 +63,8 @@ class AppSettings {
   final ExportFormat exportFormat;
   final String? exportFolder;
 
-  /// Allows sending IPs to ip-api.com / ipinfo.io for ISP and geo lookups.
+  /// Allows asking Pulse's own server (pulse.pranta.dev) for the public IP,
+  /// ISP and geo lookups. No third-party IP service is used.
   final bool publicIpLookups;
 
   /// Periodically sweeps the LAN in the background to detect new devices.

@@ -493,8 +493,10 @@ List<(String, String, bool)> _rows(GeoInfo g, {required bool full}) {
     ('Org', _nonBlank([g.org, g.isp]) ?? '—', false),
     ('ASN', _nonBlank([g.asn]) ?? '—', false),
     ('Coordinates', _coords(g), g.lat != null),
-    if (full) ('Postal', _nonBlank([g.postal]) ?? '—', false),
-    ('Hosting', _hosting(g), false),
+    // Postal and hosting type only come with older saved results (Pulse's own
+    // server doesn't have them), so show them only when known.
+    if (full && _nonBlank([g.postal]) != null) ('Postal', g.postal!, false),
+    if (g.hosting != null) ('Hosting', _hosting(g), false),
   ];
 }
 
@@ -669,7 +671,10 @@ class _SourceNote extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 4),
     child: Text(
-      'Data: ${source.isEmpty ? 'ip-api.com' : source} · Map: Natural Earth',
+      // DB-IP's licence (CC BY 4.0) asks for this credit wherever the data shows.
+      source.isEmpty || source == 'DB-IP'
+          ? 'IP geolocation by DB-IP · Map: Natural Earth'
+          : 'Data: $source · Map: Natural Earth',
       style: context.type.labelMedium!.copyWith(color: context.colors.onSurfaceVariant, fontWeight: FontWeight.w500),
     ),
   );
@@ -709,7 +714,7 @@ class _Idle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => PulseEmptyState(
     title: 'Where does it live?',
-    message: 'Look up a domain or IP to see its location, distance from you, network owner and hosting type.',
+    message: 'Look up a domain or IP to see its location, distance from you and network owner.',
     icon: PulseIcons.pin,
     shape: PulseShape.cookie9,
     size: 96,
@@ -730,7 +735,7 @@ class _LookupsOff extends StatelessWidget {
     child: PulseEmptyState(
       title: 'Public IP lookups are off',
       message:
-          'Geo IP sends the address you look up to ip-api.com (or ipinfo.io). '
+          "Geo IP sends the address you look up to Pulse's own server, which keeps nothing. "
           'Turn on Public IP lookups in Settings › Privacy to use it.',
       icon: PulseIcons.shield,
       shape: PulseShape.clover4,
