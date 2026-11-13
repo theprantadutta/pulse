@@ -475,12 +475,16 @@ class _Header extends StatelessWidget {
             children: [
               Semantics(
                 header: true,
-                child: Text(
-                  info.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: compact ? context.type.headlineMedium : context.type.headlineLarge,
-                ),
+                child: compact
+                    ? Text(info.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: context.type.headlineMedium)
+                    // The split pane shares the row with Save / Delete: keep
+                    // hosts and subnets on one line (shrunk if needed) rather
+                    // than breaking them mid-address.
+                    : FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(info.title, maxLines: 1, style: context.type.headlineLarge),
+                      ),
               ),
               const SizedBox(height: 2),
               Text(
