@@ -1,11 +1,21 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show PlatformDispatcher;
 
 import '../dns.dart';
 import '../ping_prober.dart';
 import 'arp_table.dart';
 import 'name_probe.dart';
 import 'oui.dart';
+
+/// Whether the device running Pulse is a tablet: shortest side ≥ 600 dp, the
+/// same split the shell and main.dart use.
+bool get thisDeviceIsTablet {
+  final views = PlatformDispatcher.instance.views;
+  if (views.isEmpty) return false;
+  final v = views.first;
+  return v.physicalSize.shortestSide / v.devicePixelRatio >= 600;
+}
 
 /// A host found on the LAN.
 class LanHost {
@@ -151,7 +161,9 @@ DeviceType classifyDevice(LanHost h, {List<int> openPorts = const []}) {
   ])) {
     return name.isEmpty ? DeviceType.phone : DeviceType.phone;
   }
-  if (h.isSelf && (Platform.isAndroid || Platform.isIOS)) return DeviceType.phone;
+  if (h.isSelf && (Platform.isAndroid || Platform.isIOS)) {
+    return thisDeviceIsTablet ? DeviceType.tablet : DeviceType.phone;
+  }
   if (h.isSelf ||
       openPorts.contains(3389) ||
       openPorts.contains(445) ||
