@@ -436,7 +436,8 @@ class AboutCard extends ConsumerWidget {
       ],
     );
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+      // On phones the text button's own tap area already pads the bottom.
+      padding: EdgeInsets.fromLTRB(16, 14, 8, context.isCompact ? 2 : 14),
       decoration: BoxDecoration(color: c.surfaceContainer, borderRadius: BorderRadius.circular(24)),
       // Phones: the button goes under the name so it never truncates. (No
       // LayoutBuilder: the tablet footer sits in a SliverFillRemaining, which
