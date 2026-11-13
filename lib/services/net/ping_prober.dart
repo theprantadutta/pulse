@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:dart_ping/dart_ping.dart';
 
+import 'android_icmp.dart';
 import 'dns.dart';
 import 'windows_icmp.dart';
 
@@ -53,8 +54,10 @@ class ProbeResult {
 
 /// Sends exactly one ICMP echo and reports what came back.
 ///
-/// Desktop and Android run the system `ping` (so packet size, TTL, timeout and
-/// family are honoured and no raw-socket privileges are needed); iOS uses
+/// Windows (IPv4) uses the ICMP API and Android (IPv4) an unprivileged ping
+/// socket, both without spawning a process; macOS, Linux, IPv6 and Android
+/// devices that refuse ping sockets run the system `ping` (packet size, TTL,
+/// timeout and family honoured, no raw-socket privileges); iOS uses
 /// dart_ping's bundled native ICMP engine.
 class PingProber {
   const PingProber();
@@ -85,6 +88,17 @@ class PingProber {
         return const ProbeResult(status: ProbeStatus.unknownHost, message: 'DNS lookup failed');
       }
       return WindowsIcmp.echo(address, timeout: timeout, packetSize: packetSize, ttl: ttl);
+    }
+    if (AndroidIcmp.available && family != ProbeFamily.ipv6 && !host.contains(':')) {
+      final InternetAddress address;
+      try {
+        address = await Dns.resolve(host, family: ProbeFamily.ipv4);
+      } on DnsFailure {
+        if (family == ProbeFamily.auto) return _probeProcess(host, timeout, packetSize, ttl, family);
+        return const ProbeResult(status: ProbeStatus.unknownHost, message: 'DNS lookup failed');
+      }
+      final r = await AndroidIcmp.echo(address, timeout: timeout, packetSize: packetSize, ttl: ttl);
+      if (r != null) return r;
     }
     return _probeProcess(host, timeout, packetSize, ttl, family);
   }
