@@ -200,7 +200,9 @@ class TraceInsights {
     return hops.isEmpty ? 1 : hops.last.n + 1;
   }
 
-  int get timeoutCount => hops.where((h) => h.timedOut).length;
+  /// Hops drawn as "no reply": no address at all, or an address whose every
+  /// RTT probe timed out (`* / * / *`). Matches the rail and the hop list.
+  int get timeoutCount => hops.where((h) => h.timedOut || (h.done && h.avg == null)).length;
   List<TraceHop> get timeouts => hops.where((h) => h.timedOut).toList();
   TraceHop? get destination => reached && hops.isNotEmpty ? hops.last : null;
 
