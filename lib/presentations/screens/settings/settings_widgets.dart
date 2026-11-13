@@ -437,7 +437,7 @@ class AboutCard extends ConsumerWidget {
     );
     return Container(
       // On phones the text button's own tap area already pads the bottom.
-      padding: EdgeInsets.fromLTRB(16, 14, 8, context.isCompact ? 2 : 14),
+      padding: EdgeInsets.fromLTRB(16, 14, 8, context.isCompact ? 4 : 14),
       decoration: BoxDecoration(color: c.surfaceContainer, borderRadius: BorderRadius.circular(24)),
       // Phones: the button goes under the name so it never truncates. (No
       // LayoutBuilder: the tablet footer sits in a SliverFillRemaining, which
@@ -499,6 +499,7 @@ class _UpdateCheckButtonState extends State<UpdateCheckButton> {
   Widget build(BuildContext context) => PulseButton(
     label: _busy ? 'Checking…' : _status ?? 'Check for updates',
     style: PulseButtonStyle.text,
+    size: PulseButtonSize.small,
     onPressed: _busy ? null : _check,
   );
 }

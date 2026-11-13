@@ -224,7 +224,7 @@ class _Hero extends StatelessWidget {
     final info = this.info;
     return Container(
       // The closing text button's tap area adds its own space below the label.
-      padding: const EdgeInsets.fromLTRB(20, 28, 20, 10),
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
       decoration: BoxDecoration(color: c.surfaceContainer, borderRadius: BorderRadius.circular(32)),
       child: Column(
         children: [
@@ -248,7 +248,7 @@ class _Hero extends StatelessWidget {
               const PulsePill(kLicenseName),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           const UpdateCheckButton(),
         ],
       ),
