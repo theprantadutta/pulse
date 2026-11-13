@@ -100,7 +100,7 @@ It replaced the earlier "Wire" design (branch `redesign/wire`, now merged histor
 - Version: `msix_version` must end in `.0` for the Store; keep it in step with `version:` (currently 1.0.0 / 1.0.0+1, the first Play release; bump the build number for every upload).
 - Policies (Store listing): https://legal.pranta.dev/pulse/privacy and https://legal.pranta.dev/pulse/terms, served
   from `G:\Personal\MyProjects\privacy-project\Projects\pulse\` (push to master → auto-deploys). Current versions:
-  privacy 1.1, terms 1.1 (Nov 12, 2026); bump them and the dates whenever data use, services or permissions change.
+  privacy 1.2, terms 1.2 (Nov 13, 2026); bump them and the dates whenever data use, services or permissions change.
 - STILL NEEDED from the user: a Partner Center account and the reserved app name; then copy Package/Identity/Name →
   `identity_name`, Package/Identity/Publisher (CN=…) → `publisher`, PublisherDisplayName → `publisher_display_name`,
   set `display_name` to the reserved name, and add that name to `displayNames` in privacy-project `Program.cs` if it
