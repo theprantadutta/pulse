@@ -126,6 +126,9 @@ final lanScanProvider = NotifierProvider<LanScanNotifier, LanScanState>(LanScanN
 class LanScanNotifier extends Notifier<LanScanState> {
   StreamSubscription<LanScanProgress>? _sub;
 
+  /// Bumped when a sweep starts, so a port check that overlapped one is dropped.
+  int _sweep = 0;
+
   @override
   LanScanState build() {
     ref.onDispose(() => _sub?.cancel());
@@ -148,6 +151,7 @@ class LanScanNotifier extends Notifier<LanScanState> {
       for (final d in await (db.select(db.lanDevices)..where((t) => t.subnet.equals(cidr))).get()) d.key: d,
     };
     final started = DateTime.now();
+    _sweep++;
     state = LanScanState(
       cidr: cidr,
       localIp: ip,
@@ -195,8 +199,9 @@ class LanScanNotifier extends Notifier<LanScanState> {
     await completer.future;
     await _persist(cidr, started);
     // The selected device's quick port check waits for the sweep (see scanPorts).
+    // Re-checked every sweep, so an old result never sticks.
     final selected = state.selectedIp;
-    if (selected != null && !state.ports.containsKey(selected)) unawaited(scanPorts(selected));
+    if (selected != null) unawaited(scanPorts(selected));
   }
 
   Future<void> _persist(String cidr, DateTime started) async {
@@ -270,10 +275,20 @@ class LanScanNotifier extends Notifier<LanScanState> {
     // During the sweep hundreds of probes hold sockets, so connections to open
     // ports time out and the device looks closed. scan() runs it afterwards.
     if (state.running) return;
+    final sweep = _sweep;
     state = state.copyWith(scanningPorts: {...state.scanningPorts, ip});
     final open = <PortResult>[];
     await for (final r in const PortScanner().scan(InternetAddress(ip), kCommonPorts)) {
       if (r.state == PortState.open) open.add(r);
+    }
+    if (sweep != _sweep || state.running) {
+      // A sweep started meanwhile and starved these connections, so "closed"
+      // can't be trusted. Drop it; scan() checks again when the sweep ends.
+      state = state.copyWith(scanningPorts: {...state.scanningPorts}..remove(ip));
+      // If that sweep already finished, its own re-check was skipped while
+      // this one ran (scanningPorts), so run it now.
+      if (!state.running && state.selectedIp == ip) unawaited(scanPorts(ip));
+      return;
     }
     open.sort((a, b) => a.port.compareTo(b.port));
     final ports = {...state.ports, ip: open};
