@@ -2,12 +2,15 @@
 //   flutter drive --profile --no-dds -d <serial> \
 //     --driver=test_driver/perf_driver.dart --target=integration_test/trace_test.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:pulse/app.dart';
 import 'package:pulse/main.dart' as app;
 import 'package:pulse/presentations/navigation/app_router.dart';
 import 'package:pulse/presentations/navigation/destinations.dart';
+import 'package:pulse/providers/lan_provider.dart';
 import 'package:pulse/providers/ping_provider.dart';
 
 void main() {
@@ -22,11 +25,15 @@ void main() {
     final board = container.read(pingBoardProvider.notifier);
     await board.start('1.1.1.1', name: 'Cloudflare');
 
-    for (final (name, route) in [('alerts', Routes.alerts), ('ping', Routes.ping)]) {
-      router.go(route);
-      await _wait(1);
-      await binding.traceAction(() => _wait(4), reportKey: 'timeline_$name');
-    }
+    // Per-widget build / layout spans (these flags work in profile builds).
+    debugProfileBuildsEnabled = true;
+    debugProfileLayoutsEnabled = true;
+    router.go(Routes.lan);
+    await _wait(1);
+    await binding.traceAction(() async {
+      await container.read(lanScanProvider.notifier).scan();
+      await _wait(3);
+    }, reportKey: 'timeline_lan');
     await board.stopAll();
   });
 }
