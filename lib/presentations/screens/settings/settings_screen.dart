@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../core/share/pulse_share.dart';
 import '../../../core/widgets/pulse/pulse.dart';
 import '../../../data/models/app_settings.dart';
 import '../../../data/models/ping_models.dart';
@@ -645,6 +646,20 @@ class SettingsSectionBody extends ConsumerWidget {
             const SizedBox(height: 3),
             SettingsGroup(
               items: [
+                (r) => SettingsValueItem(
+                  icon: PulseIcons.heart,
+                  title: 'Support us',
+                  subtitle: 'Donate, rate Pulse or tell a friend',
+                  chevron: true,
+                  onTap: () => context.push(Routes.support),
+                ),
+                (r) => SettingsValueItem(
+                  icon: PulseIcons.share,
+                  title: 'Share Pulse',
+                  subtitle: 'Send the app to someone',
+                  chevron: true,
+                  onTap: () => shareApp(context),
+                ),
                 (r) => SettingsValueItem(
                   icon: PulseIcons.info,
                   title: 'About Pulse',

@@ -5,11 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/format.dart';
+import '../../../core/share/pulse_share.dart';
 import '../../../core/widgets/pulse/pulse.dart';
+import '../../../data/models/session_tool.dart';
 import '../../../providers/network_provider.dart';
 import '../../../providers/speed_provider.dart';
 import '../../../services/net/speed_test.dart';
 import '../../navigation/destinations.dart';
+import '../../navigation/tools_catalog.dart';
 import 'speed_widgets.dart';
 
 /// Engine defaults, for the "6.2 s" phase clock.
@@ -408,10 +411,18 @@ class _Summary extends ConsumerWidget {
             ),
             const SizedBox(width: 8),
             PulseButton(
-              label: 'Copy',
-              icon: PulseIcons.copy,
+              label: 'Share',
+              icon: PulseIcons.share,
               style: PulseButtonStyle.tonal,
               size: PulseButtonSize.large,
+              onPressed: () => showShareResult(context, speedShareResult(s)),
+            ),
+            const SizedBox(width: 8),
+            PulseIconButton(
+              icon: PulseIcons.copy,
+              tooltip: 'Copy result',
+              style: PulseIconButtonStyle.tonal,
+              visualSize: 56,
               onPressed: onCopy,
             ),
           ],
@@ -420,6 +431,19 @@ class _Summary extends ConsumerWidget {
     );
   }
 }
+
+/// The finished test as a shareable card.
+ShareableResult speedShareResult(SpeedState s) => toolForSession(SessionTool.speed).shareResult(
+  headline: fmtMbps(s.downMbps),
+  unit: 'Mbps',
+  caption: 'Download',
+  target: serverLabel(s),
+  stats: [
+    ShareStat('Upload', fmtMbps(s.upMbps), unit: 'Mbps'),
+    ShareStat('Ping', fmtMs(s.pingMs), unit: 'ms'),
+    ShareStat('Jitter', fmtMs(s.jitterMs), unit: 'ms'),
+  ],
+);
 
 class _ErrorBanner extends ConsumerWidget {
   const _ErrorBanner({required this.message});

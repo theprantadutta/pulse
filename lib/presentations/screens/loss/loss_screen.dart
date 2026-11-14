@@ -5,12 +5,15 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/format.dart';
+import '../../../core/share/pulse_share.dart';
 import '../../../core/widgets/pulse/pulse.dart';
+import '../../../data/models/session_tool.dart';
 import '../../../data/models/app_settings.dart';
 import '../../../providers/loss_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../services/export_service.dart';
 import '../../navigation/destinations.dart';
+import '../../navigation/tools_catalog.dart';
 import 'loss_widgets.dart';
 
 const _durations = [1, 5, 15, 60];
@@ -574,6 +577,12 @@ class _Actions extends ConsumerWidget {
       children: [
         for (final b in [
           PulseButton(
+            label: 'Share',
+            icon: PulseIcons.share,
+            style: PulseButtonStyle.tonal,
+            onPressed: s.run.sent == 0 || s.running ? null : () => showShareResult(context, lossShareResult(s)),
+          ),
+          PulseButton(
             label: 'Export CSV',
             icon: PulseIcons.export,
             style: PulseButtonStyle.outlined,
@@ -598,4 +607,22 @@ class _Actions extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// A finished packet-loss run as a shareable card.
+ShareableResult lossShareResult(LossState s) {
+  final r = s.run;
+  return toolForSession(SessionTool.loss).shareResult(
+    headline: fmtPct(r.lossPct),
+    caption: 'Packet loss',
+    target: s.address == null || s.address == s.target ? s.target : '${s.target} · ${s.address}',
+    at: s.startedAt,
+    stats: [
+      ShareStat('Sent', '${r.sent}'),
+      ShareStat('Lost', '${r.lost}'),
+      if (r.late > 0) ShareStat('Late', '${r.late}'),
+      ShareStat('Avg ping', fmtMs(r.avgRtt), unit: 'ms'),
+      if (r.longestBurst > 1) ShareStat('Longest burst', '${r.longestBurst}'),
+    ],
+  );
 }

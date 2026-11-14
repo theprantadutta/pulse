@@ -7,10 +7,12 @@ import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/format.dart';
+import '../../../core/share/pulse_share.dart';
 import '../../../core/widgets/pulse/pulse.dart';
 import '../../../data/models/app_settings.dart';
 import '../../../providers/ping_provider.dart';
 import '../../navigation/destinations.dart';
+import '../../navigation/tools_catalog.dart';
 import 'ping_configure.dart';
 import 'ping_widgets.dart';
 
@@ -77,11 +79,23 @@ class PingDetailScreen extends ConsumerWidget {
 
 String _hostLine(PingSession s) => s.name?.isNotEmpty == true ? s.host : (s.describe ?? 'Ping');
 
-void _copySummary(BuildContext context, PingSession s) {
-  Clipboard.setData(ClipboardData(text: sessionSummary(s)));
-  ScaffoldMessenger.maybeOf(context)
-    ?..hideCurrentSnackBar()
-    ..showSnackBar(const SnackBar(content: Text('Summary copied'), duration: Duration(seconds: 2)));
+/// This host's run as a shareable card.
+ShareableResult pingShareResult(PingSession s) {
+  final st = s.stats;
+  return kPingTool.shareResult(
+    headline: fmtMs(st.avg),
+    unit: 'ms',
+    caption: 'Average ping',
+    target: s.name?.isNotEmpty == true ? '${s.name} · ${s.host}' : s.host,
+    at: s.startedAt,
+    stats: [
+      ShareStat('Loss', fmtPct(st.lossPct)),
+      ShareStat('Min', fmtMs(st.min), unit: 'ms'),
+      ShareStat('Max', fmtMs(st.max), unit: 'ms'),
+      ShareStat('Jitter', fmtMs(st.jitter), unit: 'ms'),
+      ShareStat('Replies', '${st.received}/${st.sent}'),
+    ],
+  );
 }
 
 Future<void> _toggle(BuildContext context, WidgetRef ref, PingSession s) async {
@@ -495,10 +509,10 @@ class _PhoneDetail extends ConsumerWidget {
             const SizedBox(width: 8),
             PulseIconButton(
               icon: PulseIcons.share,
-              tooltip: 'Copy summary',
+              tooltip: 'Share result',
               style: PulseIconButtonStyle.tonal,
               visualSize: 56,
-              onPressed: () => _copySummary(context, s),
+              onPressed: () => showShareResult(context, pingShareResult(s)),
             ),
           ],
         ),
@@ -639,7 +653,11 @@ class _TabletDetail extends ConsumerWidget {
           tooltip: 'Ping options',
           onPressed: () => showHostOptionsSheet(context, s),
         ),
-        PulseIconButton(icon: PulseIcons.share, tooltip: 'Copy summary', onPressed: () => _copySummary(context, s)),
+        PulseIconButton(
+          icon: PulseIcons.share,
+          tooltip: 'Share result',
+          onPressed: () => showShareResult(context, pingShareResult(s)),
+        ),
         _MoreMenu(session: s),
       ],
       body: Column(

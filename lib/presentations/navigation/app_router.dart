@@ -15,6 +15,7 @@ import '../screens/ping/ping_screen.dart';
 import '../screens/ports/ports_screen.dart';
 import '../screens/settings/about_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import '../screens/settings/support_screen.dart';
 import '../screens/splash/splash_screen.dart';
 import '../screens/speed/speed_screen.dart';
 import '../screens/tools/tools_hub_screen.dart';
@@ -115,6 +116,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           _route(Routes.history, (s) => const HistoryScreen()),
           _route(Routes.settings, (s) => const SettingsScreen()),
           _route(Routes.about, (s) => const AboutScreen()),
+          _route(Routes.support, (s) => const SupportScreen()),
           _route(Routes.tools, (s) => const ToolsHubScreen()),
         ],
       ),

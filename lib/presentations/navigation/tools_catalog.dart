@@ -1,3 +1,5 @@
+import '../../core/share/pulse_share.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/pulse/pulse.dart';
@@ -177,3 +179,26 @@ final toolStatusProvider = Provider<Map<PulseTool, ToolStatus>>((ref) {
           : ToolStatus((latest[t.session]?.summary.isNotEmpty ?? false) ? latest[t.session]!.summary : t.empty),
   };
 });
+
+/// A shareable result in this tool's badge style (see showShareResult).
+extension PulseToolShare on PulseTool {
+  ShareableResult shareResult({
+    required String headline,
+    required String caption,
+    String? unit,
+    List<ShareStat> stats = const [],
+    String? target,
+    DateTime? at,
+  }) => ShareableResult(
+    tool: name,
+    icon: icon,
+    shape: shape,
+    tone: tone,
+    headline: headline,
+    caption: caption,
+    unit: unit,
+    stats: stats,
+    target: target,
+    at: at ?? DateTime.now(),
+  );
+}

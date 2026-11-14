@@ -2,12 +2,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../core/format.dart';
+import '../../../core/share/pulse_share.dart';
 import '../../../core/widgets/pulse/pulse.dart';
+import '../../../data/models/session_tool.dart';
 import '../../../data/models/app_settings.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../providers/trace_provider.dart';
 import '../../../services/export_service.dart';
 import '../../navigation/destinations.dart';
+import '../../navigation/tools_catalog.dart';
 import 'trace_insights.dart';
 import 'trace_widgets.dart';
 
@@ -148,6 +152,24 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
     ),
   );
 
+  ShareableResult _shareResult(TraceState s) {
+    final i = _insights(s);
+    final jump = i.jump;
+    return toolForSession(SessionTool.trace).shareResult(
+      headline: fmtMs(s.totalRtt),
+      unit: 'ms',
+      caption: s.reached ? 'To reach the destination' : 'Last reply on the way',
+      target: s.destination == null || s.destination == s.target ? s.target : '${s.target} · ${s.destination}',
+      at: s.startedAt,
+      stats: [
+        ShareStat('Hops', '${s.hops.length}'),
+        if (i.routeLabel != null) ShareStat('Route', i.routeLabel!),
+        if (i.timeoutCount > 0) ShareStat('No reply', '${i.timeoutCount}'),
+        if (jump != null) ShareStat('Biggest jump', '+${fmtMs(jump.addMs)}', unit: 'ms'),
+      ],
+    );
+  }
+
   TraceInsights _insights(TraceState s) =>
       TraceInsights.of(s.hops, target: s.target, reached: s.reached, finished: s.finished && !s.running);
 
@@ -217,6 +239,16 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
             style: PulseButtonStyle.tonal,
             expand: true,
             onPressed: s.hops.isEmpty ? null : () => _save(s),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: PulseButton(
+            label: 'Share',
+            icon: PulseIcons.share,
+            style: PulseButtonStyle.tonal,
+            expand: true,
+            onPressed: s.hops.isEmpty || s.running ? null : () => showShareResult(context, _shareResult(s)),
           ),
         ),
       ],

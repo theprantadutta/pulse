@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/format.dart';
+import '../../../core/share/pulse_share.dart';
 import '../../../core/widgets/pulse/pulse.dart';
 import '../../../data/db/app_database.dart';
 import '../../../data/models/session_tool.dart';
@@ -16,6 +17,7 @@ import '../../../providers/settings_provider.dart';
 import '../../../services/export_service.dart';
 import '../../../services/net/port_scanner.dart';
 import '../trace/trace_widgets.dart';
+import '../../navigation/tools_catalog.dart';
 import 'run_info.dart';
 
 /// The detail of one stored run: badge + title, share / delete, a connected
@@ -53,6 +55,13 @@ class RunDetail extends ConsumerWidget {
             icon: PulseIcons.refresh,
             size: PulseButtonSize.large,
             onPressed: () => _rerun(context, ref, info),
+          ),
+          PulseButton(
+            label: 'Share',
+            icon: PulseIcons.share,
+            style: PulseButtonStyle.tonal,
+            size: PulseButtonSize.large,
+            onPressed: () => showShareResult(context, runShareResult(info)),
           ),
           PulseButton(
             label: 'Copy as text',
@@ -104,7 +113,7 @@ class RunDetail extends ConsumerWidget {
   }
 
   List<Widget> _headerActions(BuildContext context, WidgetRef ref, RunInfo info) => [
-    PulseIconButton(icon: PulseIcons.share, tooltip: 'Save report', onPressed: () => _saveReport(context, ref)),
+    PulseIconButton(icon: PulseIcons.export, tooltip: 'Save report', onPressed: () => _saveReport(context, ref)),
     PulseIconButton(icon: PulseIcons.trash, tooltip: 'Delete run', onPressed: () => _delete(context, ref, info)),
   ];
 
@@ -630,5 +639,20 @@ class _KeyValues extends StatelessWidget {
           titleStyle: context.type.bodyLarge!.copyWith(fontWeight: FontWeight.w600),
         ),
     ],
+  );
+}
+
+/// Any saved run as a shareable card: its first summary tile is the big
+/// number, the rest become stats.
+ShareableResult runShareResult(RunInfo info) {
+  final tiles = info.tiles;
+  final first = tiles.isEmpty ? RunTile('Result', info.session.summary) : tiles.first;
+  return info.tool.shareResult(
+    headline: first.value,
+    unit: first.unit,
+    caption: first.label,
+    target: info.session.label == null ? info.session.target : '${info.session.label} · ${info.session.target}',
+    at: info.session.startedAt,
+    stats: [for (final t in tiles.skip(1)) ShareStat(t.label, t.value, unit: t.unit)],
   );
 }

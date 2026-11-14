@@ -21,6 +21,7 @@ class Routes {
   static const history = '/history';
   static const settings = '/settings';
   static const about = '/settings/about';
+  static const support = '/settings/support';
   static const tools = '/tools';
 }
 
@@ -69,6 +70,7 @@ MobileTab tabFor(String location) {
 /// back leaves the app from there.
 String? parentRoute(String location) {
   if (_under(location, Routes.about)) return Routes.settings;
+  if (_under(location, Routes.support)) return Routes.settings;
   if (_under(location, Routes.alertRule)) return Routes.alerts;
   if (_under(location, Routes.alerts)) return Routes.monitor;
   if (_under(location, Routes.pingDetail)) return Routes.ping;
