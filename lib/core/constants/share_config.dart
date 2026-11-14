@@ -23,6 +23,9 @@ abstract final class PulseShareConfig {
 
   /// Set once the iOS app is live; the rating row stays hidden on iOS until then.
   static const String? appStoreUrl = null;
+
+  /// The numeric App Store id (for the in-app review page on iOS / macOS).
+  static const String? appStoreId = null;
   static const sourceUrl = 'https://github.com/theprantadutta/pulse_flutter_app';
 
   /// Donations aren't set up yet: an empty list shows "coming soon". Add

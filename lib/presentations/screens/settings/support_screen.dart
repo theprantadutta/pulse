@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/share_config.dart';
 import '../../../core/share/pulse_share.dart';
 import '../../../core/widgets/pulse/pulse.dart';
+import '../../../services/store/app_reviews.dart';
 import '../../navigation/destinations.dart';
 import 'settings_screen.dart' show kDeveloper;
 import 'settings_widgets.dart';
@@ -15,13 +14,6 @@ import 'settings_widgets.dart';
 /// by [PulseShareConfig].
 class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});
-
-  /// The store page to rate Pulse on this platform, if it has one yet.
-  static String? get rateUrl {
-    if (Platform.isAndroid) return PulseShareConfig.playStoreUrl;
-    if (Platform.isIOS || Platform.isMacOS) return PulseShareConfig.appStoreUrl;
-    return null;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,13 +29,13 @@ class SupportScreen extends StatelessWidget {
           chevron: true,
           onTap: () => shareApp(context),
         ),
-        if (PulseShareConfig.showRateApp && rateUrl != null)
+        if (PulseShareConfig.showRateApp && AppReviews.storeUrl != null)
           (r) => SettingsValueItem(
             icon: PulseIcons.star,
             title: 'Rate Pulse',
             subtitle: 'A rating helps others find it',
             chevron: true,
-            onTap: () => openExternalLink(context, rateUrl!),
+            onTap: () => AppReviews.openStorePage(context),
           ),
         if (PulseShareConfig.showStarOnGitHub)
           (r) => SettingsValueItem(

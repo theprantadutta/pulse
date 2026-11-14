@@ -20,6 +20,8 @@ import '../../../services/background/notifications.dart';
 import '../../../services/desktop/desktop_host.dart';
 import '../../../services/desktop/launch_at_login.dart';
 import '../../../services/net/ping_prober.dart';
+import '../../../services/store/app_reviews.dart';
+import '../../../services/store/app_updates.dart';
 import '../../navigation/destinations.dart';
 import 'settings_widgets.dart';
 
@@ -646,6 +648,21 @@ class SettingsSectionBody extends ConsumerWidget {
             const SizedBox(height: 3),
             SettingsGroup(
               items: [
+                (r) => SettingsValueItem(
+                  icon: PulseIcons.refresh,
+                  title: 'Check for updates',
+                  subtitle: updateSubtitle(ref.watch(appUpdateProvider)),
+                  chevron: true,
+                  onTap: () => runUpdateAction(context, ref),
+                ),
+                if (AppReviews.storeUrl != null)
+                  (r) => SettingsValueItem(
+                    icon: PulseIcons.star,
+                    title: 'Rate Pulse',
+                    subtitle: 'Leave a review on the store',
+                    chevron: true,
+                    onTap: () => AppReviews.openStorePage(context),
+                  ),
                 (r) => SettingsValueItem(
                   icon: PulseIcons.heart,
                   title: 'Support us',

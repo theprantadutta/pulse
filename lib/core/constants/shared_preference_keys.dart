@@ -28,3 +28,11 @@ const kQuickTargetsKey = 'wire.ping.quick_targets';
 /// Written by the pre-Wire app; migrated once then removed.
 const kLegacyIsDarkModeKey = 'is_dark_mode_key';
 const kLegacyFlexSchemeKey = 'is_flex_scheme_key';
+
+/// In-app updates and reviews (lib/services/store/).
+const kUpdateLastCheckKey = 'pulse.update.last_check';
+const kUpdatePromptedKey = 'pulse.update.prompted'; // "version|epochMs"
+const kReviewMomentsKey = 'pulse.review.moments';
+const kReviewFirstMomentKey = 'pulse.review.first_moment';
+const kReviewLastAskedKey = 'pulse.review.last_asked';
+const kReviewTimesAskedKey = 'pulse.review.times_asked';

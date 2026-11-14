@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/widgets/pulse/pulse.dart';
-import '../../../services/update_checker.dart';
+import '../../../services/store/app_updates.dart';
+import '../../navigation/store_prompts.dart';
 import 'settings_screen.dart' show packageInfoProvider;
 
 /// A segmented group whose items get their corner radius from their position.
@@ -459,48 +459,69 @@ class AboutCard extends ConsumerWidget {
   }
 }
 
-/// "Check for updates" against the latest GitHub release; when a newer one
-/// exists the button opens its page.
-class UpdateCheckButton extends StatefulWidget {
+/// "Check for updates" (About card): checks, then offers the update the
+/// check found. Same state as the Settings row (appUpdateProvider).
+class UpdateCheckButton extends ConsumerWidget {
   const UpdateCheckButton({super.key});
 
   @override
-  State<UpdateCheckButton> createState() => _UpdateCheckButtonState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(appUpdateProvider);
+    final label = switch (s.status) {
+      UpdateStatus.checking => 'Checking…',
+      UpdateStatus.upToDate => 'Up to date',
+      UpdateStatus.available => s.latestVersion == null ? 'Update now' : 'Get v${s.latestVersion}',
+      UpdateStatus.downloading => 'Downloading…',
+      UpdateStatus.readyToInstall => 'Restart to update',
+      UpdateStatus.failed => 'Check failed, retry',
+      UpdateStatus.idle => 'Check for updates',
+    };
+    return PulseButton(
+      label: label,
+      style: PulseButtonStyle.text,
+      size: PulseButtonSize.small,
+      onPressed: s.busy ? null : () => runUpdateAction(context, ref),
+    );
+  }
 }
 
-class _UpdateCheckButtonState extends State<UpdateCheckButton> {
-  String? _status;
-  UpdateInfo? _info;
-  bool _busy = false;
-
-  Future<void> _check() async {
-    if (_info?.newer == true) {
-      await openExternalLink(context, _info!.url);
+/// What tapping an update control does in each state.
+Future<void> runUpdateAction(BuildContext context, WidgetRef ref) async {
+  final n = ref.read(appUpdateProvider.notifier);
+  switch (ref.read(appUpdateProvider).status) {
+    case UpdateStatus.available:
+      await startAppUpdate(context, ref);
+    case UpdateStatus.readyToInstall:
+      await n.install();
+    case UpdateStatus.checking || UpdateStatus.downloading:
       return;
-    }
-    setState(() => _busy = true);
-    try {
-      final current = (await PackageInfo.fromPlatform()).version;
-      final info = await const UpdateChecker().check(current);
-      if (!mounted) return;
-      setState(() {
-        _info = info;
-        _status = info.newer ? 'Get v${info.latest}' : 'Up to date';
-      });
-    } on Object {
-      if (mounted) setState(() => _status = 'Check failed, retry');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+    case UpdateStatus.idle || UpdateStatus.upToDate || UpdateStatus.failed:
+      await n.check();
+      if (!context.mounted) return;
+      final s = ref.read(appUpdateProvider);
+      if (s.status == UpdateStatus.upToDate) {
+        showPulseToast(context, "You're on the latest version", icon: PulseIcons.check);
+      } else if (s.status == UpdateStatus.failed) {
+        showPulseToast(context, s.message ?? "Couldn't check for updates", icon: PulseIcons.refresh);
+      }
   }
+}
 
-  @override
-  Widget build(BuildContext context) => PulseButton(
-    label: _busy ? 'Checking…' : _status ?? 'Check for updates',
-    style: PulseButtonStyle.text,
-    size: PulseButtonSize.small,
-    onPressed: _busy ? null : _check,
-  );
+/// Subtitle for the Settings "Check for updates" row.
+String updateSubtitle(AppUpdateState s) {
+  final via = s.source == UpdateSource.play ? 'Google Play' : 'GitHub releases';
+  return switch (s.status) {
+    UpdateStatus.idle => s.currentVersion == null ? 'Tap to check' : 'Version ${s.currentVersion} · tap to check',
+    UpdateStatus.checking => 'Checking…',
+    UpdateStatus.upToDate => "You're on the latest version (${s.currentVersion ?? ''})",
+    UpdateStatus.available =>
+      s.latestVersion == null
+          ? 'An update is ready on $via · tap to update'
+          : 'Version ${s.latestVersion} is out · tap to update',
+    UpdateStatus.downloading => 'Downloading the update…',
+    UpdateStatus.readyToInstall => 'Downloaded · tap to restart and finish',
+    UpdateStatus.failed => s.message ?? "Couldn't check · tap to retry",
+  };
 }
 
 /// Bottom-sheet picker for a settings value; returns the chosen option.

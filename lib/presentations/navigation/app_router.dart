@@ -22,6 +22,7 @@ import '../screens/tools/tools_hub_screen.dart';
 import '../screens/trace/trace_screen.dart';
 import 'destinations.dart';
 import 'pulse_shell.dart';
+import 'store_prompts.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
@@ -99,7 +100,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
-        builder: (context, state, child) => PulseShell(location: state.uri.path, child: child),
+        builder: (context, state, child) => StorePrompts(
+          child: PulseShell(location: state.uri.path, child: child),
+        ),
         routes: [
           _route(Routes.ping, (s) => const PingScreen()),
           _route(Routes.pingDetail, (s) => PingDetailScreen(id: s.uri.queryParameters['id'])),

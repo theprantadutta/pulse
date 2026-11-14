@@ -11,6 +11,7 @@ import '../data/models/ping_models.dart';
 import '../data/models/session_tool.dart';
 import '../data/repositories/history_repository.dart';
 import '../services/net/dns.dart';
+import '../services/store/app_reviews.dart';
 import '../services/net/ping_prober.dart';
 import 'database_provider.dart';
 import 'settings_provider.dart';
@@ -27,7 +28,13 @@ const _kSaveReplies = 5000;
 /// Overridable in tests.
 final pingProberProvider = Provider<PingProber>((ref) => const PingProber());
 
-final historyRepositoryProvider = Provider<HistoryRepository>((ref) => HistoryRepository(ref.watch(databaseProvider)));
+/// Every saved run is also a review moment (see AppReviews).
+final historyRepositoryProvider = Provider<HistoryRepository>(
+  (ref) => HistoryRepository(
+    ref.watch(databaseProvider),
+    onSaved: () => ref.read(reviewMomentsProvider.notifier).recorded(),
+  ),
+);
 
 /// One live (or finished) ping to a host.
 @immutable

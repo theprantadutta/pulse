@@ -9,8 +9,11 @@ import '../models/session_tool.dart';
 
 /// Reads and writes History sessions.
 class HistoryRepository {
-  HistoryRepository(this.db);
+  HistoryRepository(this.db, {this.onSaved});
   final AppDatabase db;
+
+  /// Called after a run is saved (in-app review moments).
+  final void Function()? onSaved;
 
   Future<int> save({
     required SessionTool tool,
@@ -23,8 +26,8 @@ class HistoryRepository {
     String summary = '',
     List<double> trend = const [],
     Map<String, Object?> payload = const {},
-  }) {
-    return db
+  }) async {
+    final id = await db
         .into(db.sessions)
         .insert(
           SessionsCompanion.insert(
@@ -40,6 +43,8 @@ class HistoryRepository {
             payload: Value(jsonEncode(payload)),
           ),
         );
+    onSaved?.call();
+    return id;
   }
 
   /// Newest first. [search] matches the name, host, tool or summary.

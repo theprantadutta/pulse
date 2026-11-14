@@ -53,6 +53,16 @@ It replaced the earlier "Wire" design (branch `redesign/wire`, now merged histor
 - Release signing: `android/key.properties` (git-ignored) → upload key in `C:/android-keys/pulse/` (same layout
   as Gridwell/Pourfect; credentials file there). Play App Signing holds the app signing key.
 
+### In-app updates and reviews (`lib/services/store/`)
+- `app_updates.dart` (`appUpdateProvider`): Google Play in-app updates (`in_app_update`) when installed by Play —
+  flexible background download, immediate when priority ≥ 4 or 30 days stale; otherwise (desktop, debug/sideloaded
+  Android) the latest GitHub release. `StorePrompts` (around the shell, `navigation/store_prompts.dart`) checks quietly
+  at start (≤ every 12 h) and offers Update / Restart. Play's flow only works on builds installed from Play
+  (internal testing or later), never on `flutter run` builds.
+- `app_reviews.dart`: every saved run (HistoryRepository `onSaved`) is a review moment; the native review sheet
+  (`in_app_review`) shows after 5 runs and 3 days, at most every 120 days and 3 times. "Rate Pulse" buttons open the
+  store page instead (requestReview from a button may show nothing). Set `PulseShareConfig.appStoreId` once on iOS.
+
 ### Decisions made with the user
 - Persistence: **drift** (`lib/data/db/app_database.dart`, run `dart run build_runner build` after schema edits).
 - **No stubs anywhere.** Every screen/provider must be fully real: LAN scan, Monitor, Alerts, Geo IP, Packet loss
