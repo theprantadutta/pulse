@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/pulse/pulse.dart';
 import '../../../data/models/app_settings.dart';
@@ -613,14 +612,14 @@ class SettingsSectionBody extends ConsumerWidget {
                   title: 'Privacy policy',
                   subtitle: 'legal.pranta.dev/pulse/privacy',
                   chevron: true,
-                  onTap: () => launchUrl(Uri.parse(kPrivacyUrl)),
+                  onTap: () => openExternalLink(context, kPrivacyUrl),
                 ),
                 (r) => SettingsValueItem(
                   icon: PulseIcons.info,
                   title: 'Terms of use',
                   subtitle: 'legal.pranta.dev/pulse/terms',
                   chevron: true,
-                  onTap: () => launchUrl(Uri.parse(kTermsUrl)),
+                  onTap: () => openExternalLink(context, kTermsUrl),
                 ),
               ],
             ),

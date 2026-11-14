@@ -31,7 +31,7 @@ class AboutScreen extends ConsumerWidget {
           title: kDeveloper.name,
           subtitle: kDeveloper.website.replaceFirst('https://', ''),
           chevron: true,
-          onTap: () => _open(kDeveloper.website),
+          onTap: () => openExternalLink(context, kDeveloper.website),
         ),
         (r) => SettingsValueItem(
           icon: PulseIcons.help,
@@ -45,7 +45,7 @@ class AboutScreen extends ConsumerWidget {
           title: 'Source code',
           subtitle: kSourceUrl.replaceFirst('https://', ''),
           chevron: true,
-          onTap: () => _open(kSourceUrl),
+          onTap: () => openExternalLink(context, kSourceUrl),
         ),
       ],
     );
@@ -66,14 +66,14 @@ class AboutScreen extends ConsumerWidget {
           title: 'Privacy policy',
           subtitle: kPrivacyUrl.replaceFirst('https://', ''),
           chevron: true,
-          onTap: () => _open(kPrivacyUrl),
+          onTap: () => openExternalLink(context, kPrivacyUrl),
         ),
         (r) => SettingsValueItem(
           icon: PulseIcons.info,
           title: 'Terms of use',
           subtitle: kTermsUrl.replaceFirst('https://', ''),
           chevron: true,
-          onTap: () => _open(kTermsUrl),
+          onTap: () => openExternalLink(context, kTermsUrl),
         ),
         (r) => SettingsValueItem(
           icon: PulseIcons.data,
@@ -147,8 +147,6 @@ class AboutScreen extends ConsumerWidget {
     }
     return PulsePage(title: 'About Pulse', backTo: Routes.settings, showBack: true, children: children);
   }
-
-  static Future<void> _open(String url) => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
 
   static String get _copyright => '© ${DateTime.now().year} ${kDeveloper.name}';
 
