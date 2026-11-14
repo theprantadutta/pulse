@@ -362,6 +362,7 @@ class _Summary extends StatelessWidget {
           alignment: Alignment.center,
           children: [
             ShapeWobble(
+              active: s.running,
               child: PulseShapeBox(shape: PulseShape.clover4, color: PulseTone.lime.fill(context), size: size),
             ),
             PulseLiveValue(

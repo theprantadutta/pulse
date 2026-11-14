@@ -322,7 +322,11 @@ class WavyLinearProgressPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant WavyLinearProgressPainter old) =>
-      old.progress != progress || old.phase != phase || old.activeColor != activeColor || old.trackColor != trackColor;
+      old.progress != progress ||
+      old.phase != phase ||
+      old.amplitude != amplitude ||
+      old.activeColor != activeColor ||
+      old.trackColor != trackColor;
 }
 
 class WavyCircularProgressPainter extends CustomPainter {
@@ -382,7 +386,11 @@ class WavyCircularProgressPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant WavyCircularProgressPainter old) =>
-      old.progress != progress || old.phase != phase || old.activeColor != activeColor || old.trackColor != trackColor;
+      old.progress != progress ||
+      old.phase != phase ||
+      old.amplitudeFactor != amplitudeFactor ||
+      old.activeColor != activeColor ||
+      old.trackColor != trackColor;
 }
 
 /// Determinate wavy indicator. [circular] = speed-test gauge; otherwise linear.
@@ -418,7 +426,16 @@ class _WavyProgressState extends State<WavyProgress> with TickerProviderStateMix
     duration: const Duration(milliseconds: 900),
     value: 0,
   );
+  // 0 = wavy, 1 = flat. A finished bar (value 1) settles into a straight line
+  // and stops moving, so it never reads as "still loading" (M3 Expressive).
+  late final AnimationController _flat =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 600), value: widget.value >= 1 ? 1 : 0)
+        ..addStatusListener((status) {
+          if (status == AnimationStatus.completed) _phase.stop();
+        });
   double _from = 0, _to = 0;
+
+  bool get _done => widget.value >= 1;
 
   @override
   void initState() {
@@ -430,9 +447,16 @@ class _WavyProgressState extends State<WavyProgress> with TickerProviderStateMix
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _syncPhase();
+  }
+
+  void _syncPhase() {
     if (_reduceMotion(context)) {
       _phase.stop();
       _value.value = 1;
+      _flat.value = _done ? 1 : 0;
+    } else if (_done && _flat.isCompleted) {
+      _phase.stop();
     } else if (!_phase.isAnimating) {
       _phase.repeat();
     }
@@ -445,6 +469,14 @@ class _WavyProgressState extends State<WavyProgress> with TickerProviderStateMix
       _from = _current;
       _to = widget.value;
       _value.forward(from: 0);
+      final wasDone = old.value >= 1;
+      if (_done && !wasDone) {
+        // Let the fill reach the end, then flatten.
+        _flat.animateTo(1, curve: Curves.easeOutCubic);
+      } else if (!_done && wasDone) {
+        _flat.value = 0;
+      }
+      _syncPhase();
     }
   }
 
@@ -454,6 +486,7 @@ class _WavyProgressState extends State<WavyProgress> with TickerProviderStateMix
   void dispose() {
     _phase.dispose();
     _value.dispose();
+    _flat.dispose();
     super.dispose();
   }
 
@@ -461,18 +494,20 @@ class _WavyProgressState extends State<WavyProgress> with TickerProviderStateMix
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return AnimatedBuilder(
-      animation: Listenable.merge(<Listenable>[_phase, _value]),
+      animation: Listenable.merge(<Listenable>[_phase, _value, _flat]),
       builder: (context, child) {
         final painter = widget.circular
             ? WavyCircularProgressPainter(
                 progress: _current,
                 phase: _phase.value,
+                amplitudeFactor: 4 / 120 * (1 - _flat.value),
                 activeColor: widget.activeColor ?? cs.primaryFixedDim,
                 trackColor: widget.trackColor ?? cs.surfaceContainerHigh,
               )
             : WavyLinearProgressPainter(
                 progress: _current,
                 phase: _phase.value,
+                amplitude: 3 * (1 - _flat.value),
                 activeColor: widget.activeColor ?? cs.primary,
                 trackColor: widget.trackColor ?? cs.secondaryContainer,
               );
