@@ -31,14 +31,21 @@ class LossScreen extends ConsumerStatefulWidget {
 
 class _LossScreenState extends ConsumerState<LossScreen> {
   late final _target = TextEditingController(text: widget.initialTarget ?? ref.read(lossProvider).target);
+  final _targetFocus = FocusNode();
 
   @override
   void dispose() {
     _target.dispose();
+    _targetFocus.dispose();
     super.dispose();
   }
 
   void _start() {
+    if (_target.text.trim().isEmpty) {
+      showPulseToast(context, 'Enter a host or IP address first', icon: PulseIcons.search);
+      _targetFocus.requestFocus();
+      return;
+    }
     FocusScope.of(context).unfocus();
     ref.read(lossProvider.notifier).start(_target.text);
   }
@@ -136,6 +143,7 @@ class _LossScreenState extends ConsumerState<LossScreen> {
     controller: _target,
     hint: 'Host or IP, e.g. 1.1.1.1',
     enabled: !s.running,
+    focusNode: _targetFocus,
     onSubmitted: (_) => _start(),
     trailing: compact ? '${s.durationMin} min · ${s.ratePerSec}/s' : (s.address != s.target ? s.address : null),
   );

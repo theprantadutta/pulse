@@ -343,11 +343,7 @@ class _EmptyPing extends ConsumerWidget {
                           mainAxisSize: MainAxisSize.min,
                           spacing: 8,
                           children: [
-                            PulseChip(
-                              label: 'Router',
-                              icon: PulseIcons.router,
-                              onTap: gateway == null ? null : () => _start(context, ref, gateway, 'Router'),
-                            ),
+                            PulseChip(label: 'Router', icon: PulseIcons.router, onTap: () => pingRouter(context, ref)),
                             PulseChip(label: '1.1.1.1', onTap: () => _start(context, ref, '1.1.1.1', 'Cloudflare')),
                             PulseChip(label: '8.8.8.8', onTap: () => _start(context, ref, '8.8.8.8', 'Google DNS')),
                           ],

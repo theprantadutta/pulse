@@ -24,6 +24,7 @@ class TraceScreen extends ConsumerStatefulWidget {
 
 class _TraceScreenState extends ConsumerState<TraceScreen> {
   late final _target = TextEditingController(text: widget.initialTarget ?? ref.read(traceProvider).target);
+  final _targetFocus = FocusNode();
 
   @override
   void initState() {
@@ -36,10 +37,16 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
   @override
   void dispose() {
     _target.dispose();
+    _targetFocus.dispose();
     super.dispose();
   }
 
   void _run() {
+    if (_target.text.trim().isEmpty) {
+      showPulseToast(context, 'Enter a host or IP address first', icon: PulseIcons.search);
+      _targetFocus.requestFocus();
+      return;
+    }
     FocusScope.of(context).unfocus();
     ref.read(traceProvider.notifier).run(_target.text);
   }
@@ -171,6 +178,7 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
       controller: _target,
       hint: 'Host or IP to trace',
       enabled: !s.running,
+      focusNode: _targetFocus,
       onSubmitted: (_) => _run(),
       trailing: compact ? s.destination : null,
       trailingWidget: compact ? null : _OptionsLabel(state: s, onTap: s.running ? null : _options),

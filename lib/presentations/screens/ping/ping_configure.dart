@@ -11,6 +11,8 @@ import '../../../data/db/app_database.dart';
 import '../../../data/models/app_settings.dart';
 import '../../../data/models/ping_models.dart';
 import '../../../providers/alerts_provider.dart';
+import '../../../providers/connection_provider.dart';
+import '../../../providers/network_provider.dart';
 import '../../../providers/ping_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../services/background/monitor_engine.dart';
@@ -19,8 +21,43 @@ import '../../../services/net/ping_prober.dart';
 import '../../navigation/destinations.dart';
 import 'ping_widgets.dart';
 
-/// The default gateway (the "Router" host).
-final gatewayProvider = FutureProvider<String?>((ref) => Gateway.ipv4());
+/// The default gateway (the "Router" host). Re-read whenever the connection
+/// changes, so moving from one network to another never keeps the old router.
+/// The native link details (the Network screen's source) come first; the
+/// routing-table / DHCP lookup is the fallback.
+final gatewayProvider = FutureProvider<String?>((ref) async {
+  final summary = await ref.watch(connectionProvider.future);
+  if (!summary.online) return null;
+  try {
+    final gateway = (await ref.read(networkDetailsReaderProvider).read(summary: summary)).gateway;
+    if (gateway != null && gateway.isNotEmpty && gateway != '0.0.0.0') return gateway;
+  } on Object {
+    // Fall through to the OS lookup.
+  }
+  return Gateway.ipv4();
+});
+
+/// Pings the router, or explains why it can't: the chip is always tappable.
+Future<void> pingRouter(BuildContext context, WidgetRef ref, {String name = 'Router'}) async {
+  var gateway = ref.read(gatewayProvider).value;
+  if (gateway == null) {
+    showPulseToast(context, 'Looking for your router…', icon: PulseIcons.router);
+    gateway = await ref.refresh(gatewayProvider.future);
+  }
+  if (!context.mounted) return;
+  if (gateway == null) {
+    showPulseToast(
+      context,
+      "Couldn't find your router. Connect to Wi-Fi or Ethernet and try again.",
+      icon: PulseIcons.router,
+    );
+    return;
+  }
+  final id = await ref
+      .read(pingBoardProvider.notifier)
+      .start(gateway, name: name, params: ref.read(pingDraftProvider).params);
+  if (id == null && context.mounted) showPingLimit(context);
+}
 
 bool _validHost(String host) =>
     RegExp(r'^[A-Za-z0-9.\-:%_]+$').hasMatch(host) && (!host.contains(':') || InternetAddress.tryParse(host) != null);

@@ -26,6 +26,7 @@ const _presetSegments = [
 
 class _PortsScreenState extends ConsumerState<PortsScreen> {
   late final _target = TextEditingController(text: widget.initialTarget ?? ref.read(portScanProvider).target);
+  final _targetFocus = FocusNode();
 
   @override
   void initState() {
@@ -38,10 +39,16 @@ class _PortsScreenState extends ConsumerState<PortsScreen> {
   @override
   void dispose() {
     _target.dispose();
+    _targetFocus.dispose();
     super.dispose();
   }
 
   void _scan() {
+    if (_target.text.trim().isEmpty) {
+      showPulseToast(context, 'Enter a host or IP address first', icon: PulseIcons.search);
+      _targetFocus.requestFocus();
+      return;
+    }
     FocusScope.of(context).unfocus();
     ref.read(portScanProvider.notifier).scan(_target.text);
   }
@@ -102,6 +109,7 @@ class _PortsScreenState extends ConsumerState<PortsScreen> {
       controller: _target,
       hint: 'Host or IP to scan',
       enabled: !s.running,
+      focusNode: _targetFocus,
       onSubmitted: (_) => _scan(),
       onChanged: (_) => setState(() {}),
       trailing: showAddress && s.address != s.target ? s.address : null,
