@@ -72,8 +72,8 @@ class _LanScreenState extends ConsumerState<LanScreen> {
   bool _matches(LanDevice d) => switch (_filter) {
     _Filter.all => true,
     _Filter.router => d.host.isGateway || d.type == DeviceType.router,
-    _Filter.phones => d.type == DeviceType.phone || d.type == DeviceType.tablet,
-    _Filter.unknown => d.type == DeviceType.unknown,
+    _Filter.phones => d.kind == DeviceType.phone || d.kind == DeviceType.tablet,
+    _Filter.unknown => d.kind == DeviceType.unknown,
     _Filter.fresh => d.isNew,
   };
 
@@ -241,35 +241,53 @@ String _macPrivacy() =>
     '$_osName does not let apps read the ARP table, so MAC addresses of other devices stay hidden. '
     'Wake-on-LAN needs the MAC, so it is only available from Pulse on Windows, macOS or Linux.';
 
-String _deviceName(LanDevice d) =>
-    d.host.hostname ??
-    (d.host.isGateway
-        ? 'Router'
-        : d.host.isSelf
-        ? 'This device'
-        : 'Unknown device');
+String _deviceName(LanDevice d) => d.displayName;
 
-bool _unknown(LanDevice d) => d.host.hostname == null && d.host.vendor == null && !d.host.isGateway && !d.host.isSelf;
+bool _unknown(LanDevice d) => d.isUnknown;
 
 PulseIcons _iconFor(LanDevice d) {
-  if (d.host.isGateway) return PulseIcons.router;
-  if (d.host.isSelf) return _mobileOs ? PulseIcons.phone : PulseIcons.laptop;
-  return switch (d.type) {
-    DeviceType.router => PulseIcons.router,
-    DeviceType.pc => PulseIcons.laptop,
-    DeviceType.phone || DeviceType.tablet => PulseIcons.phone,
-    DeviceType.storage => PulseIcons.data,
-    DeviceType.iot => PulseIcons.wifi,
-    DeviceType.unknown => PulseIcons.help,
-    _ => PulseIcons.lan,
-  };
+  if (d.host.isGateway && d.customType == null) return PulseIcons.router;
+  if (d.host.isSelf && d.customType == null) return _mobileOs ? PulseIcons.phone : PulseIcons.laptop;
+  return iconForType(d.kind);
 }
+
+/// The icon for each device type.
+PulseIcons iconForType(DeviceType t) => switch (t) {
+  DeviceType.router => PulseIcons.router,
+  DeviceType.pc => PulseIcons.laptop,
+  DeviceType.phone => PulseIcons.phone,
+  DeviceType.tablet => PulseIcons.tablet,
+  DeviceType.tv => PulseIcons.tv,
+  DeviceType.printer => PulseIcons.printer,
+  DeviceType.storage => PulseIcons.data,
+  DeviceType.iot => PulseIcons.bulb,
+  DeviceType.camera => PulseIcons.camera,
+  DeviceType.console => PulseIcons.console,
+  DeviceType.audio => PulseIcons.speaker,
+  DeviceType.unknown => PulseIcons.help,
+};
+
+/// What people call each type, for the Edit device picker.
+String typeName(DeviceType t) => switch (t) {
+  DeviceType.router => 'Router',
+  DeviceType.pc => 'Computer',
+  DeviceType.phone => 'Phone',
+  DeviceType.tablet => 'Tablet',
+  DeviceType.tv => 'TV',
+  DeviceType.printer => 'Printer',
+  DeviceType.storage => 'Storage',
+  DeviceType.iot => 'Smart home',
+  DeviceType.camera => 'Camera',
+  DeviceType.console => 'Console',
+  DeviceType.audio => 'Speaker',
+  DeviceType.unknown => 'Other',
+};
 
 /// "gateway", vendor, or the device type, for the subtitle.
 String? _role(LanDevice d) {
   if (d.host.isGateway) return 'gateway';
   if (d.host.isSelf) return _mobileOs ? (thisDeviceIsTablet ? 'tablet' : 'phone') : 'this computer';
-  if (d.type != DeviceType.unknown) return d.type.label.toLowerCase();
+  if (d.kind != DeviceType.unknown) return typeName(d.kind).toLowerCase();
   return null;
 }
 
@@ -286,7 +304,7 @@ String _status(LanScanState s, {bool wide = false}) {
       'Scanning · ${s.probed} of ${s.total}$hosts'
           '${s.current == null ? '' : ' · .${s.current!.split('.').last}'}',
     'arp' => 'Reading the ARP table · ${s.total} of ${s.total}$hosts',
-    'names' => 'Resolving names and vendors…',
+    'names' => 'Identifying devices…',
     'done' when s.error != null => 'Scan stopped',
     'done' => 'Scan complete · ${s.total} of ${s.total}$hosts · ${_secs(s.elapsed)}',
     _ => 'Ready to scan',
@@ -305,9 +323,7 @@ void _snack(BuildContext context, String text) => ScaffoldMessenger.maybeOf(cont
   ..showSnackBar(SnackBar(content: Text(text)));
 
 Future<void> _ping(BuildContext context, WidgetRef ref, LanDevice d) async {
-  final id = await ref
-      .read(pingBoardProvider.notifier)
-      .start(d.host.ip, name: d.host.hostname ?? (d.host.isGateway ? 'Router' : null));
+  final id = await ref.read(pingBoardProvider.notifier).start(d.host.ip, name: d.isUnknown ? null : d.displayName);
   if (!context.mounted) return;
   if (id == null) {
     _snack(context, 'Too many live pings. Stop one on the Ping screen first.');
@@ -330,7 +346,10 @@ Future<void> _wake(BuildContext context, LanDevice d, String? broadcast) async {
 String _asText(LanDevice d, List<PortResult>? ports) => [
   '${_deviceName(d)} · ${d.host.ip}',
   if (d.host.hostname != null) 'Hostname: ${d.host.hostname}',
+  if (d.host.model != null) 'Model: ${d.host.model}',
   if (d.host.vendor != null) 'Vendor: ${d.host.vendor}',
+  if (d.host.services.isNotEmpty) 'Services: ${d.host.services.join(', ')}',
+  if (d.host.sources.isNotEmpty) 'Found via: ${d.host.sources.join(', ')}',
   if (d.host.mac != null) 'MAC: ${d.host.mac}',
   if (d.host.rttMs != null) 'RTT: ${fmtMs(d.host.rttMs)} ms',
   if (ports != null && ports.isNotEmpty) 'Open ports: ${ports.map((p) => p.port).join(', ')}',
@@ -519,13 +538,14 @@ class _DeviceRow extends StatelessWidget {
     final d = device;
     final fg = selected ? c.onSecondaryContainer : c.onSurface;
     final sub = selected ? c.onSecondaryContainer.withValues(alpha: .85) : c.onSurfaceVariant;
-    final subtitle = [d.host.ip, ?_role(d), if (d.isNew) 'new'].join(' · ');
+    final model = d.host.model != null && d.host.model != _deviceName(d) ? d.host.model : null;
+    final subtitle = [d.host.ip, model ?? _role(d), if (d.isNew) 'new'].whereType<String>().join(' · ');
     return Semantics(
       button: true,
       selected: selected,
       label:
           '${_deviceName(d)}, $subtitle, '
-          '${d.host.rttMs == null ? 'answered ARP only' : '${fmtMs(d.host.rttMs)} milliseconds'}',
+          '${d.host.rttMs == null ? 'no ping reply' : '${fmtMs(d.host.rttMs)} milliseconds'}',
       excludeSemantics: true,
       child: AnimatedContainer(
         duration: PulseMotion.shapeMorph,
@@ -698,7 +718,7 @@ String? _badgeFor(LanDevice d) => d.host.isGateway
     ? 'New'
     : null;
 
-/// Hostname · Vendor · MAC · First seen, two per row.
+/// Hostname · Model · Vendor · MAC · First seen · Found via, two per row.
 class _InfoGrid extends StatelessWidget {
   const _InfoGrid({required this.device, this.large = false});
   final LanDevice device;
@@ -717,16 +737,25 @@ class _InfoGrid extends StatelessWidget {
           children: [
             Expanded(child: cell('Hostname', d.host.hostname ?? '—')),
             SizedBox(width: large ? 24 : 16),
-            Expanded(child: cell('Vendor', d.host.vendor ?? '—')),
+            Expanded(child: cell('Model', d.host.model ?? '—')),
           ],
         ),
         SizedBox(height: large ? 16 : 10),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: cell('MAC', _mac(d), privacy: hidden)),
+            Expanded(child: cell('Vendor', d.host.vendor ?? '—')),
             SizedBox(width: large ? 24 : 16),
+            Expanded(child: cell('MAC', _mac(d), privacy: hidden)),
+          ],
+        ),
+        SizedBox(height: large ? 16 : 10),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Expanded(child: cell('First seen', _firstSeen(d))),
+            SizedBox(width: large ? 24 : 16),
+            Expanded(child: cell('Found via', d.host.sources.isEmpty ? '—' : d.host.sources.join(', '))),
           ],
         ),
       ],
@@ -785,6 +814,160 @@ class _InfoCell extends StatelessWidget {
           child: Align(alignment: Alignment.centerLeft, widthFactor: 1, child: body),
         ),
       ),
+    );
+  }
+}
+
+/// What the device offers ("Google Cast", "AirPlay", "Printer"), from mDNS
+/// and identifying ports.
+class _Services extends StatelessWidget {
+  const _Services({required this.device, this.large = false});
+  final LanDevice device;
+  final bool large;
+
+  @override
+  Widget build(BuildContext context) {
+    final on = context.colors.onSecondaryContainer;
+    final services = device.host.services;
+    if (services.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: EdgeInsets.only(bottom: large ? 20 : 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Services', style: pulseText(large ? 13 : 12, 400).copyWith(color: on.withValues(alpha: .8))),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [for (final s in services) PulsePill(s, tone: PulsePillTone.lavender)],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Edit device: a name and a type of the user's choosing. Leaving the name
+/// empty, or "Use what Pulse found", goes back to what the scan detected.
+Future<void> _editDevice(BuildContext context, WidgetRef ref, LanDevice d) async {
+  final result = await showDialog<({String name, DeviceType type})>(
+    context: context,
+    builder: (context) => _EditDeviceDialog(device: d),
+  );
+  if (result == null) return;
+  await ref.read(lanScanProvider.notifier).edit(d, name: result.name, type: result.type);
+  if (context.mounted) {
+    final reset = result.name.trim().isEmpty && result.type == d.type;
+    showPulseToast(context, reset ? 'Back to what Pulse found' : 'Device updated', icon: PulseIcons.edit);
+  }
+}
+
+class _EditDeviceDialog extends StatefulWidget {
+  const _EditDeviceDialog({required this.device});
+  final LanDevice device;
+
+  @override
+  State<_EditDeviceDialog> createState() => _EditDeviceDialogState();
+}
+
+class _EditDeviceDialogState extends State<_EditDeviceDialog> {
+  late final _name = TextEditingController(text: widget.device.customName ?? '');
+  late DeviceType _type = widget.device.kind;
+
+  static const _choices = [
+    DeviceType.phone,
+    DeviceType.tablet,
+    DeviceType.pc,
+    DeviceType.tv,
+    DeviceType.audio,
+    DeviceType.printer,
+    DeviceType.camera,
+    DeviceType.console,
+    DeviceType.storage,
+    DeviceType.iot,
+    DeviceType.router,
+    DeviceType.unknown,
+  ];
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  void _save([String? _]) => Navigator.pop(context, (name: _name.text, type: _type));
+
+  @override
+  Widget build(BuildContext context) {
+    final d = widget.device;
+    final c = context.colors;
+    final found = d.copyWith(clearCustomName: true, clearCustomType: true);
+    final edited = d.customName != null || d.customType != null;
+    return AlertDialog(
+      // The icon slot stretches its child; Center keeps the badge round.
+      icon: Center(
+        child: PulseShapeBadge(shape: PulseShape.cookie9, tone: PulseTone.lavender, icon: iconForType(_type), size: 60),
+      ),
+      title: const Text('Edit device'),
+      content: SizedBox(
+        width: 400,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${d.host.ip} · Pulse found "${found.displayName}"',
+                style: context.type.bodySmall!.copyWith(color: c.onSurfaceVariant),
+              ),
+              const SizedBox(height: 16),
+              Text('Name', style: context.type.labelLarge),
+              const SizedBox(height: 8),
+              PulseTargetField(
+                controller: _name,
+                hint: found.isUnknown ? "e.g. Mom's laptop" : found.displayName,
+                icon: PulseIcons.edit,
+                keyboardType: TextInputType.text,
+                fillColor: c.surfaceContainerHighest,
+                onSubmitted: _save,
+              ),
+              const SizedBox(height: 16),
+              Text('Type', style: context.type.labelLarge),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final t in _choices)
+                    PulseChip(
+                      label: typeName(t),
+                      icon: iconForType(t),
+                      small: true,
+                      selected: _type == t,
+                      onTap: () => setState(() => _type = t),
+                    ),
+                ],
+              ),
+              // In the body, so Cancel / Save keep one row on phones.
+              if (edited) ...[
+                const SizedBox(height: 12),
+                PulseButton(
+                  label: 'Use what Pulse found',
+                  icon: PulseIcons.refresh,
+                  style: PulseButtonStyle.text,
+                  size: PulseButtonSize.small,
+                  onPressed: () => Navigator.pop(context, (name: '', type: d.type)),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        FilledButton(onPressed: _save, child: const Text('Save')),
+      ],
     );
   }
 }
@@ -882,14 +1065,15 @@ class _Actions extends ConsumerWidget {
   final LanScanState state;
   final bool large;
 
-  /// Phone card: the copy button sits at the end of the actions.
+  /// Phone card: a Wake button that can't work is left out (copy lives next
+  /// to the address in the card header).
   final bool copy;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final d = device;
     final size = large ? PulseButtonSize.large : PulseButtonSize.small;
-    return Wrap(
+    final buttons = Wrap(
       spacing: 8,
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -897,6 +1081,13 @@ class _Actions extends ConsumerWidget {
       children: [
         for (final b in <Widget>[
           PulseButton(label: 'Ping', icon: PulseIcons.pulse, size: size, onPressed: () => _ping(context, ref, d)),
+          PulseButton(
+            label: 'Edit',
+            icon: PulseIcons.edit,
+            style: PulseButtonStyle.neutral,
+            size: size,
+            onPressed: () => _editDevice(context, ref, d),
+          ),
           PulseButton(
             label: large ? 'Scan ports' : 'Ports',
             icon: PulseIcons.port,
@@ -917,23 +1108,27 @@ class _Actions extends ConsumerWidget {
             ),
         ])
           IntrinsicWidth(child: b),
-        if (copy) _CopyDevice(device: d, state: state),
       ],
     );
+    return buttons;
   }
 }
 
 class _CopyDevice extends StatelessWidget {
-  const _CopyDevice({required this.device, required this.state});
+  const _CopyDevice({required this.device, required this.state, this.compact = false});
   final LanDevice device;
   final LanScanState state;
+
+  /// Small inline icon (next to the IP on the phone card).
+  final bool compact;
 
   @override
   Widget build(BuildContext context) => PulseIconButton(
     icon: PulseIcons.copy,
     tooltip: 'Copy device details',
     color: context.colors.onSecondaryContainer,
-    iconSize: 20,
+    iconSize: compact ? 16 : 20,
+    visualSize: compact ? 32 : 40,
     onPressed: () {
       Clipboard.setData(ClipboardData(text: _asText(device, state.ports[device.host.ip])));
       _snack(context, 'Copied ${device.host.ip}');
@@ -980,7 +1175,14 @@ class _DeviceCard extends StatelessWidget {
                         if (badge != null) ...[const SizedBox(width: 8), _NameBadge(badge)],
                       ],
                     ),
-                    Text(d.host.ip, style: pulseText(14, 400).copyWith(color: on.withValues(alpha: .85))),
+                    // Copy sits by the address it copies, so the actions
+                    // row keeps its three buttons on one line.
+                    Row(
+                      children: [
+                        Text(d.host.ip, style: pulseText(14, 400).copyWith(color: on.withValues(alpha: .85))),
+                        _CopyDevice(device: d, state: state, compact: true),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -991,6 +1193,7 @@ class _DeviceCard extends StatelessWidget {
           const SizedBox(height: 14),
           _InfoGrid(device: d),
           const SizedBox(height: 12),
+          _Services(device: d),
           _OpenPorts(device: d, state: state),
           const SizedBox(height: 14),
           _Actions(device: d, state: state, copy: true),
@@ -1014,7 +1217,12 @@ class _DetailPanel extends StatelessWidget {
     final line = [
       _deviceName(d),
       ?_role(d),
-      if (d.host.rttMs != null) 'RTT ${fmtMs(d.host.rttMs)} ms' else 'ARP only',
+      if (d.host.rttMs != null)
+        'RTT ${fmtMs(d.host.rttMs)} ms'
+      else if (d.host.viaArpOnly)
+        'ARP only'
+      else
+        'No ping reply',
     ].join(' · ');
     return Container(
       padding: const EdgeInsets.fromLTRB(26, 22, 18, 22),
@@ -1066,6 +1274,7 @@ class _DetailPanel extends StatelessWidget {
                   const SizedBox(height: 22),
                   _InfoGrid(device: d, large: true),
                   const SizedBox(height: 20),
+                  _Services(device: d, large: true),
                   _OpenPorts(device: d, state: state, large: true),
                 ],
               ),

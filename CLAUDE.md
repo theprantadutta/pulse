@@ -66,14 +66,17 @@ It replaced the earlier "Wire" design (branch `redesign/wire`, now merged histor
 
 ### Engines and providers
 - Engines: `lib/services/net/` (ping prober + Windows ICMP FFI, traceroute, port scanner, speed test, LAN scan with
-  ARP/NetBIOS/mDNS/OUI, Wake-on-LAN, geo IP, per-OS network details, gateway), `lib/services/background/`
+  ARP/NetBIOS/OUI plus device identification in `lan/`: router DNS PTR (`router_names.dart`), UPnP/SSDP
+  (`ssdp.dart`), mDNS/DNS-SD browse (`mdns_browser.dart`), identifying ports (`port_hints.dart`), merged by
+  `LanScanner.identify`; every source is optional because routers differ (multicast filtering, no LAN DNS), and
+  SSDP/mDNS also ask found hosts by unicast. Users can rename devices and pick their type (lan_devices v3/v4), Wake-on-LAN, geo IP, per-OS network details, gateway), `lib/services/background/`
   (MonitorEngine, notifications, foreground service), `lib/services/desktop/` (window + tray, launch at login).
 - Providers: `lib/providers/*` (one per tool; `pingBoardProvider` = multi-ping; `monitorRunnerProvider` decides where
   monitoring runs: tray on desktop, foreground service on Android/iOS when "Run in background" is on, else in-app).
 - Layout: see "Shell" above. Phones (shortest side < 600 dp) are locked to portrait in `main.dart`.
   `test/render/device_render_test.dart` renders screens at Galaxy A24 / Galaxy Tab A9 sizes; every screen has its own
   render test (`renderMatrix`: phone 390×844 + tablet 1280×800, light + dark) writing PNGs to `build/renders/`.
-- DB schema v2 (saved_targets + sessions.label). Bump `schemaVersion` + add an `onUpgrade` step for changes.
+- DB schema v4 (v2 saved_targets + sessions.label; v3 lan_devices custom_name, model, identity; v4 picked_type). Bump `schemaVersion` + add an `onUpgrade` step for changes.
 
 ### Test checklist for real devices (office PC: Android phone + Windows)
 - Android: install `flutter run` → allow notifications; Network screen asks for location (needed for SSID);

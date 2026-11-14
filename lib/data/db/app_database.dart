@@ -119,6 +119,19 @@ class LanDevices extends Table {
   TextColumn get mac => text().nullable()();
   TextColumn get hostname => text().nullable()();
   TextColumn get vendor => text().nullable()();
+
+  /// The name the user gave this device (LAN scan › Rename). v3.
+  TextColumn get customName => text().nullable()();
+
+  /// The device type the user picked (a DeviceType name). v4.
+  TextColumn get pickedType => text().nullable()();
+
+  /// Maker and model learned from UPnP / mDNS. v3.
+  TextColumn get model => text().nullable()();
+
+  /// Something stable across IP changes (UPnP UDN, mDNS name, hostname), so a
+  /// custom name follows the device when DHCP gives it a new address. v3.
+  TextColumn get identity => text().nullable()();
   TextColumn get subnet => text()();
   DateTimeColumn get firstSeen => dateTime()();
   DateTimeColumn get lastSeen => dateTime()();
@@ -138,7 +151,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.open() : super(driftDatabase(name: 'pulse', native: const DriftNativeOptions(shareAcrossIsolates: true)));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -151,6 +164,14 @@ class AppDatabase extends _$AppDatabase {
       if (from < 2) {
         await m.addColumn(sessions, sessions.label);
         await m.createTable(savedTargets);
+      }
+      if (from < 3) {
+        await m.addColumn(lanDevices, lanDevices.customName);
+        await m.addColumn(lanDevices, lanDevices.model);
+        await m.addColumn(lanDevices, lanDevices.identity);
+      }
+      if (from < 4) {
+        await m.addColumn(lanDevices, lanDevices.pickedType);
       }
     },
     beforeOpen: (details) async {

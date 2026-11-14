@@ -3037,6 +3037,42 @@ class $LanDevicesTable extends LanDevices with TableInfo<$LanDevicesTable, LanDe
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _customNameMeta = const VerificationMeta('customName');
+  @override
+  late final GeneratedColumn<String> customName = GeneratedColumn<String>(
+    'custom_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pickedTypeMeta = const VerificationMeta('pickedType');
+  @override
+  late final GeneratedColumn<String> pickedType = GeneratedColumn<String>(
+    'picked_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _modelMeta = const VerificationMeta('model');
+  @override
+  late final GeneratedColumn<String> model = GeneratedColumn<String>(
+    'model',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _identityMeta = const VerificationMeta('identity');
+  @override
+  late final GeneratedColumn<String> identity = GeneratedColumn<String>(
+    'identity',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _subnetMeta = const VerificationMeta('subnet');
   @override
   late final GeneratedColumn<String> subnet = GeneratedColumn<String>(
@@ -3065,7 +3101,20 @@ class $LanDevicesTable extends LanDevices with TableInfo<$LanDevicesTable, LanDe
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [key, ip, mac, hostname, vendor, subnet, firstSeen, lastSeen];
+  List<GeneratedColumn> get $columns => [
+    key,
+    ip,
+    mac,
+    hostname,
+    vendor,
+    customName,
+    pickedType,
+    model,
+    identity,
+    subnet,
+    firstSeen,
+    lastSeen,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -3093,6 +3142,18 @@ class $LanDevicesTable extends LanDevices with TableInfo<$LanDevicesTable, LanDe
     }
     if (data.containsKey('vendor')) {
       context.handle(_vendorMeta, vendor.isAcceptableOrUnknown(data['vendor']!, _vendorMeta));
+    }
+    if (data.containsKey('custom_name')) {
+      context.handle(_customNameMeta, customName.isAcceptableOrUnknown(data['custom_name']!, _customNameMeta));
+    }
+    if (data.containsKey('picked_type')) {
+      context.handle(_pickedTypeMeta, pickedType.isAcceptableOrUnknown(data['picked_type']!, _pickedTypeMeta));
+    }
+    if (data.containsKey('model')) {
+      context.handle(_modelMeta, model.isAcceptableOrUnknown(data['model']!, _modelMeta));
+    }
+    if (data.containsKey('identity')) {
+      context.handle(_identityMeta, identity.isAcceptableOrUnknown(data['identity']!, _identityMeta));
     }
     if (data.containsKey('subnet')) {
       context.handle(_subnetMeta, subnet.isAcceptableOrUnknown(data['subnet']!, _subnetMeta));
@@ -3123,6 +3184,10 @@ class $LanDevicesTable extends LanDevices with TableInfo<$LanDevicesTable, LanDe
       mac: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}mac']),
       hostname: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}hostname']),
       vendor: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}vendor']),
+      customName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}custom_name']),
+      pickedType: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}picked_type']),
+      model: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}model']),
+      identity: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}identity']),
       subnet: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}subnet'])!,
       firstSeen: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}first_seen'])!,
       lastSeen: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}last_seen'])!,
@@ -3141,6 +3206,19 @@ class LanDevice extends DataClass implements Insertable<LanDevice> {
   final String? mac;
   final String? hostname;
   final String? vendor;
+
+  /// The name the user gave this device (LAN scan › Rename). v3.
+  final String? customName;
+
+  /// The device type the user picked (a DeviceType name). v4.
+  final String? pickedType;
+
+  /// Maker and model learned from UPnP / mDNS. v3.
+  final String? model;
+
+  /// Something stable across IP changes (UPnP UDN, mDNS name, hostname), so a
+  /// custom name follows the device when DHCP gives it a new address. v3.
+  final String? identity;
   final String subnet;
   final DateTime firstSeen;
   final DateTime lastSeen;
@@ -3150,6 +3228,10 @@ class LanDevice extends DataClass implements Insertable<LanDevice> {
     this.mac,
     this.hostname,
     this.vendor,
+    this.customName,
+    this.pickedType,
+    this.model,
+    this.identity,
     required this.subnet,
     required this.firstSeen,
     required this.lastSeen,
@@ -3168,6 +3250,18 @@ class LanDevice extends DataClass implements Insertable<LanDevice> {
     if (!nullToAbsent || vendor != null) {
       map['vendor'] = Variable<String>(vendor);
     }
+    if (!nullToAbsent || customName != null) {
+      map['custom_name'] = Variable<String>(customName);
+    }
+    if (!nullToAbsent || pickedType != null) {
+      map['picked_type'] = Variable<String>(pickedType);
+    }
+    if (!nullToAbsent || model != null) {
+      map['model'] = Variable<String>(model);
+    }
+    if (!nullToAbsent || identity != null) {
+      map['identity'] = Variable<String>(identity);
+    }
     map['subnet'] = Variable<String>(subnet);
     map['first_seen'] = Variable<DateTime>(firstSeen);
     map['last_seen'] = Variable<DateTime>(lastSeen);
@@ -3181,6 +3275,10 @@ class LanDevice extends DataClass implements Insertable<LanDevice> {
       mac: mac == null && nullToAbsent ? const Value.absent() : Value(mac),
       hostname: hostname == null && nullToAbsent ? const Value.absent() : Value(hostname),
       vendor: vendor == null && nullToAbsent ? const Value.absent() : Value(vendor),
+      customName: customName == null && nullToAbsent ? const Value.absent() : Value(customName),
+      pickedType: pickedType == null && nullToAbsent ? const Value.absent() : Value(pickedType),
+      model: model == null && nullToAbsent ? const Value.absent() : Value(model),
+      identity: identity == null && nullToAbsent ? const Value.absent() : Value(identity),
       subnet: Value(subnet),
       firstSeen: Value(firstSeen),
       lastSeen: Value(lastSeen),
@@ -3195,6 +3293,10 @@ class LanDevice extends DataClass implements Insertable<LanDevice> {
       mac: serializer.fromJson<String?>(json['mac']),
       hostname: serializer.fromJson<String?>(json['hostname']),
       vendor: serializer.fromJson<String?>(json['vendor']),
+      customName: serializer.fromJson<String?>(json['customName']),
+      pickedType: serializer.fromJson<String?>(json['pickedType']),
+      model: serializer.fromJson<String?>(json['model']),
+      identity: serializer.fromJson<String?>(json['identity']),
       subnet: serializer.fromJson<String>(json['subnet']),
       firstSeen: serializer.fromJson<DateTime>(json['firstSeen']),
       lastSeen: serializer.fromJson<DateTime>(json['lastSeen']),
@@ -3209,6 +3311,10 @@ class LanDevice extends DataClass implements Insertable<LanDevice> {
       'mac': serializer.toJson<String?>(mac),
       'hostname': serializer.toJson<String?>(hostname),
       'vendor': serializer.toJson<String?>(vendor),
+      'customName': serializer.toJson<String?>(customName),
+      'pickedType': serializer.toJson<String?>(pickedType),
+      'model': serializer.toJson<String?>(model),
+      'identity': serializer.toJson<String?>(identity),
       'subnet': serializer.toJson<String>(subnet),
       'firstSeen': serializer.toJson<DateTime>(firstSeen),
       'lastSeen': serializer.toJson<DateTime>(lastSeen),
@@ -3221,6 +3327,10 @@ class LanDevice extends DataClass implements Insertable<LanDevice> {
     Value<String?> mac = const Value.absent(),
     Value<String?> hostname = const Value.absent(),
     Value<String?> vendor = const Value.absent(),
+    Value<String?> customName = const Value.absent(),
+    Value<String?> pickedType = const Value.absent(),
+    Value<String?> model = const Value.absent(),
+    Value<String?> identity = const Value.absent(),
     String? subnet,
     DateTime? firstSeen,
     DateTime? lastSeen,
@@ -3230,6 +3340,10 @@ class LanDevice extends DataClass implements Insertable<LanDevice> {
     mac: mac.present ? mac.value : this.mac,
     hostname: hostname.present ? hostname.value : this.hostname,
     vendor: vendor.present ? vendor.value : this.vendor,
+    customName: customName.present ? customName.value : this.customName,
+    pickedType: pickedType.present ? pickedType.value : this.pickedType,
+    model: model.present ? model.value : this.model,
+    identity: identity.present ? identity.value : this.identity,
     subnet: subnet ?? this.subnet,
     firstSeen: firstSeen ?? this.firstSeen,
     lastSeen: lastSeen ?? this.lastSeen,
@@ -3241,6 +3355,10 @@ class LanDevice extends DataClass implements Insertable<LanDevice> {
       mac: data.mac.present ? data.mac.value : this.mac,
       hostname: data.hostname.present ? data.hostname.value : this.hostname,
       vendor: data.vendor.present ? data.vendor.value : this.vendor,
+      customName: data.customName.present ? data.customName.value : this.customName,
+      pickedType: data.pickedType.present ? data.pickedType.value : this.pickedType,
+      model: data.model.present ? data.model.value : this.model,
+      identity: data.identity.present ? data.identity.value : this.identity,
       subnet: data.subnet.present ? data.subnet.value : this.subnet,
       firstSeen: data.firstSeen.present ? data.firstSeen.value : this.firstSeen,
       lastSeen: data.lastSeen.present ? data.lastSeen.value : this.lastSeen,
@@ -3255,6 +3373,10 @@ class LanDevice extends DataClass implements Insertable<LanDevice> {
           ..write('mac: $mac, ')
           ..write('hostname: $hostname, ')
           ..write('vendor: $vendor, ')
+          ..write('customName: $customName, ')
+          ..write('pickedType: $pickedType, ')
+          ..write('model: $model, ')
+          ..write('identity: $identity, ')
           ..write('subnet: $subnet, ')
           ..write('firstSeen: $firstSeen, ')
           ..write('lastSeen: $lastSeen')
@@ -3263,7 +3385,8 @@ class LanDevice extends DataClass implements Insertable<LanDevice> {
   }
 
   @override
-  int get hashCode => Object.hash(key, ip, mac, hostname, vendor, subnet, firstSeen, lastSeen);
+  int get hashCode =>
+      Object.hash(key, ip, mac, hostname, vendor, customName, pickedType, model, identity, subnet, firstSeen, lastSeen);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3273,6 +3396,10 @@ class LanDevice extends DataClass implements Insertable<LanDevice> {
           other.mac == this.mac &&
           other.hostname == this.hostname &&
           other.vendor == this.vendor &&
+          other.customName == this.customName &&
+          other.pickedType == this.pickedType &&
+          other.model == this.model &&
+          other.identity == this.identity &&
           other.subnet == this.subnet &&
           other.firstSeen == this.firstSeen &&
           other.lastSeen == this.lastSeen);
@@ -3284,6 +3411,10 @@ class LanDevicesCompanion extends UpdateCompanion<LanDevice> {
   final Value<String?> mac;
   final Value<String?> hostname;
   final Value<String?> vendor;
+  final Value<String?> customName;
+  final Value<String?> pickedType;
+  final Value<String?> model;
+  final Value<String?> identity;
   final Value<String> subnet;
   final Value<DateTime> firstSeen;
   final Value<DateTime> lastSeen;
@@ -3294,6 +3425,10 @@ class LanDevicesCompanion extends UpdateCompanion<LanDevice> {
     this.mac = const Value.absent(),
     this.hostname = const Value.absent(),
     this.vendor = const Value.absent(),
+    this.customName = const Value.absent(),
+    this.pickedType = const Value.absent(),
+    this.model = const Value.absent(),
+    this.identity = const Value.absent(),
     this.subnet = const Value.absent(),
     this.firstSeen = const Value.absent(),
     this.lastSeen = const Value.absent(),
@@ -3305,6 +3440,10 @@ class LanDevicesCompanion extends UpdateCompanion<LanDevice> {
     this.mac = const Value.absent(),
     this.hostname = const Value.absent(),
     this.vendor = const Value.absent(),
+    this.customName = const Value.absent(),
+    this.pickedType = const Value.absent(),
+    this.model = const Value.absent(),
+    this.identity = const Value.absent(),
     required String subnet,
     required DateTime firstSeen,
     required DateTime lastSeen,
@@ -3320,6 +3459,10 @@ class LanDevicesCompanion extends UpdateCompanion<LanDevice> {
     Expression<String>? mac,
     Expression<String>? hostname,
     Expression<String>? vendor,
+    Expression<String>? customName,
+    Expression<String>? pickedType,
+    Expression<String>? model,
+    Expression<String>? identity,
     Expression<String>? subnet,
     Expression<DateTime>? firstSeen,
     Expression<DateTime>? lastSeen,
@@ -3331,6 +3474,10 @@ class LanDevicesCompanion extends UpdateCompanion<LanDevice> {
       if (mac != null) 'mac': mac,
       if (hostname != null) 'hostname': hostname,
       if (vendor != null) 'vendor': vendor,
+      if (customName != null) 'custom_name': customName,
+      if (pickedType != null) 'picked_type': pickedType,
+      if (model != null) 'model': model,
+      if (identity != null) 'identity': identity,
       if (subnet != null) 'subnet': subnet,
       if (firstSeen != null) 'first_seen': firstSeen,
       if (lastSeen != null) 'last_seen': lastSeen,
@@ -3344,6 +3491,10 @@ class LanDevicesCompanion extends UpdateCompanion<LanDevice> {
     Value<String?>? mac,
     Value<String?>? hostname,
     Value<String?>? vendor,
+    Value<String?>? customName,
+    Value<String?>? pickedType,
+    Value<String?>? model,
+    Value<String?>? identity,
     Value<String>? subnet,
     Value<DateTime>? firstSeen,
     Value<DateTime>? lastSeen,
@@ -3355,6 +3506,10 @@ class LanDevicesCompanion extends UpdateCompanion<LanDevice> {
       mac: mac ?? this.mac,
       hostname: hostname ?? this.hostname,
       vendor: vendor ?? this.vendor,
+      customName: customName ?? this.customName,
+      pickedType: pickedType ?? this.pickedType,
+      model: model ?? this.model,
+      identity: identity ?? this.identity,
       subnet: subnet ?? this.subnet,
       firstSeen: firstSeen ?? this.firstSeen,
       lastSeen: lastSeen ?? this.lastSeen,
@@ -3380,6 +3535,18 @@ class LanDevicesCompanion extends UpdateCompanion<LanDevice> {
     if (vendor.present) {
       map['vendor'] = Variable<String>(vendor.value);
     }
+    if (customName.present) {
+      map['custom_name'] = Variable<String>(customName.value);
+    }
+    if (pickedType.present) {
+      map['picked_type'] = Variable<String>(pickedType.value);
+    }
+    if (model.present) {
+      map['model'] = Variable<String>(model.value);
+    }
+    if (identity.present) {
+      map['identity'] = Variable<String>(identity.value);
+    }
     if (subnet.present) {
       map['subnet'] = Variable<String>(subnet.value);
     }
@@ -3403,6 +3570,10 @@ class LanDevicesCompanion extends UpdateCompanion<LanDevice> {
           ..write('mac: $mac, ')
           ..write('hostname: $hostname, ')
           ..write('vendor: $vendor, ')
+          ..write('customName: $customName, ')
+          ..write('pickedType: $pickedType, ')
+          ..write('model: $model, ')
+          ..write('identity: $identity, ')
           ..write('subnet: $subnet, ')
           ..write('firstSeen: $firstSeen, ')
           ..write('lastSeen: $lastSeen, ')
@@ -5360,6 +5531,10 @@ typedef $$LanDevicesTableCreateCompanionBuilder = LanDevicesCompanion Function({
   Value<String?> mac,
   Value<String?> hostname,
   Value<String?> vendor,
+  Value<String?> customName,
+  Value<String?> pickedType,
+  Value<String?> model,
+  Value<String?> identity,
   required String subnet,
   required DateTime firstSeen,
   required DateTime lastSeen,
@@ -5371,6 +5546,10 @@ typedef $$LanDevicesTableUpdateCompanionBuilder = LanDevicesCompanion Function({
   Value<String?> mac,
   Value<String?> hostname,
   Value<String?> vendor,
+  Value<String?> customName,
+  Value<String?> pickedType,
+  Value<String?> model,
+  Value<String?> identity,
   Value<String> subnet,
   Value<DateTime> firstSeen,
   Value<DateTime> lastSeen,
@@ -5396,6 +5575,18 @@ class $$LanDevicesTableFilterComposer extends Composer<_$AppDatabase, $LanDevice
 
   ColumnFilters<String> get vendor =>
       $composableBuilder(column: $table.vendor, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get customName =>
+      $composableBuilder(column: $table.customName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get pickedType =>
+      $composableBuilder(column: $table.pickedType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get model =>
+      $composableBuilder(column: $table.model, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get identity =>
+      $composableBuilder(column: $table.identity, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get subnet =>
       $composableBuilder(column: $table.subnet, builder: (column) => ColumnFilters(column));
@@ -5429,6 +5620,18 @@ class $$LanDevicesTableOrderingComposer extends Composer<_$AppDatabase, $LanDevi
   ColumnOrderings<String> get vendor =>
       $composableBuilder(column: $table.vendor, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get customName =>
+      $composableBuilder(column: $table.customName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get pickedType =>
+      $composableBuilder(column: $table.pickedType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get model =>
+      $composableBuilder(column: $table.model, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get identity =>
+      $composableBuilder(column: $table.identity, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get subnet =>
       $composableBuilder(column: $table.subnet, builder: (column) => ColumnOrderings(column));
 
@@ -5456,6 +5659,14 @@ class $$LanDevicesTableAnnotationComposer extends Composer<_$AppDatabase, $LanDe
   GeneratedColumn<String> get hostname => $composableBuilder(column: $table.hostname, builder: (column) => column);
 
   GeneratedColumn<String> get vendor => $composableBuilder(column: $table.vendor, builder: (column) => column);
+
+  GeneratedColumn<String> get customName => $composableBuilder(column: $table.customName, builder: (column) => column);
+
+  GeneratedColumn<String> get pickedType => $composableBuilder(column: $table.pickedType, builder: (column) => column);
+
+  GeneratedColumn<String> get model => $composableBuilder(column: $table.model, builder: (column) => column);
+
+  GeneratedColumn<String> get identity => $composableBuilder(column: $table.identity, builder: (column) => column);
 
   GeneratedColumn<String> get subnet => $composableBuilder(column: $table.subnet, builder: (column) => column);
 
@@ -5494,6 +5705,10 @@ class $$LanDevicesTableTableManager
                 Value<String?> mac = const Value.absent(),
                 Value<String?> hostname = const Value.absent(),
                 Value<String?> vendor = const Value.absent(),
+                Value<String?> customName = const Value.absent(),
+                Value<String?> pickedType = const Value.absent(),
+                Value<String?> model = const Value.absent(),
+                Value<String?> identity = const Value.absent(),
                 Value<String> subnet = const Value.absent(),
                 Value<DateTime> firstSeen = const Value.absent(),
                 Value<DateTime> lastSeen = const Value.absent(),
@@ -5504,6 +5719,10 @@ class $$LanDevicesTableTableManager
                 mac: mac,
                 hostname: hostname,
                 vendor: vendor,
+                customName: customName,
+                pickedType: pickedType,
+                model: model,
+                identity: identity,
                 subnet: subnet,
                 firstSeen: firstSeen,
                 lastSeen: lastSeen,
@@ -5516,6 +5735,10 @@ class $$LanDevicesTableTableManager
                 Value<String?> mac = const Value.absent(),
                 Value<String?> hostname = const Value.absent(),
                 Value<String?> vendor = const Value.absent(),
+                Value<String?> customName = const Value.absent(),
+                Value<String?> pickedType = const Value.absent(),
+                Value<String?> model = const Value.absent(),
+                Value<String?> identity = const Value.absent(),
                 required String subnet,
                 required DateTime firstSeen,
                 required DateTime lastSeen,
@@ -5526,6 +5749,10 @@ class $$LanDevicesTableTableManager
                 mac: mac,
                 hostname: hostname,
                 vendor: vendor,
+                customName: customName,
+                pickedType: pickedType,
+                model: model,
+                identity: identity,
                 subnet: subnet,
                 firstSeen: firstSeen,
                 lastSeen: lastSeen,

@@ -131,6 +131,7 @@ class _MoreMenu extends ConsumerWidget {
             controller: controller,
             hint: 'Name, e.g. Office PC',
             icon: PulseIcons.pin,
+            fillColor: context.colors.surfaceContainerHighest,
             keyboardType: TextInputType.text,
             autofocus: true,
             onSubmitted: (v) => Navigator.of(context).pop(v),

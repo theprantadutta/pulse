@@ -5,8 +5,12 @@ import 'dart:ui' show PlatformDispatcher;
 import '../dns.dart';
 import '../ping_prober.dart';
 import 'arp_table.dart';
+import 'mdns_browser.dart';
 import 'name_probe.dart';
 import 'oui.dart';
+import 'port_hints.dart';
+import 'router_names.dart';
+import 'ssdp.dart';
 
 /// Whether the device running Pulse is a tablet: shortest side ≥ 600 dp, the
 /// same split the shell and main.dart use.
@@ -17,7 +21,7 @@ bool get thisDeviceIsTablet {
   return v.physicalSize.shortestSide / v.devicePixelRatio >= 600;
 }
 
-/// A host found on the LAN.
+/// A host found on the LAN, and everything Pulse learned about it.
 class LanHost {
   const LanHost({
     required this.ip,
@@ -28,10 +32,20 @@ class LanHost {
     this.isGateway = false,
     this.isSelf = false,
     this.viaArpOnly = false,
+    this.friendlyName,
+    this.model,
+    this.deviceKind,
+    this.services = const [],
+    this.hintPorts = const [],
+    this.sources = const [],
+    this.identity,
   });
 
   final String ip;
   final String? mac;
+
+  /// Network name: the device's own mDNS / NetBIOS name, or the one the
+  /// router's DNS gave it ("Galaxy-A24", "DESKTOP-4F2K").
   final String? hostname;
   final String? vendor;
   final double? rttMs;
@@ -41,9 +55,44 @@ class LanHost {
   /// Answered ARP but not ICMP/TCP (firewalled phones, IoT).
   final bool viaArpOnly;
 
+  /// The name the device announces for people ("Living Room TV"), from UPnP
+  /// or mDNS.
+  final String? friendlyName;
+
+  /// Maker and model ("Samsung QE55Q60", "Chromecast", "MacBook Pro").
+  final String? model;
+
+  /// UPnP device type ("MediaRenderer", "InternetGatewayDevice").
+  final String? deviceKind;
+
+  /// What it offers ("Google Cast", "AirPlay", "Printer").
+  final List<String> services;
+
+  /// Identifying ports that accepted a connection (PortHints).
+  final List<int> hintPorts;
+
+  /// How Pulse found and named it ("Ping", "mDNS", "UPnP", "Router DNS"…).
+  final List<String> sources;
+
+  /// Something stable across IP changes (UPnP UDN, mDNS name, hostname),
+  /// used to keep a custom name when the router hands out a new address.
+  final String? identity;
+
   int get lastOctet => int.tryParse(ip.split('.').last) ?? 0;
 
-  LanHost copyWith({String? mac, String? hostname, String? vendor, double? rttMs}) => LanHost(
+  LanHost copyWith({
+    String? mac,
+    String? hostname,
+    String? vendor,
+    double? rttMs,
+    String? friendlyName,
+    String? model,
+    String? deviceKind,
+    List<String>? services,
+    List<int>? hintPorts,
+    List<String>? sources,
+    String? identity,
+  }) => LanHost(
     ip: ip,
     mac: mac ?? this.mac,
     hostname: hostname ?? this.hostname,
@@ -52,6 +101,13 @@ class LanHost {
     isGateway: isGateway,
     isSelf: isSelf,
     viaArpOnly: viaArpOnly,
+    friendlyName: friendlyName ?? this.friendlyName,
+    model: model ?? this.model,
+    deviceKind: deviceKind ?? this.deviceKind,
+    services: services ?? this.services,
+    hintPorts: hintPorts ?? this.hintPorts,
+    sources: sources ?? this.sources,
+    identity: identity ?? this.identity,
   );
 }
 
@@ -74,100 +130,127 @@ extension DeviceTypeLabel on DeviceType {
   };
 }
 
-/// Best guess from role, name, vendor and (when known) open ports.
+/// Best guess at what a device is. What it says about itself (UPnP device
+/// type, mDNS services, model, identifying ports) comes before guesses from
+/// its name and network-card vendor.
 DeviceType classifyDevice(LanHost h, {List<int> openPorts = const []}) {
   if (h.isGateway) return DeviceType.router;
-  final name = (h.hostname ?? '').toLowerCase();
+  final ports = {...openPorts, ...h.hintPorts};
+  final name = [h.hostname, h.friendlyName, h.model].whereType<String>().join(' ').toLowerCase();
+  final model = (h.model ?? '').toLowerCase();
   final vendor = (h.vendor ?? '').toLowerCase();
+  final kind = (h.deviceKind ?? '').toLowerCase();
+  final svc = h.services.toSet();
   bool n(List<String> k) => k.any(name.contains);
   bool v(List<String> k) => k.any(vendor.contains);
+  bool s(List<String> k) => k.any(svc.contains);
+  bool p(List<int> k) => k.any(ports.contains);
+  final windows = p([3389]) || s(['Remote desktop']);
 
-  if (openPorts.contains(9100) ||
-      openPorts.contains(631) ||
+  // Access points and mesh nodes describe themselves as gateways.
+  if (kind.contains('internetgateway') || kind.contains('wfadevice') || kind.contains('wlanaccesspoint')) {
+    return DeviceType.router;
+  }
+  if (s(['Printer', 'Scanner']) ||
+      kind.contains('printer') ||
+      p([9100, 631, 515]) ||
       n(['printer', 'laserjet', 'officejet', 'deskjet', 'epson', 'brother', 'canon', 'mfc-', 'ipp'])) {
     return DeviceType.printer;
   }
-  if (n(['ipad', 'tab', 'tablet', 'kindle']) || v(['amazon technologies']) && n(['kindle'])) return DeviceType.tablet;
-  if (n([
-    'iphone',
-    'android',
-    'galaxy',
-    'pixel',
-    'redmi',
-    'realme',
-    'oneplus',
-    'oppo',
-    'vivo',
-    'xiaomi',
-    'huawei',
-    'phone',
-    'mi-',
-  ])) {
-    return DeviceType.phone;
+  // Apple model ids from mDNS ("iPhone15,2", "MacBookPro18,1", "AppleTV11,1").
+  if (model.startsWith('iphone')) return DeviceType.phone;
+  if (model.startsWith('ipad')) return DeviceType.tablet;
+  if (model.startsWith('appletv') || model.startsWith('apple tv')) return DeviceType.tv;
+  if (model.startsWith('audioaccessory') || model.contains('homepod')) return DeviceType.audio;
+  if (RegExp(r'^(mac|imac|macbook|mac mini|mac pro|mac studio)').hasMatch(model)) return DeviceType.pc;
+  if (n(['homepod', 'nest audio', 'nest mini', 'home mini', 'google home', 'echo', 'sonos', 'soundbar', 'speaker']) ||
+      s(['Sonos']) ||
+      p([1400]) ||
+      v(['sonos', 'bose', 'harman'])) {
+    return DeviceType.audio;
   }
-  if (n(['tv', 'bravia', 'roku', 'chromecast', 'firetv', 'fire-tv', 'shield', 'appletv', 'apple-tv', 'webos'])) {
+  if (p([9295]) || n(['playstation', 'ps4', 'ps5', 'xbox', 'nintendo']) || v(['sony interactive', 'nintendo'])) {
+    return DeviceType.console;
+  }
+  if (s(['Google Cast', 'Fire TV', 'Android TV']) ||
+      p([8009, 8060, 5555]) ||
+      (kind.contains('mediarenderer') && !windows && !p([445])) ||
+      n([
+        'tv',
+        'bravia',
+        'roku',
+        'chromecast',
+        'firetv',
+        'fire-tv',
+        'shield',
+        'appletv',
+        'apple-tv',
+        'webos',
+        'tizen',
+      ])) {
     return DeviceType.tv;
   }
-  if (n(['nas', 'diskstation', 'ds2', 'ds9', 'qnap', 'truenas', 'unraid', 'mycloud']) ||
-      v(['synology', 'qnap', 'western digital', 'buffalo'])) {
-    return DeviceType.storage;
-  }
-  if (n(['cam', 'ipc', 'nvr', 'dvr']) ||
+  if (p([554]) ||
+      kind.contains('camera') ||
+      n(['cam', 'ipc', 'nvr', 'dvr']) ||
       v(['hikvision', 'dahua', 'reolink', 'axis comm', 'wyze', 'ezviz', 'amcrest'])) {
     return DeviceType.camera;
   }
-  if (n(['playstation', 'ps4', 'ps5', 'xbox', 'switch', 'nintendo']) ||
-      v(['sony interactive', 'nintendo', 'microsoft']) && n(['xbox'])) {
-    return DeviceType.console;
+  if (p([5000, 32400]) ||
+      s(['Plex']) ||
+      n(['nas', 'diskstation', 'ds2', 'ds9', 'qnap', 'truenas', 'unraid', 'mycloud']) ||
+      v(['synology', 'qnap', 'western digital', 'buffalo'])) {
+    return DeviceType.storage;
   }
-  if (n(['sonos', 'echo', 'homepod', 'speaker', 'soundbar']) || v(['sonos', 'bose', 'harman'])) return DeviceType.audio;
-  if (v([
-    'espressif',
-    'tuya',
-    'shelly',
-    'sonoff',
-    'itead',
-    'lifi',
-    'signify',
-    'philips lighting',
-    'tp-link smart',
-    'wiz',
-    'broadlink',
-    'xiaomi communications',
-    'beijing xiaomi',
-    'raspberry',
-    'arduino',
-    'particle',
-    'nordic',
-  ])) {
+  if (s(['HomeKit', 'Matter', 'Philips Hue', 'ESPHome', 'Xiaomi', 'MQTT', 'Elgato', 'Home Assistant']) ||
+      p([1883]) ||
+      v([
+        'espressif',
+        'tuya',
+        'shelly',
+        'sonoff',
+        'itead',
+        'lifi',
+        'signify',
+        'philips lighting',
+        'tp-link smart',
+        'wiz',
+        'broadlink',
+        'xiaomi communications',
+        'beijing xiaomi',
+        'raspberry',
+        'arduino',
+        'particle',
+        'nordic',
+      ])) {
     return DeviceType.iot;
   }
-  if (v(['apple']) && n(['macbook', 'imac', 'mac-', 'mac.'])) return DeviceType.pc;
-  if (v(['apple'])) return DeviceType.phone;
-  if (v([
-    'samsung',
-    'xiaomi',
-    'oneplus',
-    'oppo',
-    'vivo',
-    'realme',
-    'huawei',
-    'honor',
-    'motorola',
-    'google',
-    'nothing tech',
-    'zte',
-    'lg electronics',
-  ])) {
-    return name.isEmpty ? DeviceType.phone : DeviceType.phone;
+  if (n(['ipad', 'tab', 'tablet', 'kindle'])) return DeviceType.tablet;
+  if (p([62078]) ||
+      n([
+        'iphone',
+        'android',
+        'galaxy',
+        'pixel',
+        'redmi',
+        'realme',
+        'oneplus',
+        'oppo',
+        'vivo',
+        'xiaomi',
+        'huawei',
+        'phone',
+        'mi-',
+      ])) {
+    return DeviceType.phone;
   }
   if (h.isSelf && (Platform.isAndroid || Platform.isIOS)) {
     return thisDeviceIsTablet ? DeviceType.tablet : DeviceType.phone;
   }
   if (h.isSelf ||
-      openPorts.contains(3389) ||
-      openPorts.contains(445) ||
-      openPorts.contains(139) ||
+      windows ||
+      s(['Computer', 'Screen sharing']) ||
+      p([445, 139]) ||
       n(['pc', 'desktop', 'laptop', 'workstation', 'win-', 'macbook', 'thinkpad']) ||
       v([
         'intel',
@@ -185,6 +268,24 @@ DeviceType classifyDevice(LanHost h, {List<int> openPorts = const []}) {
         'acer',
       ])) {
     return DeviceType.pc;
+  }
+  if (v(['apple']) || s(['Apple device'])) return DeviceType.phone;
+  if (v([
+    'samsung',
+    'xiaomi',
+    'oneplus',
+    'oppo',
+    'vivo',
+    'realme',
+    'huawei',
+    'honor',
+    'motorola',
+    'google',
+    'nothing tech',
+    'zte',
+    'lg electronics',
+  ])) {
+    return DeviceType.phone;
   }
   if (v([
     'tp-link',
@@ -225,8 +326,10 @@ class LanScanProgress {
 }
 
 /// Sweeps an IPv4 subnet: ICMP echo to every host (which also fills the
-/// ARP cache), then the ARP table, then names (PTR, NetBIOS, mDNS) and
-/// vendors (OUI) for everything that answered.
+/// ARP cache), then the ARP table, then identifies everything: the router's
+/// DNS names, UPnP descriptions, mDNS services, NetBIOS, identifying ports and
+/// vendors (OUI). Each source is optional: routers differ, and whatever one
+/// doesn't answer, the others still fill in.
 class LanScanner {
   LanScanner({this.prober = const PingProber(), this.concurrency = 48});
 
@@ -259,7 +362,13 @@ class LanScanner {
     return last.join('.');
   }
 
-  Stream<LanScanProgress> scan({required String localIp, required int prefix, String? gateway}) async* {
+  /// [dnsServers] are the network's DNS servers (the router is asked too).
+  Stream<LanScanProgress> scan({
+    required String localIp,
+    required int prefix,
+    String? gateway,
+    List<String> dnsServers = const [],
+  }) async* {
     final targets = hostsFor(localIp, prefix);
     final found = <String, LanHost>{};
     var probed = 0;
@@ -348,31 +457,137 @@ class LanScanner {
     if (selfMac != null) found[localIp] = found[localIp]!.copyWith(mac: selfMac);
 
     yield LanScanProgress(probed: probed, total: targets.length, hosts: _sorted(found), phase: 'names');
-    final oui = await OuiDb.load();
-    await Future.wait([
-      for (final h in found.values.toList())
-        _name(h).then((name) {
-          found[h.ip] = found[h.ip]!.copyWith(hostname: name, vendor: oui.vendor(h.mac));
-        }),
-    ]);
+    final others = [
+      for (final ip in found.keys)
+        if (ip != localIp) ip,
+    ];
+    bool inSubnet(String ip) => targetSet.contains(ip) && ip != localIp;
+    final (oui, routerNames, upnp, mdns, hints, probes) = await (
+      OuiDb.load(),
+      RouterNames.lookup(others, servers: [?gateway, ...dnsServers]),
+      Ssdp.discover(inSubnet: inSubnet, unicast: others),
+      MdnsBrowser.browse(inSubnet: inSubnet, unicast: others),
+      PortHints.probe(others),
+      _probeNames(others),
+    ).wait;
+
+    // Devices that ignore ping but announce themselves still belong here.
+    for (final ip in {...upnp.keys, ...mdns.keys}) {
+      found.putIfAbsent(ip, () => LanHost(ip: ip, isGateway: ip == gateway));
+    }
+    for (final ip in found.keys.toList()) {
+      found[ip] = identify(
+        found[ip]!,
+        oui: oui,
+        routerName: routerNames[ip],
+        upnp: upnp[ip],
+        mdns: mdns[ip],
+        hintPorts: hints[ip] ?? const [],
+        probe: probes[ip],
+      );
+    }
     yield LanScanProgress(probed: probed, total: targets.length, hosts: _sorted(found), phase: 'done');
   }
 
-  Future<String?> _name(LanHost h) async {
+  /// Self-reported names from each host: unicast mDNS, NetBIOS and the
+  /// system resolver.
+  Future<Map<String, ({String? mdns, String? netbios, String? dns})>> _probeNames(List<String> ips) async {
+    final out = <String, ({String? mdns, String? netbios, String? dns})>{};
+    await Future.wait([
+      for (final ip in ips)
+        Future.wait([NameProbe.mdns(ip), NameProbe.netbios(ip), Dns.reverse(ip)]).then((r) {
+          out[ip] = (mdns: r[0], netbios: r[1], dns: r[2]);
+        }),
+    ]);
+    return out;
+  }
+
+  /// Merges everything learned about one host. Exposed for tests.
+  static LanHost identify(
+    LanHost h, {
+    OuiDb? oui,
+    String? routerName,
+    UpnpInfo? upnp,
+    MdnsInfo? mdns,
+    List<int> hintPorts = const [],
+    ({String? mdns, String? netbios, String? dns})? probe,
+  }) {
+    String? clean(String? n) {
+      if (n == null || n.isEmpty) return null;
+      final s = n.replaceAll(RegExp(r'\.(local|lan|home|localdomain|domain|router|internal|home\.arpa)\.?$'), '');
+      return s.isEmpty || s == h.ip ? null : s;
+    }
+
+    String? hostname;
     if (h.isSelf) {
       // Android/iOS report "localhost"; keep the "This device" label instead.
       final local = Platform.localHostname;
-      return local.isEmpty || local.toLowerCase().startsWith('localhost') ? null : local;
+      hostname = local.isEmpty || local.toLowerCase().startsWith('localhost') ? null : local;
+    } else {
+      // Names a device gives itself beat the router's DHCP list, which beats
+      // the system resolver (often a public DNS that knows nothing local).
+      hostname = clean(probe?.mdns) ?? clean(mdns?.host) ?? clean(probe?.netbios) ?? routerName ?? clean(probe?.dns);
     }
-    final results = await Future.wait([Dns.reverse(h.ip), NameProbe.netbios(h.ip), NameProbe.mdns(h.ip)]);
-    String? clean(String? n) {
-      if (n == null || n.isEmpty) return null;
-      final s = n.replaceAll(RegExp(r'\.(local|lan|home|localdomain|domain|router)\.?$'), '');
-      return s == h.ip ? null : s;
-    }
+    final mac = h.mac ?? mdns?.mac;
+    final friendly = cleanFriendlyName(upnp?.friendlyName) ?? mdns?.name;
+    final model = upnp?.model ?? prettyModel(mdns?.model);
+    final services = <String>{...?mdns?.services, for (final p in hintPorts) ?PortHints.hintFor(p)?.label}.toList()
+      ..sort();
+    final sources = <String>[
+      if (h.isSelf) 'This device' else if (h.rttMs != null) 'Ping',
+      if (h.viaArpOnly || (h.mac != null && !h.isSelf)) 'ARP',
+      if (probe?.mdns != null || mdns != null) 'mDNS',
+      if (upnp != null) 'UPnP',
+      if (probe?.netbios != null) 'NetBIOS',
+      if (routerName != null) 'Router DNS',
+      if (probe?.dns != null && routerName == null) 'DNS',
+      if (hintPorts.isNotEmpty) 'Ports',
+    ];
+    final identity =
+        upnp?.udn ?? (mdns?.name == null ? null : 'mdns:${mdns!.name}') ?? (hostname == null ? null : 'host:$hostname');
+    return h.copyWith(
+      mac: mac,
+      hostname: hostname,
+      vendor: oui?.vendor(mac) ?? upnp?.manufacturer,
+      friendlyName: friendly,
+      model: model,
+      deviceKind: upnp?.deviceKind,
+      services: services,
+      hintPorts: hintPorts,
+      sources: sources,
+      identity: identity,
+    );
+  }
 
-    // Prefer self-reported names over router DNS guesses.
-    return clean(results[2]) ?? clean(results[1]) ?? clean(results[0]);
+  /// "[TV] Samsung Q60 Series (55)" → "Samsung Q60 Series (55)"; drops names
+  /// that are only an address.
+  static String? cleanFriendlyName(String? n) {
+    if (n == null) return null;
+    final s = n.replaceFirst(RegExp(r'^\[[^\]]{1,12}\]\s*'), '').trim();
+    if (s.isEmpty || RegExp(r'^(\d{1,3}\.){3}\d{1,3}$').hasMatch(s)) return null;
+    return s;
+  }
+
+  /// Apple model ids to names people know ("MacBookPro18,1" → "MacBook Pro").
+  static String? prettyModel(String? model) {
+    if (model == null || model.isEmpty) return null;
+    const names = {
+      'MacBookPro': 'MacBook Pro',
+      'MacBookAir': 'MacBook Air',
+      'MacBook': 'MacBook',
+      'Macmini': 'Mac mini',
+      'MacPro': 'Mac Pro',
+      'iMac': 'iMac',
+      'iPhone': 'iPhone',
+      'iPad': 'iPad',
+      'AppleTV': 'Apple TV',
+      'AudioAccessory': 'HomePod',
+      'Watch': 'Apple Watch',
+    };
+    final m = RegExp(r'^([A-Za-z]+)\d+,\d+$').firstMatch(model);
+    if (m != null && names.containsKey(m[1])) return names[m[1]];
+    if (RegExp(r'^Mac\d+,\d+$').hasMatch(model)) return 'Mac';
+    return model;
   }
 
   Future<String?> _selfMac(String ip) async {

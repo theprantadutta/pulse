@@ -472,6 +472,7 @@ class PulseTargetField extends StatelessWidget {
     this.keyboardType = TextInputType.url,
     this.autofocus = false,
     this.onChanged,
+    this.fillColor,
   });
 
   final TextEditingController controller;
@@ -486,6 +487,10 @@ class PulseTargetField extends StatelessWidget {
   final TextInputType keyboardType;
   final bool autofocus;
 
+  /// Background; defaults to surfaceContainerHigh. Dialogs (which are that
+  /// colour themselves) pass surfaceContainerHighest so the field shows.
+  final Color? fillColor;
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -493,7 +498,7 @@ class PulseTargetField extends StatelessWidget {
     return Container(
       height: 56,
       padding: const EdgeInsets.only(left: 16, right: 20),
-      decoration: BoxDecoration(color: c.surfaceContainerHigh, borderRadius: BorderRadius.circular(28)),
+      decoration: BoxDecoration(color: fillColor ?? c.surfaceContainerHigh, borderRadius: BorderRadius.circular(28)),
       child: Row(
         children: [
           PulseIcon(icon, size: 22, color: c.onSurfaceVariant),

@@ -393,7 +393,7 @@ class MonitorEngine {
     await for (final p in LanScanner(
       prober: prober,
       concurrency: 32,
-    ).scan(localIp: link.localIpv4!, prefix: prefix, gateway: link.gateway)) {
+    ).scan(localIp: link.localIpv4!, prefix: prefix, gateway: link.gateway, dnsServers: link.dns)) {
       last = p;
     }
     final hosts = last?.hosts ?? const <LanHost>[];
@@ -410,12 +410,20 @@ class MonitorEngine {
             mac: Value(h.mac),
             hostname: Value(h.hostname),
             vendor: Value(h.vendor),
+            model: Value(h.model),
+            identity: Value(h.identity),
             subnet: cidr,
             firstSeen: now,
             lastSeen: now,
           ),
           onConflict: DoUpdate(
-            (old) => LanDevicesCompanion(ip: Value(h.ip), hostname: Value(h.hostname), lastSeen: Value(now)),
+            (old) => LanDevicesCompanion(
+              ip: Value(h.ip),
+              hostname: Value(h.hostname),
+              model: Value(h.model),
+              identity: Value(h.identity),
+              lastSeen: Value(now),
+            ),
           ),
         );
       }
@@ -423,7 +431,7 @@ class MonitorEngine {
     // The very first sweep of a subnet only learns what is already there.
     if (known.isEmpty) return const [];
     for (final h in fresh) {
-      final label = [h.hostname ?? 'Unknown device', h.ip, ?h.mac, ?h.vendor].join(' · ');
+      final label = [h.friendlyName ?? h.hostname ?? h.model ?? 'Unknown device', h.ip, ?h.mac, ?h.vendor].join(' · ');
       for (final rule in rules) {
         final message = 'New on $cidr: $label';
         await db.into(db.alertEvents).insert(AlertEventsCompanion.insert(ruleId: rule.id, at: now, message: message));

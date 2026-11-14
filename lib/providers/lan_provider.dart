@@ -16,7 +16,14 @@ import 'ping_provider.dart';
 /// A scanned device plus what Pulse remembers about it.
 @immutable
 class LanDevice {
-  const LanDevice({required this.host, required this.type, this.firstSeen, this.isNew = false});
+  const LanDevice({
+    required this.host,
+    required this.type,
+    this.firstSeen,
+    this.isNew = false,
+    this.customName,
+    this.customType,
+  });
   final LanHost host;
   final DeviceType type;
   final DateTime? firstSeen;
@@ -24,14 +31,68 @@ class LanDevice {
   /// Never seen on this subnet before this scan.
   final bool isNew;
 
+  /// The name the user gave it (Edit device).
+  final String? customName;
+
+  /// The type the user picked (Edit device), over the detected [type].
+  final DeviceType? customType;
+
+  /// What the device is: the user's pick, else what the scan detected.
+  DeviceType get kind => customType ?? type;
+
+  /// The user's name, then the name the device announces, its network name,
+  /// its model, then its role.
   String get displayName =>
+      customName ??
+      host.friendlyName ??
       host.hostname ??
+      host.model ??
       (host.isGateway
           ? 'Router'
           : host.isSelf
           ? 'This device'
-          : 'Unknown');
+          : host.vendor != null
+          ? '${_shortVendor(host.vendor!)} device'
+          : 'Unknown device');
+
+  /// Nothing at all is known about it.
+  bool get isUnknown =>
+      customName == null &&
+      customType == null &&
+      host.friendlyName == null &&
+      host.hostname == null &&
+      host.model == null &&
+      host.vendor == null &&
+      !host.isGateway &&
+      !host.isSelf;
+
   String get key => host.mac ?? host.ip;
+
+  LanDevice copyWith({
+    DeviceType? type,
+    String? customName,
+    bool clearCustomName = false,
+    DeviceType? customType,
+    bool clearCustomType = false,
+    DateTime? firstSeen,
+  }) => LanDevice(
+    host: host,
+    type: type ?? this.type,
+    isNew: isNew,
+    firstSeen: firstSeen ?? this.firstSeen,
+    customName: clearCustomName ? null : customName ?? this.customName,
+    customType: clearCustomType ? null : customType ?? this.customType,
+  );
+
+  static DeviceType? typeFromName(String? name) {
+    for (final t in DeviceType.values) {
+      if (t.name == name) return t;
+    }
+    return null;
+  }
+
+  // "Samsung Electronics Co.,Ltd" -> "Samsung".
+  static String _shortVendor(String v) => v.split(RegExp(r'[ ,]')).first;
 }
 
 @immutable
@@ -147,8 +208,12 @@ class LanScanNotifier extends Notifier<LanScanState> {
     final ip = link.localIpv4!;
     final cidr = LanScanner.cidrFor(ip, prefix);
     final db = ref.read(databaseProvider);
-    final known = {
-      for (final d in await (db.select(db.lanDevices)..where((t) => t.subnet.equals(cidr))).get()) d.key: d,
+    final rows = await (db.select(db.lanDevices)..where((t) => t.subnet.equals(cidr))).get();
+    final known = {for (final d in rows) d.key: d};
+    // A renamed device keeps its name when DHCP moves it to another address.
+    final byIdentity = {
+      for (final d in rows)
+        if (d.identity != null && (d.customName != null || d.pickedType != null)) d.identity!: d,
     };
     final started = DateTime.now();
     _sweep++;
@@ -171,6 +236,8 @@ class LanScanNotifier extends Notifier<LanScanState> {
           type: classifyDevice(h, openPorts: [for (final p in state.ports[h.ip] ?? const <PortResult>[]) p.port]),
           firstSeen: known[h.mac ?? h.ip]?.firstSeen,
           isNew: known.isNotEmpty && !known.containsKey(h.mac ?? h.ip) && !h.isSelf,
+          customName: known[h.mac ?? h.ip]?.customName ?? byIdentity[h.identity]?.customName,
+          customType: LanDevice.typeFromName(known[h.mac ?? h.ip]?.pickedType ?? byIdentity[h.identity]?.pickedType),
         ),
     ];
 
@@ -178,7 +245,7 @@ class LanScanNotifier extends Notifier<LanScanState> {
     _sub?.cancel();
     _sub = ref
         .read(lanScannerProvider)
-        .scan(localIp: ip, prefix: prefix, gateway: link.gateway)
+        .scan(localIp: ip, prefix: prefix, gateway: link.gateway, dnsServers: link.dns)
         .listen(
           (p) {
             state = state.copyWith(
@@ -217,6 +284,10 @@ class LanScanNotifier extends Notifier<LanScanState> {
             mac: Value(d.host.mac),
             hostname: Value(d.host.hostname),
             vendor: Value(d.host.vendor),
+            model: Value(d.host.model),
+            identity: Value(d.host.identity),
+            customName: Value(d.customName),
+            pickedType: Value(d.customType?.name),
             subnet: cidr,
             firstSeen: d.firstSeen ?? now,
             lastSeen: now,
@@ -226,16 +297,18 @@ class LanScanNotifier extends Notifier<LanScanState> {
               ip: Value(d.host.ip),
               hostname: Value(d.host.hostname),
               vendor: Value(d.host.vendor),
+              model: Value(d.host.model),
+              identity: Value(d.host.identity),
+              // Never clear a name the user chose; carry one found by identity.
+              customName: d.customName == null ? const Value.absent() : Value(d.customName),
+              pickedType: d.customType == null ? const Value.absent() : Value(d.customType!.name),
               lastSeen: Value(now),
             ),
           ),
         );
       }
     });
-    final withFirstSeen = [
-      for (final d in state.devices)
-        LanDevice(host: d.host, type: d.type, isNew: d.isNew, firstSeen: d.firstSeen ?? now),
-    ];
+    final withFirstSeen = [for (final d in state.devices) d.copyWith(firstSeen: d.firstSeen ?? now)];
     state = state.copyWith(devices: withFirstSeen);
     final n = state.devices.length;
     final fresh = state.devices.where((d) => d.isNew).length;
@@ -253,15 +326,72 @@ class LanScanNotifier extends Notifier<LanScanState> {
                 {
                   'ip': d.host.ip,
                   'mac': d.host.mac,
-                  'name': d.host.hostname,
+                  'name': d.displayName,
+                  'hostname': d.host.hostname,
+                  'model': d.host.model,
                   'vendor': d.host.vendor,
-                  'type': d.type.label,
+                  'services': d.host.services,
+                  'type': d.kind.label,
                   'rtt': d.host.rttMs,
                   'new': d.isNew,
                 },
             ],
           },
         );
+  }
+
+  /// Saves the user's name and type for [device]; an empty [name] or a null
+  /// [type] goes back to what the scan found. Saved per device (MAC, else IP)
+  /// and remembered by identity, so it survives the router handing out a new
+  /// address.
+  Future<void> edit(LanDevice device, {String? name, DeviceType? type}) async {
+    final value = name?.trim();
+    final custom = value == null || value.isEmpty ? null : value;
+    final kind = type == device.type ? null : type;
+    final db = ref.read(databaseProvider);
+    final now = DateTime.now();
+    await db
+        .into(db.lanDevices)
+        .insert(
+          LanDevicesCompanion.insert(
+            key: device.key,
+            ip: device.host.ip,
+            mac: Value(device.host.mac),
+            hostname: Value(device.host.hostname),
+            vendor: Value(device.host.vendor),
+            model: Value(device.host.model),
+            identity: Value(device.host.identity),
+            customName: Value(custom),
+            pickedType: Value(kind?.name),
+            subnet: state.cidr ?? '',
+            firstSeen: device.firstSeen ?? now,
+            lastSeen: now,
+          ),
+          onConflict: DoUpdate((old) => LanDevicesCompanion(customName: Value(custom), pickedType: Value(kind?.name))),
+        );
+    // Clearing clears rows that share this identity too, so identity matching
+    // can't bring an old name or type back.
+    if ((custom == null || kind == null) && device.host.identity != null) {
+      await (db.update(db.lanDevices)..where((t) => t.identity.equals(device.host.identity!))).write(
+        LanDevicesCompanion(
+          customName: custom == null ? const Value(null) : const Value.absent(),
+          pickedType: kind == null ? const Value(null) : const Value.absent(),
+        ),
+      );
+    }
+    state = state.copyWith(
+      devices: [
+        for (final d in state.devices)
+          d.key == device.key
+              ? d.copyWith(
+                  customName: custom,
+                  clearCustomName: custom == null,
+                  customType: kind,
+                  clearCustomType: kind == null,
+                )
+              : d,
+      ],
+    );
   }
 
   void select(String ip) {
@@ -298,12 +428,8 @@ class LanScanNotifier extends Notifier<LanScanState> {
       devices: [
         for (final d in state.devices)
           d.host.ip == ip
-              ? LanDevice(
-                  host: d.host,
-                  type: classifyDevice(d.host, openPorts: [for (final p in open) p.port]),
-                  firstSeen: d.firstSeen,
-                  isNew: d.isNew,
-                )
+              // copyWith keeps the user's name and type.
+              ? d.copyWith(type: classifyDevice(d.host, openPorts: [for (final p in open) p.port]))
               : d,
       ],
     );
