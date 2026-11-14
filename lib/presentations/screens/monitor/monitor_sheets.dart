@@ -30,10 +30,11 @@ Future<T?> _sheet<T>(BuildContext context, WidgetBuilder builder) => showModalBo
 
 /// Sheet title row: headlineSmall title + optional subtitle.
 class _SheetHeader extends StatelessWidget {
-  const _SheetHeader({required this.title, this.subtitle, this.leading});
+  const _SheetHeader({required this.title, this.subtitle, this.leading, this.trailing});
   final String title;
   final String? subtitle;
   final Widget? leading;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -54,6 +55,7 @@ class _SheetHeader extends StatelessWidget {
             ],
           ),
         ),
+        if (trailing != null) ...[const SizedBox(width: 8), trailing!],
       ],
     ),
   );
@@ -194,6 +196,26 @@ class _AddTargetSheetState extends ConsumerState<_AddTargetSheet> {
 
 /// Details for one target: uptime, latest latency, the full uptime strip,
 /// its incidents, rename, watch on/off and remove.
+/// Asks before removing [t] (history and incidents go with it), then removes
+/// it. True when it was removed. Used by the target sheet and row swipe.
+Future<bool> confirmRemoveTarget(BuildContext context, WidgetRef ref, MonitorTarget t) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Remove ${t.host}?'),
+      content: const Text('Its check history and incidents are deleted too. Alert rules for it stay.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Remove')),
+      ],
+    ),
+  );
+  if (ok != true) return false;
+  await ref.read(monitorTargetsRepositoryProvider).delete(t.id);
+  if (context.mounted) showPulseToast(context, 'Removed ${t.name.isEmpty ? t.host : t.name}', icon: PulseIcons.trash);
+  return true;
+}
+
 Future<void> showTargetSheet(BuildContext context, MonitorTarget target) =>
     _sheet<void>(context, (_) => _TargetSheet(targetId: target.id, initial: target));
 
@@ -217,20 +239,7 @@ class _TargetSheetState extends ConsumerState<_TargetSheet> {
   }
 
   Future<void> _remove(MonitorTarget t) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Remove ${t.host}?'),
-        content: const Text('Its check history and incidents are deleted too. Alert rules for it stay.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Remove')),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    await ref.read(monitorTargetsRepositoryProvider).delete(t.id);
-    if (mounted) Navigator.of(context).pop();
+    if (await confirmRemoveTarget(context, ref, t) && mounted) Navigator.of(context).pop();
   }
 
   @override
@@ -258,6 +267,7 @@ class _TargetSheetState extends ConsumerState<_TargetSheet> {
           _SheetHeader(
             title: t.host,
             subtitle: t.name.isEmpty ? null : t.name,
+            trailing: PulseIconButton(icon: PulseIcons.trash, tooltip: 'Remove target', onPressed: () => _remove(t)),
             leading: const PulseShapeBadge(
               shape: PulseShape.diamond,
               tone: PulseTone.lavender,

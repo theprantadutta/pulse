@@ -563,7 +563,7 @@ class _TargetList extends StatelessWidget {
   }
 }
 
-class _TargetTile extends StatelessWidget {
+class _TargetTile extends ConsumerWidget {
   const _TargetTile({
     required this.row,
     required this.index,
@@ -579,7 +579,7 @@ class _TargetTile extends StatelessWidget {
   final double minHeight;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final t = row.target;
     final up = pctLabel(row.uptime);
@@ -621,7 +621,7 @@ class _TargetTile extends StatelessWidget {
           ),
       ],
     );
-    return Opacity(
+    final tile = Opacity(
       opacity: t.enabled ? 1 : .6,
       child: SegmentedTile(
         index: index,
@@ -660,6 +660,26 @@ class _TargetTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+    // Swipe left to remove (asks first); the target sheet has the same action.
+    return Dismissible(
+      key: ValueKey('monitor-target-${t.id}'),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) => confirmRemoveTarget(context, ref, t),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        decoration: BoxDecoration(color: c.errorContainer, borderRadius: BorderRadius.circular(20)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Remove', style: context.type.labelLarge!.copyWith(color: c.onErrorContainer)),
+            const SizedBox(width: 10),
+            PulseIcon(PulseIcons.trash, size: 22, color: c.onErrorContainer),
+          ],
+        ),
+      ),
+      child: tile,
     );
   }
 }
