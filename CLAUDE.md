@@ -30,6 +30,9 @@ It replaced the earlier "Wire" design (branch `redesign/wire`, now merged histor
   that calls `remove()`, after its first frame. The native images in `assets/brand/splash/` are drawn with
   `PulseLogo`'s exact geometry at 168 dp (672 px @4x) on the theme surface, so the hand-off is invisible. Regenerate
   them with the same geometry if the logo changes, then `dart run flutter_native_splash:create`.
+  The router must always start on `/launch` (`overridePlatformDefaultLocation: true`): a platform route such as
+  the Monitor notification's `/monitor` would otherwise skip SplashScreen, so boot never runs and the deferred
+  first frame is never released (blank screen). The requested route becomes SplashScreen's `next` instead.
 - **Brand assets:** kit logo PNGs → `assets/brand/icon/*` (launcher icons via `flutter_launcher_icons.yaml`; Windows
   `.ico`, macOS, web and tray icons are written pixel-exact; Android notification icon `ic_stat_pulse`).
 - **Geo IP map:** offline Natural Earth vector map `assets/data/world_map.bin` (format in `assets/data/README.md`),

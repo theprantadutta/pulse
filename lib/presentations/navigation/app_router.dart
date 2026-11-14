@@ -69,14 +69,32 @@ Page<void> _page(BuildContext context, GoRouterState state, Widget child) {
 GoRoute _route(String path, Widget Function(GoRouterState s) build) =>
     GoRoute(path: path, pageBuilder: (context, state) => _page(context, state, build(state)));
 
+/// Where the launch route goes once boot is done: the route the platform
+/// asked for, or Ping. The Monitor notification launches Pulse with `/monitor`
+/// (flutter_foreground_task's notificationInitialRoute).
+String launchDestination(String platformRoute) {
+  final uri = Uri.tryParse(platformRoute);
+  if (uri == null || uri.path == '/' || uri.path == Routes.launch) return Routes.ping;
+  return platformRoute;
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
+  final next = launchDestination(WidgetsBinding.instance.platformDispatcher.defaultRouteName);
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: Routes.launch,
+    // Always start on the launch route, even when the platform asks for
+    // another one: SplashScreen runs boot (database, notifications, monitor)
+    // and is what releases the native splash. Opening /monitor directly left
+    // the first frame deferred forever, a blank screen.
+    overridePlatformDefaultLocation: true,
     routes: [
       GoRoute(
         path: Routes.launch,
-        pageBuilder: (context, state) => NoTransitionPage(key: state.pageKey, child: const SplashScreen()),
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: SplashScreen(next: next),
+        ),
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
