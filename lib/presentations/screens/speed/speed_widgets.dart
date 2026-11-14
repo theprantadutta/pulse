@@ -14,6 +14,10 @@ String fmtMbps(double? v) => v == null
     ? v.toStringAsFixed(0)
     : v.toStringAsFixed(1);
 
+/// The figure shown while a phase is running: whole Mbps (one decimal under
+/// 10), so the odometer doesn't spin a tenths digit four times a second.
+String fmtLiveMbps(double? v) => v == null ? '—' : (v >= 10 ? v.toStringAsFixed(0) : v.toStringAsFixed(1));
+
 /// Gauge position on the kit's log scale: 1–500 Mbps → 0–1.
 double speedGaugeValue(double? mbps) => (math.log(math.max(mbps ?? 0, 1)) / math.log(500)).clamp(0, 1).toDouble();
 

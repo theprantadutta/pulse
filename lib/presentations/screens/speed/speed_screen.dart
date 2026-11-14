@@ -203,7 +203,11 @@ class _Gauge extends ConsumerWidget {
             data: MediaQuery.of(context)
                 .copyWith(textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.3)),
             child: PulseLiveValue(
-              ping ? (s.pingMs == null ? '…' : fmtMs(s.pingMs)) : fmtMbps(mbps ?? 0),
+              ping
+                  ? (s.pingMs == null ? '…' : fmtMs(s.pingMs))
+                  : s.phase == SpeedPhase.done
+                  ? fmtMbps(mbps ?? 0)
+                  : fmtLiveMbps(mbps ?? 0),
               style: pulseText(big ? 132 : 92, 900, wdth: 125, height: 1, tracking: -.04).copyWith(color: c.onSurface),
             ),
           ),
@@ -675,7 +679,13 @@ class _UploadCard extends StatelessWidget {
           if (pending)
             Text('—', style: pulseNumber(24).copyWith(color: c.outline))
           else
-            PulseNumber(fmtMbps(value), unit: 'Mbps', live: true, unitScale: .5, style: pulseNumber(24)),
+            PulseNumber(
+              s.phase == SpeedPhase.upload ? fmtLiveMbps(value) : fmtMbps(value),
+              unit: 'Mbps',
+              live: true,
+              unitScale: .5,
+              style: pulseNumber(24),
+            ),
         ],
       ),
     );

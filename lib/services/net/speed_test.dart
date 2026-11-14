@@ -246,7 +246,7 @@ class SpeedTest {
         liveMbps: u.$1,
         pingMs: ping,
         jitterMs: jitter,
-        sample: SpeedSample(u.$1, upload: false),
+        sample: SpeedSample(u.$4, upload: false),
         progress: u.$3,
         colo: colo,
       );
@@ -263,7 +263,7 @@ class SpeedTest {
         pingMs: ping,
         jitterMs: jitter,
         downMbps: down,
-        sample: SpeedSample(u.$1, upload: true),
+        sample: SpeedSample(u.$4, upload: true),
         progress: u.$3,
         colo: colo,
       );
@@ -284,8 +284,12 @@ class SpeedTest {
     _clients.clear();
   }
 
-  /// Emits (instant Mbps, overall Mbps, progress) every 250 ms.
-  Stream<(double, double, double)> _measure({required bool upload, required SpeedServer server}) async* {
+  /// Smoothing window for the live figure.
+  static const liveWindow = Duration(seconds: 2);
+
+  /// Emits (live Mbps over [liveWindow], overall Mbps, progress, Mbps over the
+  /// last 250 ms tick) every 250 ms.
+  Stream<(double, double, double, double)> _measure({required bool upload, required SpeedServer server}) async* {
     final duration = upload ? uploadTime : downloadTime;
     var bytes = 0;
     final sw = Stopwatch()..start();
@@ -351,6 +355,9 @@ class SpeedTest {
 
     var lastBytes = 0;
     var lastMs = 0;
+    // (ms, bytes) for the last [liveWindow]: the live figure is the rate over
+    // that window, so it reads steadily instead of jumping every tick.
+    final window = <(int, int)>[(0, 0)];
     while (sw.elapsed < duration && !_cancelled) {
       await Future<void>.delayed(const Duration(milliseconds: 250));
       final ms = sw.elapsedMilliseconds;
@@ -362,7 +369,13 @@ class SpeedTest {
       final overall = warmAt == 0 ? instant : (bytes - warmBytes) * 8 / ((ms - warmAt) / 1000) / 1e6;
       lastBytes = bytes;
       lastMs = ms;
-      yield (instant, overall, ms / duration.inMilliseconds);
+      window.add((ms, bytes));
+      while (window.length > 2 && ms - window[1].$1 >= liveWindow.inMilliseconds) {
+        window.removeAt(0);
+      }
+      final (fromMs, fromBytes) = window.first;
+      final live = ms == fromMs ? instant : (bytes - fromBytes) * 8 / ((ms - fromMs) / 1000) / 1e6;
+      yield (live, overall, ms / duration.inMilliseconds, instant);
     }
     stop = true;
     for (final c in List.of(_clients)) {
