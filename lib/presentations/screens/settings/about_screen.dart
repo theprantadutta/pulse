@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -54,9 +53,9 @@ class AboutScreen extends ConsumerWidget {
       items: [
         (r) => SettingsValueItem(icon: PulseIcons.info, title: 'Version', value: info?.version ?? '—'),
         (r) => SettingsValueItem(icon: PulseIcons.data, title: 'Build number', value: info?.buildNumber ?? '—'),
-        (r) => SettingsValueItem(icon: PulseIcons.tune, title: 'Build type', value: _buildMode),
         (r) => SettingsValueItem(icon: PulseIcons.code, title: 'Package', subtitle: info?.packageName ?? '—'),
         (r) => SettingsValueItem(icon: _platformIcon, title: 'Platform', subtitle: _platform),
+        (r) => SettingsValueItem(icon: PulseIcons.code, title: 'Flutter', value: _flutterVersion),
         (r) => SettingsValueItem(icon: PulseIcons.pulse, title: 'Dart', value: _dartVersion),
       ],
     );
@@ -153,13 +152,13 @@ class AboutScreen extends ConsumerWidget {
 
   static String get _copyright => '© ${DateTime.now().year} ${kDeveloper.name}';
 
-  static String get _buildMode => kReleaseMode
-      ? 'Release'
-      : kProfileMode
-      ? 'Profile'
-      : 'Debug';
+  /// The flutter tool passes the SDK versions as compile-time defines.
+  static const _flutterDefine = String.fromEnvironment('FLUTTER_VERSION');
+  static const _dartDefine = String.fromEnvironment('FLUTTER_DART_VERSION');
 
-  static String get _dartVersion => Platform.version.split(' ').first;
+  static String get _flutterVersion => _flutterDefine.isEmpty ? '—' : _flutterDefine;
+
+  static String get _dartVersion => _dartDefine.isNotEmpty ? _dartDefine : Platform.version.split(' ').first;
 
   static PulseIcons get _platformIcon => Platform.isAndroid || Platform.isIOS ? PulseIcons.phone : PulseIcons.laptop;
 
@@ -187,14 +186,15 @@ class AboutScreen extends ConsumerWidget {
 
   static Future<void> _copyInfo(BuildContext context, PackageInfo info) async {
     final text = [
-      'Pulse ${info.version} (build ${info.buildNumber}, ${_buildMode.toLowerCase()})',
+      'Pulse ${info.version} (build ${info.buildNumber})',
       'Package: ${info.packageName}',
       'Platform: $_platform',
+      'Flutter: $_flutterVersion',
       'Dart: $_dartVersion',
     ].join('\n');
     await Clipboard.setData(ClipboardData(text: text));
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('App info copied')));
+      showPulseToast(context, 'App info copied', icon: PulseIcons.copy);
     }
   }
 }
